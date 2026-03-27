@@ -7,7 +7,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.Mics.StringFormat.formatToString;
+import static RayTraceAntiEntityESP.Misc.StringFormat.formatToString;
 
 public class CommandsHandler implements CommandExecutor {
 
