@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.Misc;
+package RayTraceAntiEntityESP.misc;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;

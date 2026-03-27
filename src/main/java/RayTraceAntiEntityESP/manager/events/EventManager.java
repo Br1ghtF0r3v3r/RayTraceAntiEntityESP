@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.Manager.Events;
+package RayTraceAntiEntityESP.manager.events;
 
 import io.papermc.paper.event.player.*;
 import org.bukkit.event.block.*;

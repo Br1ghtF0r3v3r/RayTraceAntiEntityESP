@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.Commands;
+package RayTraceAntiEntityESP.commands;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -7,7 +7,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.Misc.StringFormat.formatToString;
+import static RayTraceAntiEntityESP.misc.StringFormat.formatToString;
 
 public class CommandsHandler implements CommandExecutor {
 
