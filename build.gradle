@@ -1,0 +1,69 @@
+plugins {
+    id "com.gradleup.shadow" version "9.3.0"
+    id "xyz.jpenilla.run-paper" version "3.0.2"
+    id "java"
+}
+
+tasks {
+    shadowJar {
+        archiveBaseName.set("${project.name}")
+        archiveClassifier.set("")
+        archiveVersion.set("")
+    }
+
+    tasks.jar {
+        enabled = false
+    }
+
+    runServer {
+        serverJar(file("run/server.jar"))
+        minecraftVersion("")
+        systemProperty("com.mojang.eula.agree", true)
+    }
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+        maven{url "https://repo.papermc.io/repository/maven-public/"}
+    }
+}
+
+dependencies {
+    compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion(javaVersion)
+    targetCompatibility = JavaVersion.toVersion(javaVersion)
+
+    if (JavaVersion.current() < JavaVersion.toVersion(javaVersion)) {
+        toolchain.languageVersion = JavaLanguageVersion.of(javaVersion as String)
+    }
+}
+
+def javaVersion = javaVersion as int
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+
+    if (javaVersion as int >= 10 || JavaVersion.current().isJava10Compatible()) {
+        options.release = javaVersion as int
+    }
+}
+
+processResources {
+    def props = [
+            name: project.name,
+            version: project.version,
+            main: main,
+            apiVersion: apiVersion,
+            author: author
+    ]
+
+    inputs.properties props
+    filesMatching('plugin.yml') {
+        expand props
+    }
+    filteringCharset 'UTF-8'
+}

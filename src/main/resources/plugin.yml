@@ -1,0 +1,16 @@
+main: ${main}
+api-version: ${apiVersion}
+
+name: ${name}
+version: ${version}
+author: ${author}
+
+softdepend: []
+
+permissions:
+  rtaee.command:
+    default: op
+
+commands:
+  rtaee:
+    permission: rtaee.command
