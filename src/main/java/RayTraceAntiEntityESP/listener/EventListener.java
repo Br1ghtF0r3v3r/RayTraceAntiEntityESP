@@ -7,6 +7,8 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
+import static RayTraceAntiEntityESP.manager.events.EventManager.*;
+
 public class EventListener implements Listener {
 
     @EventHandler
