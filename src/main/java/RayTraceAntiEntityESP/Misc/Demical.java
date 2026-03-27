@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.Mics;
+package RayTraceAntiEntityESP.Misc;
 
 public class Demical {
 
