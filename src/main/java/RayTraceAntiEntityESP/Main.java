@@ -1,8 +1,8 @@
 package RayTraceAntiEntityESP;
 
-import RayTraceAntiEntityESP.Commands.CommandsHandler;
-import RayTraceAntiEntityESP.Listener.EventListener;
-import RayTraceAntiEntityESP.Commands.TabCompletion;
+import RayTraceAntiEntityESP.commands.CommandsHandler;
+import RayTraceAntiEntityESP.listener.EventListener;
+import RayTraceAntiEntityESP.commands.TabCompletion;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
