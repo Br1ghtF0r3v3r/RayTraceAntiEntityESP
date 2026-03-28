@@ -9,13 +9,13 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 public class EntityPacketHandler {
-    public void hideEntity(Player player, Entity target) {
+    public static void destroyEntity(Player player, Entity target) {
         int id = target.getEntityId();
         WrapperPlayServerDestroyEntities destroyPacket = new WrapperPlayServerDestroyEntities(id);
         PacketEvents.getAPI().getPlayerManager().sendPacket(player, destroyPacket);
     }
 
-    private void spawnEntity(Player player, Entity target) {
+    public static void spawnEntity(Player player, Entity target) {
         WrapperPlayServerSpawnEntity spawn = new WrapperPlayServerSpawnEntity(
                 target.getEntityId(),
                 target.getUniqueId(),
