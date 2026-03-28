@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.engine;
 
 import org.bukkit.FluidCollisionMode;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
