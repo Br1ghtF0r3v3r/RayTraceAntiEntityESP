@@ -1,24 +1,18 @@
 package RayTraceAntiEntityESP;
 
 import RayTraceAntiEntityESP.commands.CommandsHandler;
-import RayTraceAntiEntityESP.engine.EntityPacketFilter;
+import RayTraceAntiEntityESP.engine.VisibilityManager;
 import RayTraceAntiEntityESP.listener.EventListener;
 import RayTraceAntiEntityESP.commands.TabCompletion;
 import com.github.retrooper.packetevents.PacketEvents;
 import org.bukkit.command.PluginCommand;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import static RayTraceAntiEntityESP.config.Config.setConfig;
 
 public final class Main extends JavaPlugin {
 
     public static RayTraceAntiEntityESP.Main plugin;
-    public static FileConfiguration messagesConfig;
 
     @Override
     public void onEnable() {
@@ -30,35 +24,27 @@ public final class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EventListener(), this);
         registerCommands();
 
-
         PacketEvents.getAPI().init();
-        PacketEvents.getAPI().getEventManager().registerListener(
-                new EntityPacketFilter()
-        );
+//        PacketEvents.getAPI().getEventManager().registerListener(
+//                new EntityPacketFilter()
+//        );
+        VisibilityManager.INSTANCE.start();
 
         getLogger().info("RayTraceEntityESP enabled successfully!");
     }
 
     @Override
     public void onDisable() {
+
         PacketEvents.getAPI().terminate();
         getLogger().info("RayTraceEntityESP disabled.");
+
     }
 
     public void reloadConfigAll() {
         saveDefaultConfig();
         reloadConfig();
-        reloadMessage();
-    }
-
-    public void reloadMessage() {
-        File messageFile = new File(plugin.getDataFolder(), "message.yml");
-        messagesConfig = YamlConfiguration.loadConfiguration(messageFile);
-        final InputStream defConfigStream = getResource("message.yml");
-        if (defConfigStream == null) {
-            return;
-        }
-        messagesConfig.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(defConfigStream, StandardCharsets.UTF_8)));
+        setConfig();
     }
 
     public void registerCommands() {

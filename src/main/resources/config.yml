@@ -1,0 +1,6 @@
+bounding_box_extra_value: 0.1
+sample_points_per_corner: 8
+distances_override: -1
+perspective_checking:
+  enabled: true
+  distances: 4
