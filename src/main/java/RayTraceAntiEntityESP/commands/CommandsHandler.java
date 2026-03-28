@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.commands;
 
 import RayTraceAntiEntityESP.engine.RaycastUtils;
+import RayTraceAntiEntityESP.engine.VisibilityManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -29,19 +30,19 @@ public class CommandsHandler implements CommandExecutor {
                 plugin.reloadConfigAll();
             }
 
-            if (args[0].equalsIgnoreCase("nigger")) {
-                if (sender instanceof Player player) {
-                    Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-                    Collection<LivingEntity> entities = player.getWorld().getLivingEntities();
+            if (args[0].equalsIgnoreCase("start")) {
+//                if (sender instanceof Player player) {
+//                    Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+//                    Collection<LivingEntity> entities = player.getWorld().getLivingEntities();
+//
+//                    for (LivingEntity entity : entities) {
+//                        if (entity == player) continue;
+//
+//                        VisibilityManager.INSTANCE.update(player, entity, RaycastUtils.isEntityVisible(player, entity));
+//                    }
+//                }
 
-                    for (LivingEntity entity : entities) {
-                        if (entity == player) continue;
-
-                        if (RaycastUtils.isEntityVisible(player, entity)) {
-                            entity.setHealth(0d);
-                        }
-                    }
-                }
+                VisibilityManager.INSTANCE.start();
             }
             return true;
         }
