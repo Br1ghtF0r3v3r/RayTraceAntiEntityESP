@@ -1,8 +1,10 @@
 package RayTraceAntiEntityESP;
 
 import RayTraceAntiEntityESP.commands.CommandsHandler;
+import RayTraceAntiEntityESP.engine.EntityPacketFilter;
 import RayTraceAntiEntityESP.listener.EventListener;
 import RayTraceAntiEntityESP.commands.TabCompletion;
+import com.github.retrooper.packetevents.PacketEvents;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -28,12 +30,18 @@ public final class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new EventListener(), this);
         registerCommands();
 
+
+        PacketEvents.getAPI().init();
+        PacketEvents.getAPI().getEventManager().registerListener(
+                new EntityPacketFilter()
+        );
+
         getLogger().info("RayTraceEntityESP enabled successfully!");
     }
 
     @Override
     public void onDisable() {
-
+        PacketEvents.getAPI().terminate();
         getLogger().info("RayTraceEntityESP disabled.");
     }
 
