@@ -28,11 +28,7 @@ public class RaycastUtils {
             return false;
         }
 
-        if (!result.getHitBlock().isSolid()) {
-            return false;
-        }
-
-        return true;
+        return result.getHitBlock() == null || result.getHitBlock().isSolid();
     }
 
     public static boolean isEntityVisible(Player lookingPlayer, LivingEntity entity) {
