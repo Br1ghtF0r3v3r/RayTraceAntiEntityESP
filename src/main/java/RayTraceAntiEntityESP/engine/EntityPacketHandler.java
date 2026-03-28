@@ -9,14 +9,15 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 public class EntityPacketHandler {
-    public static void destroyEntity(Player player, Entity target) {
+
+    public static void sendDestroyEntityPacket(Player player, Entity target) {
         int id = target.getEntityId();
         WrapperPlayServerDestroyEntities destroyPacket = new WrapperPlayServerDestroyEntities(id);
         PacketEvents.getAPI().getPlayerManager().sendPacket(player, destroyPacket);
     }
 
-    public static void spawnEntity(Player player, Entity target) {
-        WrapperPlayServerSpawnEntity spawn = new WrapperPlayServerSpawnEntity(
+    public static void sendSpawnEntityPacket(Player player, Entity target) {
+        WrapperPlayServerSpawnEntity spawnEntityPacket = new WrapperPlayServerSpawnEntity(
                 target.getEntityId(),
                 target.getUniqueId(),
                 SpigotConversionUtil.fromBukkitEntityType(target.getType()),
@@ -30,7 +31,7 @@ public class EntityPacketHandler {
                 SpigotConversionUtil.getEntityMetadata(target)
         );
 
-        PacketEvents.getAPI().getPlayerManager().sendPacket(player, spawn);
+        PacketEvents.getAPI().getPlayerManager().sendPacket(player, spawnEntityPacket);
         PacketEvents.getAPI().getPlayerManager().sendPacket(player, meta);
     }
 }

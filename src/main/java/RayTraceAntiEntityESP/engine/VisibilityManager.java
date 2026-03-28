@@ -1,18 +1,12 @@
 package RayTraceAntiEntityESP.engine;
 
 import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 
@@ -59,25 +53,24 @@ public class VisibilityManager {
         boolean visibleClient = !hiddenSet.contains(id);
 
         if (visibleServer && !visibleClient) {
-            EntityPacketHandler.spawnEntity(player, target);
+            EntityPacketHandler.sendSpawnEntityPacket(player, target);
             hiddenSet.remove(id);
 
         } else if (!visibleServer && visibleClient) {
-            EntityPacketHandler.destroyEntity(player, target);
+            EntityPacketHandler.sendDestroyEntityPacket(player, target);
             hiddenSet.add(id);
         }
     }
 
     public void start() {
+        if (task != null) task.cancel();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             Collection<? extends Player> players = Bukkit.getOnlinePlayers();
 
             for (Player player : players) {
                 Collection<LivingEntity> entities = player.getWorld().getLivingEntities();
-
                 for (LivingEntity entity : entities) {
                     if (entity == player) continue;
-
                     VisibilityManager.INSTANCE.update(player, entity, RaycastUtils.isEntityVisible(player, entity));
                 }
             }
