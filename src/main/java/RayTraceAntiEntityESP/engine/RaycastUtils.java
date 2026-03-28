@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.engine;
 
+import RayTraceAntiEntityESP.misc.Maths;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -13,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.misc.Math.lerp;
 
 public class RaycastUtils {
 
@@ -103,7 +103,7 @@ public class RaycastUtils {
         // mid spine (extras * 4 points)
         if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePointsPerCorner must be at least 2");
         for (int i = 0; i < samplePointsPerCorner; i++) {
-            double y = lerp(minY, maxY, ((double) i) / (samplePointsPerCorner-1));
+            double y = Maths.lerp(minY, maxY, ((double) i) / (samplePointsPerCorner-1));
 
             if (boundingBoxExtraValue > 0) {
                 vertices.add(new Vector(minX - boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
