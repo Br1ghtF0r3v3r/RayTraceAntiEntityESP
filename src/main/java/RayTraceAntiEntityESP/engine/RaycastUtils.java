@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.engine;
 
+import RayTraceAntiEntityESP.misc.lycopod.Math;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -56,17 +57,34 @@ public class RaycastUtils {
         double maxY = boundingBox.getMaxY();
         double maxZ = boundingBox.getMaxZ();
 
-        // bottom face
-        vertices.add(new Vector(minX, minY, minZ));
-        vertices.add(new Vector(minX, minY, maxZ));
-        vertices.add(new Vector(maxX, minY, minZ));
-        vertices.add(new Vector(maxX, minY, maxZ));
+        double midX = boundingBox.getCenterX();
+        double midY = boundingBox.getCenterY();
+        double midZ = boundingBox.getCenterZ();
 
-        // top face
-        vertices.add(new Vector(minX, maxY, minZ));
-        vertices.add(new Vector(minX, maxY, maxZ));
-        vertices.add(new Vector(maxX, maxY, minZ));
-        vertices.add(new Vector(maxX, maxY, maxZ));
+//        // bottom face
+//        vertices.add(new Vector(minX, minY, minZ));
+//        vertices.add(new Vector(minX, minY, maxZ));
+//        vertices.add(new Vector(maxX, minY, maxZ));
+//        vertices.add(new Vector(maxX, minY, minZ));
+//
+//
+//        // top face
+//        vertices.add(new Vector(minX, maxY, minZ));
+//        vertices.add(new Vector(minX, maxY, maxZ));
+//        vertices.add(new Vector(maxX, maxY, maxZ));
+//        vertices.add(new Vector(maxX, maxY, minZ));
+
+        int extras = 8;
+
+        // mid spine (extra*4 points)
+        for (int i = 0; i < extras; i++) {
+            double y = Math.lerp(minY, maxY, ((double) i) / (extras-1));
+            vertices.add(new Vector(minX, y, minZ));
+            vertices.add(new Vector(minX, y, maxZ));
+            vertices.add(new Vector(maxX, y, maxZ));
+            vertices.add(new Vector(maxX, y, minZ));
+        }
+
 
         return vertices;
     }
