@@ -30,13 +30,18 @@ public class CommandsHandler implements CommandExecutor {
             }
 
             if (args[0].equalsIgnoreCase("nigger")) {
-                Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+                if (sender instanceof Player player) {
+                    Collection<? extends Player> players = Bukkit.getOnlinePlayers();
+                    Collection<LivingEntity> entities = player.getWorld().getLivingEntities();
 
-                sender.sendMessage(
-                        String.valueOf(
-                                RaycastUtils.isEntityVisible((Player) sender, (LivingEntity) ((Player) sender).getNearbyEntities(2d, 2d, 2d).getFirst())
-                        )
-                );
+                    for (LivingEntity entity : entities) {
+                        if (entity == player) continue;
+
+                        if (RaycastUtils.isEntityVisible(player, entity)) {
+                            entity.setHealth(0d);
+                        }
+                    }
+                }
             }
             return true;
         }
