@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.manager.events;
 
+import RayTraceAntiEntityESP.engine.RayTraceManager;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.entity.Player;
@@ -80,6 +81,7 @@ public class EventManager {
         Player player = event.getPlayer();
 
         hiddenEntities.remove(player.getUniqueId());
+        RayTraceManager.checkQueue.remove(player);
     }
 
     public static void packetSendManager(PacketSendEvent event) {
