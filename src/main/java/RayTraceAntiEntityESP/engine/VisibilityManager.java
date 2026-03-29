@@ -24,16 +24,12 @@ public class VisibilityManager {
     }
 
     public static void setHidden(Player player, Entity entity) {
-        hiddenEntities.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(entity.getEntityId());
+        markHidden(player, entity.getEntityId());
         player.hideEntity(plugin, entity);
     }
 
     public static void setNotHidden(Player player, Entity entity) {
-        Set<Integer> set = hiddenEntities.get(player.getUniqueId());
-        if (set != null) {
-            set.remove(entity.getEntityId());
-            if (set.isEmpty()) hiddenEntities.remove(player.getUniqueId());
-        }
+        markNotHidden(player, entity.getEntityId());
         EntityPacketFilter.bypassSet.add(player.getUniqueId() + ":" + entity.getEntityId());
         player.showEntity(plugin, entity);
     }
