@@ -1,7 +1,7 @@
 package RayTraceAntiEntityESP;
 
 import RayTraceAntiEntityESP.commands.CommandsHandler;
-import RayTraceAntiEntityESP.engine.VisibilityManager;
+import RayTraceAntiEntityESP.engine.RayTraceManager;
 import RayTraceAntiEntityESP.listener.EventListener;
 import RayTraceAntiEntityESP.commands.TabCompletion;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -22,13 +22,11 @@ public final class Main extends JavaPlugin {
         reloadConfigAll();
 
         getServer().getPluginManager().registerEvents(new EventListener(), this);
+        PacketEvents.getAPI().getEventManager().registerListener(new EventListener());
         registerCommands();
 
         PacketEvents.getAPI().init();
-//        PacketEvents.getAPI().getEventManager().registerListener(
-//                new EntityPacketFilter()
-//        );
-        VisibilityManager.INSTANCE.start();
+        RayTraceManager.startRayTraceChecking();
 
         getLogger().info("RayTraceEntityESP enabled successfully!");
     }

@@ -1,21 +1,27 @@
 package RayTraceAntiEntityESP.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
+import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
+import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
 
-public class RaycastUtils {
+public class RayTraceManager {
+
+    public static BukkitTask task;
+    public static long currentCheckingIntervalTicks;
 
     public static boolean collideSolid(Player player, Vector endpoint) {
         World world = player.getWorld();
@@ -27,7 +33,7 @@ public class RaycastUtils {
                 && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
-    private static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
+    public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
         direction = direction.normalize();
         RayTraceResult result = rayTrace(world, eyePos, direction, maxDistance);
         return result != null && result.getHitBlock() != null
@@ -35,7 +41,7 @@ public class RaycastUtils {
                 : eyePos.clone().add(direction.multiply(maxDistance));
     }
 
-    private static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
+    public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
         Vector direction = endpoint.clone().subtract(origin);
         double distance = direction.length();
         if (distance == 0) return false;
@@ -43,7 +49,7 @@ public class RaycastUtils {
         return result != null && result.getHitBlock() != null && result.getHitBlock().isSolid();
     }
 
-    private static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
+    public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
         return world.rayTraceBlocks(
                 new Location(world, origin.getX(), origin.getY(), origin.getZ()),
                 direction,
@@ -124,4 +130,40 @@ public class RaycastUtils {
 
         return vertices;
     }
+
+    //  | client state | server state | action         |
+    //  |--------------|--------------|----------------|
+    //  | visible      | visible      | nothing        |
+    //  | visible      | not visible  | destroy packet |
+    //  | not visible  | visible      | spawn packet   |
+    //  | not visible  | not visible  | nothing        |
+
+    public static void updateRayTraceChecking(Player player, Entity target, boolean visibleServer) {
+        boolean visibleClient = !VisibilityManager.isHidden(player, target.getEntityId());
+        if (visibleServer && !visibleClient) {
+            VisibilityManager.setNotHidden(player, target);
+        } else if (!visibleServer && visibleClient) {
+            VisibilityManager.setHidden(player, target);
+        }
+    }
+
+    public static void startRayTraceChecking() {
+        if (task != null) task.cancel();
+        currentCheckingIntervalTicks = checkingIntervalTicks;
+        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (currentCheckingIntervalTicks != checkingIntervalTicks) {
+                startRayTraceChecking();
+                return;
+            }
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                    if (entity != player) {
+                        RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
+                    }
+                }
+            }
+
+        }, 0L, checkingIntervalTicks);
+    }
+
 }

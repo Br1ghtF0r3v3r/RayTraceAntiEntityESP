@@ -9,6 +9,7 @@ public class Config {
     public static double distanceOverride;
     public static boolean perspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
+    public static long checkingIntervalTicks;
 
     public static void setConfig() {
 
@@ -17,6 +18,7 @@ public class Config {
         distanceOverride = plugin.getConfig().getDouble("distances_override", -1);
         perspectiveCheckingEnabled = plugin.getConfig().getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances", 4);
+        checkingIntervalTicks = plugin.getConfig().getLong("checking_interval_ticks", 1);
 
     }
 
