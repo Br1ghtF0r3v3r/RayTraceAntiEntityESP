@@ -4,7 +4,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import static RayTraceAntiEntityESP.Main.plugin;
@@ -12,6 +11,7 @@ import static RayTraceAntiEntityESP.Main.plugin;
 public class Config {
 
     public static boolean isCheckingEnabled;
+    public static boolean isDebugEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
 
@@ -28,6 +28,7 @@ public class Config {
         loadSpigotConfig();
 
         isCheckingEnabled = plugin.getConfig().getBoolean("enabled", true);
+        isDebugEnabled = plugin.getConfig().getBoolean("debug", false);
         checkingPeriodTicks = plugin.getConfig().getLong("checking_period_ticks", 1);
         checkingDistanceOverride = plugin.getConfig().getDouble("checking_distance_override", 0);
 
