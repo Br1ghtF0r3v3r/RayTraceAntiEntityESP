@@ -41,7 +41,6 @@ public final class Main extends JavaPlugin {
 
     public void reloadConfigAll() {
         saveDefaultConfig();
-        saveConfig();
         reloadConfig();
         setConfig();
     }
