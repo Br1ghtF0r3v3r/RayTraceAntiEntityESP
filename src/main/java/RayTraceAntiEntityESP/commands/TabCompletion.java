@@ -12,7 +12,7 @@ public class TabCompletion implements TabCompleter {
     @Override
     public List<String> onTabComplete(@NonNull CommandSender sender, Command command, @NonNull String alias, String @NonNull [] args) {
 
-        if (command.getName().equalsIgnoreCase("rtaee")) {
+        if (command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) {
             if (args.length == 1) {
                 return List.of("reload");
             }
