@@ -5,36 +5,44 @@ import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import static RayTraceAntiEntityESP.Main.plugin;
 
 public class EntityPacketFilter extends PacketListenerAbstract {
-    @Override
-    public void onPacketSend(PacketSendEvent event) {
-        // --- CASE 1: SERVER IS TRYING TO SPAWN AN ENTITY ---
+
+    public static final Set<String> bypassSet = Collections.synchronizedSet(new HashSet<>());
+    public static String bypassKey(Player viewer, int entityId) { return viewer.getUniqueId() + ":" + entityId; }
+
+    public static void entityPacketFilter(PacketSendEvent event) {
         if (event.getPacketType() == PacketType.Play.Server.SPAWN_ENTITY) {
             WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(event);
-            Player viewer = (Player) event.getPlayer();
+            Player viewer = event.getPlayer();
             int entityId = spawnPacket.getEntityId();
-
-            if (viewer.getEntityId() == entityId) return; // Don't hide the player from themselves
-
-            // Check if our raycast says it SHOULD be hidden
-            if (VisibilityManager.INSTANCE.isHidden(viewer, entityId)) {
-                event.setCancelled(true);
-                // Sync our map: The client is now missing this entity
-                VisibilityManager.INSTANCE.setHidden(viewer, entityId, true);
-            }
-        }
-
-        // --- CASE 2: SERVER IS NATURALLY UNLOADING ENTITIES ---
-        else if (event.getPacketType() == PacketType.Play.Server.DESTROY_ENTITIES) {
-            WrapperPlayServerDestroyEntities destroyPacket = new WrapperPlayServerDestroyEntities(event);
-            Player viewer = (Player) event.getPlayer();
-
-            for (int entityId : destroyPacket.getEntityIds()) {
-                // If the server destroys it, it's gone from the client anyway.
-                // We reset our 'hidden' state so we don't desync.
-                VisibilityManager.INSTANCE.setHidden(viewer, entityId, false);
+            if (viewer.getEntityId() == entityId || bypassSet.remove(bypassKey(viewer, entityId))) return;
+            event.setCancelled(true);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                LivingEntity entity = viewer.getWorld().getEntities().stream()
+                        .filter(e -> e.getEntityId() == entityId && e instanceof LivingEntity)
+                        .map(e -> (LivingEntity) e).findFirst().orElse(null);
+                if (entity == null) return;
+                if (RayTraceManager.isEntityVisible(viewer, entity)) {
+                    viewer.hideEntity(plugin, entity);
+                    bypassSet.add(bypassKey(viewer, entityId));
+                    viewer.showEntity(plugin, entity);
+                    VisibilityManager.markNotHidden(viewer, entityId);
+                } else {
+                    VisibilityManager.markHidden(viewer, entityId);
+                }
+            });
+        } else if (event.getPacketType() == PacketType.Play.Server.DESTROY_ENTITIES) {
+            Player viewer = event.getPlayer();
+            for (int entityId : new WrapperPlayServerDestroyEntities(event).getEntityIds()) {
+                VisibilityManager.markNotHidden(viewer, entityId);
             }
         }
     }

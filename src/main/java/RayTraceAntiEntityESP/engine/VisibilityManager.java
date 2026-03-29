@@ -1,80 +1,46 @@
 package RayTraceAntiEntityESP.engine;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
-
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 
 public class VisibilityManager {
-    public static final VisibilityManager INSTANCE = new VisibilityManager();
 
-    private final Map<UUID, Set<Integer>> hiddenEntities = new HashMap<>();
+    public static ConcurrentHashMap<UUID, Set<Integer>> hiddenEntities = new ConcurrentHashMap<>();
 
-    private static BukkitTask task;
+    public static void markHidden(Player player, int entityId) {
+        hiddenEntities.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(entityId);
+    }
 
-    //  | client state | server state | action         |
-    //  |--------------|--------------|----------------|
-    //  | visible      | visible      | nothing        |
-    //  | visible      | not visible  | destroy packet |
-    //  | not visible  | visible      | spawn packet   |
-    //  | not visible  | not visible  | nothing        |
-
-    public void setHidden(Player player, int entityId, boolean hidden) {
-        UUID uuid = player.getUniqueId();
-
-        if (hidden) {
-            hiddenEntities.computeIfAbsent(uuid, k -> new HashSet<>())
-                    .add(entityId);
-        } else {
-            Set<Integer> set = hiddenEntities.get(uuid);
-            if (set != null) {
-                set.remove(entityId);
-                if (set.isEmpty()) {
-                    hiddenEntities.remove(uuid);
-                }
-            }
+    public static void markNotHidden(Player player, int entityId) {
+        Set<Integer> set = hiddenEntities.get(player.getUniqueId());
+        if (set != null) {
+            set.remove(entityId);
+            if (set.isEmpty()) hiddenEntities.remove(player.getUniqueId());
         }
     }
 
-    public boolean isHidden(Player player, int targetId) {
-        Set<Integer> hiddenSet = hiddenEntities.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
-        return hiddenSet.contains(targetId);
+    public static void setHidden(Player player, Entity entity) {
+        hiddenEntities.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>()).add(entity.getEntityId());
+        player.hideEntity(plugin, entity);
     }
 
-    public void update(Player player, Entity target, boolean visibleServer) {
-        Set<Integer> hiddenSet = hiddenEntities.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
-        int id = target.getEntityId();
-
-        boolean visibleClient = !hiddenSet.contains(id);
-
-        if (visibleServer && !visibleClient) {
-            EntityPacketHandler.sendSpawnEntityPacket(player, target);
-            hiddenSet.remove(id);
-
-        } else if (!visibleServer && visibleClient) {
-            EntityPacketHandler.sendDestroyEntityPacket(player, target);
-            hiddenSet.add(id);
+    public static void setNotHidden(Player player, Entity entity) {
+        Set<Integer> set = hiddenEntities.get(player.getUniqueId());
+        if (set != null) {
+            set.remove(entity.getEntityId());
+            if (set.isEmpty()) hiddenEntities.remove(player.getUniqueId());
         }
+        EntityPacketFilter.bypassSet.add(player.getUniqueId() + ":" + entity.getEntityId());
+        player.showEntity(plugin, entity);
     }
 
-    public void start() {
-        if (task != null) task.cancel();
-        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-
-            for (Player player : players) {
-                Collection<LivingEntity> entities = player.getWorld().getLivingEntities();
-                for (LivingEntity entity : entities) {
-                    if (entity == player) continue;
-                    VisibilityManager.INSTANCE.update(player, entity, RaycastUtils.isEntityVisible(player, entity));
-                }
-            }
-
-        }, 0L, 1);
+    public static boolean isHidden(Player player, int entityId) {
+        Set<Integer> hiddenSet = hiddenEntities.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
+        return hiddenSet.contains(entityId);
     }
+
 }
