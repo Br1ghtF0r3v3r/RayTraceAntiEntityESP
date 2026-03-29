@@ -2,6 +2,7 @@ package RayTraceAntiEntityESP.engine;
 
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
@@ -23,7 +24,7 @@ public class EntityPacketFilter extends PacketListenerAbstract {
             WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(event);
             Player viewer = event.getPlayer();
             int entityId = spawnPacket.getEntityId();
-            if (viewer.getEntityId() == entityId || bypassSet.remove(bypassKey(viewer, entityId))) return;
+            if (viewer.getEntityId() == entityId || bypassSet.remove(bypassKey(viewer, entityId)) || !EntityTypes.isTypeInstanceOf(spawnPacket.getEntityType(), EntityTypes.LIVINGENTITY)) return;
             event.setCancelled(true);
             Bukkit.getScheduler().runTask(plugin, () -> {
                 LivingEntity entity = viewer.getWorld().getEntities().stream()
