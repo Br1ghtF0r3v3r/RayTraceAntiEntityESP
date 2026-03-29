@@ -46,7 +46,7 @@ public class RayTraceManager {
         double distance = direction.length();
         if (distance == 0) return false;
         RayTraceResult result = rayTrace(world, origin, direction, distance);
-        return result != null && result.getHitBlock() != null && result.getHitBlock().isSolid();
+        return result != null && result.getHitBlock() != null && result.getHitBlock().getType().isOccluding();
     }
 
     public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
@@ -60,11 +60,13 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityVisible(Player player, LivingEntity entity) {
-        List<Vector> vertices = getEntityVertices(entity);
-
-        if (distanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < distanceOverride*distanceOverride) {
+        if (checkingRange > 0 && player.getLocation().distanceSquared(entity.getLocation()) > checkingRange * checkingRange) {
             return true;
         }
+        if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
+            return true;
+        }
+        List<Vector> vertices = getEntityVertices(entity);
         for (Vector vertex : vertices) {
             if (!collideSolid(player, vertex)) {
                 return true;
