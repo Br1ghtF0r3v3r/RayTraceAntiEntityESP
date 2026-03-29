@@ -12,7 +12,6 @@ public class Config {
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
-    public static int checkingAmountPerPeriod;
 
     public static double boundingBoxExtraValue;
     public static int samplePointsPerCorner;
@@ -26,7 +25,6 @@ public class Config {
         isCheckingEnabled = plugin.getConfig().getBoolean("enabled", true);
         checkingPeriodTicks = plugin.getConfig().getLong("checking_period_ticks", 1);
         checkingDistanceOverride = plugin.getConfig().getDouble("checking_distance_override", -1);
-        checkingAmountPerPeriod = plugin.getConfig().getInt("checking_amounts_per_period", 1);
 
         boundingBoxExtraValue = plugin.getConfig().getDouble("bounding_box_extra_value", 0.1);
         samplePointsPerCorner = plugin.getConfig().getInt("sample_points", 8);
