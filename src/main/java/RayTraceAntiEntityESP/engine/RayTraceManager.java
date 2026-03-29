@@ -59,74 +59,59 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityVisible(Player player, LivingEntity entity) {
-        int range = getSpigotTrackingRange(entity);
+        double range = getSpigotTrackingRange(entity);
         if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
             return true;
         }
         if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
             return true;
         }
-        List<Vector> vertices = getEntityVertices(entity);
+        List<Vector> vertices = getEntityVertices(player, entity, range);
         for (Vector vertex : vertices) {
             if (!collideSolid(player, vertex)) return true;
         }
         return false;
     }
 
-    public static List<Vector> getEntityVertices(LivingEntity entity) {
+    public static List<Vector> getEntityVertices(Player player, LivingEntity entity, double checkingRange) {
         ArrayList<Vector> vertices = new ArrayList<>();
-
         BoundingBox boundingBox = entity.getBoundingBox();
-
-//        // bottom face
-//        vertices.add(new Vector(minX, minY, minZ))
-//        double midX = boundingBox.getCenterX();
-//        double midY = boundingBox.getCenterY();
-//        double midZ = boundingBox.getCenterZ();;
-//        vertices.add(new Vector(minX, minY, maxZ));
-//        vertices.add(new Vector(maxX, minY, maxZ));
-//        vertices.add(new Vector(maxX, minY, minZ));
-//
-//
-//        // top face
-//        vertices.add(new Vector(minX, maxY, minZ));
-//        vertices.add(new Vector(minX, maxY, maxZ));
-//        vertices.add(new Vector(maxX, maxY, maxZ));
-//        vertices.add(new Vector(maxX, maxY, minZ));
-
         double maxX = boundingBox.getMaxX();
         double maxY = boundingBox.getMaxY();
         double maxZ = boundingBox.getMaxZ();
-
         double midX = boundingBox.getCenterX();
         double midY = boundingBox.getCenterY();
         double midZ = boundingBox.getCenterZ();
-
         double minX = boundingBox.getMinX();
         double minY = boundingBox.getMinY();
         double minZ = boundingBox.getMinZ();
 
-        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePointsPerCorner must be at least 2");
-        for (int i = 0; i < samplePointsPerCorner; i++) {
-            double y = Maths.lerp(minY, maxY, ((double) i) / (samplePointsPerCorner-1));
+        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
 
-            if (boundingBoxExtraValue > 0) {
-                vertices.add(new Vector(minX - boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
-                vertices.add(new Vector(minX - boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
+        double distance = player.getLocation().distance(entity.getLocation());
+        double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-                vertices.add(new Vector(maxX + boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
-                vertices.add(new Vector(maxX + boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
-            }
+        int scaledSamplePoints = Math.max(2, (int) Math.round(samplePointsPerCorner * (1.0 - ratio)));
 
-            vertices.add(new Vector(minX, y, minZ));
-            vertices.add(new Vector(minX, y, maxZ));
+        boolean includeCorners = ratio < 0.5;
 
+        for (int i = 0; i < scaledSamplePoints; i++) {
+            double y = Maths.lerp(minY, maxY, ((double) i) / (scaledSamplePoints - 1));
             vertices.add(new Vector(midX, y, midZ));
 
-            vertices.add(new Vector(maxX, y, maxZ));
-            vertices.add(new Vector(maxX, y, minZ));
+            if (includeCorners) {
+                if (boundingBoxExtraValue > 0) {
+                    vertices.add(new Vector(minX - boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
+                    vertices.add(new Vector(minX - boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
+                    vertices.add(new Vector(maxX + boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
+                    vertices.add(new Vector(maxX + boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
+                }
+                vertices.add(new Vector(minX, y, minZ));
+                vertices.add(new Vector(minX, y, maxZ));
+                vertices.add(new Vector(maxX, y, maxZ));
+                vertices.add(new Vector(maxX, y, minZ));
+            }
         }
-
         return vertices;
     }
 
@@ -158,6 +143,7 @@ public class RayTraceManager {
                         }
                     }
                 }
+                EntityPacketFilter.bypassSet.clear();
                 return;
             }
             if (currentCheckingIntervalTicks != checkingPeriodTicks) {

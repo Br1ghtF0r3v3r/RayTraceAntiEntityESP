@@ -40,17 +40,17 @@ public class Config {
         spigotConfig = YamlConfiguration.loadConfiguration(spigotFile);
     }
 
-    public static int getSpigotTrackingRange(LivingEntity entity) {
+    public static double getSpigotTrackingRange(LivingEntity entity) {
         String worldName = entity.getWorld().getName();
         String base = spigotConfig.contains("world-settings." + worldName + ".entity-tracking-range")
                 ? "world-settings." + worldName + ".entity-tracking-range."
                 : "world-settings.default.entity-tracking-range.";
         return switch (entity) {
-            case Player ignored -> spigotConfig.getInt(base + "players", 128);
-            case Animals ignored -> spigotConfig.getInt(base + "animals", 96);
-            case Monster ignored -> spigotConfig.getInt(base + "monsters", 96);
-            case AbstractVillager ignored -> spigotConfig.getInt(base + "misc", 96);
-            default -> spigotConfig.getInt(base + "other", 64);
+            case Player ignored -> spigotConfig.getDouble(base + "players", 128);
+            case Animals ignored -> spigotConfig.getDouble(base + "animals", 96);
+            case Monster ignored -> spigotConfig.getDouble(base + "monsters", 96);
+            case AbstractVillager ignored -> spigotConfig.getDouble(base + "misc", 96);
+            default -> spigotConfig.getDouble(base + "other", 64);
         };
     }
 
