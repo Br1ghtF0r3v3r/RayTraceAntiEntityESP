@@ -1,7 +1,7 @@
 enabled: true
-checking_interval_ticks: 1
-checking_range: 64
+checking_period_ticks: 1
 checking_distance_override: -1
+checking_amounts_per_period: 1
 
 bounding_box_extra_value: 0.1
 sample_points: 8
