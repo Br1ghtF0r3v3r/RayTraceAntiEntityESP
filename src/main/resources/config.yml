@@ -1,6 +1,7 @@
 enabled: true
+debug: false
 checking_period_ticks: 1
-checking_distance_override: 0
+checking_distance_override: 5
 
 bounding_box_extra_value: 0.5
 vertices_layers: 5
@@ -9,5 +10,5 @@ perspective_checking:
   distances: 4
 
 anti_entities:
-  - player
+- player
 anti_mode: whitelist

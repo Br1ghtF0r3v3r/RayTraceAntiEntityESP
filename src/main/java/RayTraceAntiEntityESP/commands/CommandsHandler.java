@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.isCheckingEnabled;
+import static RayTraceAntiEntityESP.config.Config.isDebugEnabled;
 import static RayTraceAntiEntityESP.misc.StringFormat.formatToString;
 
 public class CommandsHandler implements CommandExecutor {
@@ -27,6 +28,13 @@ public class CommandsHandler implements CommandExecutor {
                     if (args.length > 1) {
                         isCheckingEnabled = Boolean.parseBoolean(args[1]);
                         plugin.getConfig().set("enabled", isCheckingEnabled);
+                        plugin.saveConfig();
+                    }
+                }
+                else if (args[0].equalsIgnoreCase("debug")) {
+                    if (args.length > 1) {
+                        isDebugEnabled = Boolean.parseBoolean(args[1]);
+                        plugin.getConfig().set("debug", isDebugEnabled);
                         plugin.saveConfig();
                     }
                 }
