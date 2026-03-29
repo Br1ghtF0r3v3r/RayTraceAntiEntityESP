@@ -151,7 +151,21 @@ public class RayTraceManager {
         if (task != null) task.cancel();
         currentCheckingIntervalTicks = checkingIntervalTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (currentCheckingIntervalTicks != checkingIntervalTicks || !isCheckingEnabled) {
+            if (!isCheckingEnabled) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    Set<Integer> hiddenSet = VisibilityManager.hiddenEntities.get(player.getUniqueId());
+                    if (hiddenSet == null) continue;
+                    for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                        if (hiddenSet.contains(entity.getEntityId())) {
+                            VisibilityManager.setNotHidden(player, entity);
+                        }
+                    }
+                }
+                VisibilityManager.hiddenEntities.clear();
+                EntityPacketFilter.bypassSet.clear();
+                return;
+            }
+            if (currentCheckingIntervalTicks != checkingIntervalTicks) {
                 startRayTraceChecking();
                 return;
             }
@@ -162,7 +176,6 @@ public class RayTraceManager {
                     }
                 }
             }
-
         }, 0L, checkingIntervalTicks);
     }
 
