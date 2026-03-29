@@ -22,6 +22,7 @@ public class RayTraceManager {
 
     public static BukkitTask task;
     public static long currentCheckingIntervalTicks;
+    public static Queue<Player> checkQueue = new LinkedList<>();
 
     public static boolean collideSolid(Player player, Vector endpoint) {
         World world = player.getWorld();
@@ -60,7 +61,8 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityVisible(Player player, LivingEntity entity) {
-        if (checkingRange > 0 && player.getLocation().distanceSquared(entity.getLocation()) > checkingRange * checkingRange) {
+        int range = getSpigotTrackingRange(entity);
+        if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
             return true;
         }
         if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
@@ -68,9 +70,7 @@ public class RayTraceManager {
         }
         List<Vector> vertices = getEntityVertices(entity);
         for (Vector vertex : vertices) {
-            if (!collideSolid(player, vertex)) {
-                return true;
-            }
+            if (!collideSolid(player, vertex)) return true;
         }
         return false;
     }
@@ -150,34 +150,48 @@ public class RayTraceManager {
 
     public static void startRayTraceChecking() {
         if (task != null) task.cancel();
-        currentCheckingIntervalTicks = checkingIntervalTicks;
+        currentCheckingIntervalTicks = checkingPeriodTicks;
+        checkQueue.clear();
+
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!isCheckingEnabled) {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    Set<Integer> hiddenSet = VisibilityManager.hiddenEntities.get(player.getUniqueId());
-                    if (hiddenSet == null) continue;
-                    for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-                        if (hiddenSet.contains(entity.getEntityId())) {
-                            VisibilityManager.setNotHidden(player, entity);
-                        }
+                Bukkit.getOnlinePlayers().forEach(p -> {
+                    Set<Integer> hidden = VisibilityManager.hiddenEntities.get(p.getUniqueId());
+                    if (hidden != null) {
+                        p.getWorld().getLivingEntities().stream()
+                                .filter(e -> hidden.contains(e.getEntityId()))
+                                .forEach(e -> VisibilityManager.setNotHidden(p, e));
                     }
-                }
+                });
                 VisibilityManager.hiddenEntities.clear();
                 EntityPacketFilter.bypassSet.clear();
                 return;
             }
-            if (currentCheckingIntervalTicks != checkingIntervalTicks) {
+
+            if (currentCheckingIntervalTicks != checkingPeriodTicks) {
                 startRayTraceChecking();
                 return;
             }
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-                    if (entity != player) {
-                        RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
+
+            if (checkingAmountPerPeriod < 1) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                        if (entity != player) RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
                     }
                 }
             }
-        }, 0L, checkingIntervalTicks);
+            else {
+                if (checkQueue.isEmpty()) checkQueue.addAll(Bukkit.getOnlinePlayers());
+                for (int i = 0; i < Math.min(checkingAmountPerPeriod, checkQueue.size()); i++) {
+                    Player player = checkQueue.poll();
+                    if (player == null || !player.isOnline()) continue;
+                    for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                        if (entity != player)
+                            RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
+                    }
+                }
+            }
+        }, 0L, checkingPeriodTicks);
     }
 
 }
