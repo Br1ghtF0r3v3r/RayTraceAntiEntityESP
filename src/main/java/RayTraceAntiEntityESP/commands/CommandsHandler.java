@@ -31,9 +31,6 @@ public class CommandsHandler implements CommandExecutor {
                     }
                 }
 
-                if (args[0].equalsIgnoreCase("1")) {
-                }
-
             }
             return true;
         }

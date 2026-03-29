@@ -3,7 +3,11 @@ checking_period_ticks: 1
 checking_distance_override: 0
 
 bounding_box_extra_value: 0.5
-sample_points: 5
+vertices_layers: 5
 perspective_checking:
   enabled: true
   distances: 4
+
+anti_entities:
+  - player
+anti_mode: whitelist
