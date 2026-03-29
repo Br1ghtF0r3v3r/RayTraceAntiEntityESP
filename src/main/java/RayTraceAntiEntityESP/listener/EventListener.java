@@ -1,5 +1,7 @@
 package RayTraceAntiEntityESP.listener;
 
+import com.github.retrooper.packetevents.event.PacketListenerAbstract;
+import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
@@ -9,7 +11,7 @@ import org.bukkit.event.player.*;
 
 import static RayTraceAntiEntityESP.manager.events.EventManager.*;
 
-public class EventListener implements Listener {
+public class EventListener extends PacketListenerAbstract implements Listener {
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
@@ -119,5 +121,10 @@ public class EventListener implements Listener {
     @EventHandler
     public void onPlayerPickupArrow(PlayerPickupArrowEvent event) {
         playerPickupArrowManager(event);
+    }
+
+    @Override
+    public void onPacketSend(PacketSendEvent event) {
+        packetSendManager(event);
     }
 }

@@ -8,9 +8,9 @@ author: ${author}
 softdepend: ["packetevents"]
 
 permissions:
-  rtaee.command:
+  raytrace_anti_entity_esp.command:
     default: op
 
 commands:
-  rtaee:
-    permission: rtaee.command
+  raytrace_anti_entity_esp:
+    permission: raytrace_anti_entity_esp.command

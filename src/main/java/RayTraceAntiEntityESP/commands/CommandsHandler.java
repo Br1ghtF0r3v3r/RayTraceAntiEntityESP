@@ -14,24 +14,17 @@ public class CommandsHandler implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String @NonNull [] args) {
 
-        if (command.getName().equalsIgnoreCase("rtaee")) {
+        if (command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) {
 
-            if (args[0].equalsIgnoreCase("reload")) {
-                sender.sendMessage(formatToString(sender, "&aReloaded all configurations!"));
-                plugin.reloadConfigAll();
-            }
+            if (args.length > 0) {
 
-            if (args[0].equalsIgnoreCase("start")) {
-//                if (sender instanceof Player player) {
-//                    Collection<? extends Player> players = Bukkit.getOnlinePlayers();
-//                    Collection<LivingEntity> entities = player.getWorld().getLivingEntities();
-//
-//                    for (LivingEntity entity : entities) {
-//                        if (entity == player) continue;
-//
-//                        VisibilityManager.INSTANCE.update(player, entity, RaycastUtils.isEntityVisible(player, entity));
-//                    }
-//                }
+                if (args[0].equalsIgnoreCase("reload")) {
+                    sender.sendMessage(formatToString(sender, "&aReloaded all configurations!"));
+                    plugin.reloadConfigAll();
+                }
+
+                if (args[0].equalsIgnoreCase("1")) {
+                }
 
             }
             return true;
