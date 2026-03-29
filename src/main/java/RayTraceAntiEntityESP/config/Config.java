@@ -4,6 +4,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 
@@ -18,18 +20,24 @@ public class Config {
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
 
+    public static List<String> antiEntities;
+    public static String antiMode;
+
     public static void setConfig() {
 
         loadSpigotConfig();
 
         isCheckingEnabled = plugin.getConfig().getBoolean("enabled", true);
         checkingPeriodTicks = plugin.getConfig().getLong("checking_period_ticks", 1);
-        checkingDistanceOverride = plugin.getConfig().getDouble("checking_distance_override", -1);
+        checkingDistanceOverride = plugin.getConfig().getDouble("checking_distance_override", 0);
 
-        boundingBoxExtraValue = plugin.getConfig().getDouble("bounding_box_extra_value", 0.1);
-        samplePointsPerCorner = plugin.getConfig().getInt("sample_points", 8);
+        boundingBoxExtraValue = plugin.getConfig().getDouble("bounding_box_extra_value", 0.5);
+        samplePointsPerCorner = plugin.getConfig().getInt("vertices_layers", 5);
         isPerspectiveCheckingEnabled = plugin.getConfig().getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances", 4);
+
+        antiEntities = plugin.getConfig().getStringList("anti_entities");
+        antiMode = plugin.getConfig().getString("anti_mode", "whitelist");
 
     }
 

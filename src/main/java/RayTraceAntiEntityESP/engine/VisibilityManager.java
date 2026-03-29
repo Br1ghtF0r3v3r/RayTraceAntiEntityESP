@@ -7,6 +7,7 @@ import java.util.*;
 import static RayTraceAntiEntityESP.Main.plugin;
 
 public class VisibilityManager {
+
     public static void setHidden(Player player, LivingEntity entity) {
         player.hideEntity(plugin, entity);
     }
@@ -16,4 +17,5 @@ public class VisibilityManager {
         EntityPacketFilter.bypassSet.add(EntityPacketFilter.bypassKey(player, entity.getEntityId()));
         player.showEntity(plugin, entity);
     }
+
 }
