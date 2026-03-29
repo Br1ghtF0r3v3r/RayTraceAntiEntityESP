@@ -27,7 +27,7 @@ public class RayTraceManager {
         World world = player.getWorld();
         Vector eyePos = player.getEyeLocation().toVector();
         Vector lookDir = player.getLocation().getDirection();
-        if (!perspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
+        if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
         return hitsBlock(world, eyePos, endpoint)
                 && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
                 && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
@@ -151,7 +151,7 @@ public class RayTraceManager {
         if (task != null) task.cancel();
         currentCheckingIntervalTicks = checkingIntervalTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (currentCheckingIntervalTicks != checkingIntervalTicks) {
+            if (currentCheckingIntervalTicks != checkingIntervalTicks || !isCheckingEnabled) {
                 startRayTraceChecking();
                 return;
             }

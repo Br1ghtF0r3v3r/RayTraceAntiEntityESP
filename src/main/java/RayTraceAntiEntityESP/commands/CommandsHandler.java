@@ -7,6 +7,7 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import static RayTraceAntiEntityESP.Main.plugin;
+import static RayTraceAntiEntityESP.config.Config.isCheckingEnabled;
 import static RayTraceAntiEntityESP.misc.StringFormat.formatToString;
 
 public class CommandsHandler implements CommandExecutor {
@@ -21,6 +22,13 @@ public class CommandsHandler implements CommandExecutor {
                 if (args[0].equalsIgnoreCase("reload")) {
                     sender.sendMessage(formatToString(sender, "&aReloaded all configurations!"));
                     plugin.reloadConfigAll();
+                }
+                else if (args[0].equalsIgnoreCase("enabled")) {
+                    if (args.length > 1) {
+                        isCheckingEnabled = Boolean.parseBoolean(args[1]);
+                        plugin.getConfig().set("enabled", isCheckingEnabled);
+                        plugin.saveConfig();
+                    }
                 }
 
                 if (args[0].equalsIgnoreCase("1")) {
