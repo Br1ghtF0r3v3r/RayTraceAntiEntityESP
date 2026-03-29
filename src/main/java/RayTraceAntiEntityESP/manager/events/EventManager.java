@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.manager.events;
 
+import RayTraceAntiEntityESP.misc.RaytraceDebugs;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.entity.Player;
@@ -76,11 +77,14 @@ public class EventManager {
     }
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
     }
 
     public static void packetSendManager(PacketSendEvent event) {
         entityPacketFilter(event);
+    }
+
+    public static void entityDeathManager(EntityDeathEvent event) {
+        RaytraceDebugs.despawnVertexDisplays(event.getEntity());
     }
 
 }

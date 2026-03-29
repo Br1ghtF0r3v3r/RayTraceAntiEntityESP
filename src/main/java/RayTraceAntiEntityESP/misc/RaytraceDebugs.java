@@ -24,12 +24,22 @@ public class RaytraceDebugs {
         debugDisplays.clear();
     }
 
-    public static void spawnVertexDisplays(Player player, LivingEntity entity, List<Vector> vertices, Set<Integer> visibleIndices) {
+    public static void despawnVertexDisplays(LivingEntity entity) {
+        List<BlockDisplay> displays = debugDisplays.remove(entity.getUniqueId());
+        if (displays != null) displays.forEach(Entity::remove);
+    }
+
+    public static void spawnVertexDisplays(Player player, LivingEntity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
+        if (!entity.isValid() || entity.isDead()) {
+            despawnVertexDisplays(entity);
+            return;
+        }
+
         List<BlockDisplay> existing = debugDisplays.getOrDefault(entity.getUniqueId(), new ArrayList<>());
 
         for (int i = 0; i < Math.min(existing.size(), vertices.size()); i++) {
             Vector vertex = vertices.get(i);
-            Material mat = visibleIndices.contains(i) ? Material.LIME_CONCRETE : Material.RED_CONCRETE;
+            Material mat = visibleVertices.contains(i) ? Material.LIME_CONCRETE : Material.RED_CONCRETE;
             BlockDisplay display = existing.get(i);
             display.setBlock(mat.createBlockData());
             display.teleport(new Location(entity.getWorld(),
@@ -42,7 +52,7 @@ public class RaytraceDebugs {
 
         for (int i = existing.size(); i < vertices.size(); i++) {
             Vector vertex = vertices.get(i);
-            Material mat = visibleIndices.contains(i) ? Material.LIME_CONCRETE : Material.RED_CONCRETE;
+            Material mat = visibleVertices.contains(i) ? Material.LIME_CONCRETE : Material.RED_CONCRETE;
             Location loc = new Location(entity.getWorld(),
                     vertex.getX() - 0.025,
                     vertex.getY() - 0.025,
