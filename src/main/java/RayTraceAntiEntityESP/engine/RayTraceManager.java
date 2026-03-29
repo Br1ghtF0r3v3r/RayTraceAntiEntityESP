@@ -17,7 +17,6 @@ import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.misc.RaytraceDebugs.stopDebug;
 
 public class RayTraceManager {
 
@@ -30,8 +29,8 @@ public class RayTraceManager {
         Vector lookDir = player.getLocation().getDirection();
         if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
         return hitsBlock(world, eyePos, endpoint)
-                || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
+                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
     public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
@@ -45,9 +44,9 @@ public class RayTraceManager {
     public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
         Vector direction = endpoint.clone().subtract(origin);
         double distance = direction.length();
-        if (distance == 0) return true;
+        if (distance == 0) return false;
         RayTraceResult result = rayTrace(world, origin, direction, distance);
-        return result == null || result.getHitBlock() == null || !result.getHitBlock().getType().isOccluding();
+        return result != null && result.getHitBlock() != null && result.getHitBlock().getType().isOccluding();
     }
 
     public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
@@ -62,27 +61,43 @@ public class RayTraceManager {
 
     public static boolean isEntityVisible(Player player, LivingEntity entity) {
         double range = getSpigotTrackingRange(entity);
+
+        if (!isAntiEntity(entity)) {
+            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            return true;
+        }
+        if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
+            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            return true;
+        }
+        if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
+            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            return true;
+        }
+
         List<Vector> vertices = getEntityVertices(player, entity, range);
+        boolean visible = false;
 
         if (isDebugEnabled) {
-            Set<Integer> visibleIndices = new HashSet<>();
+            Set<Integer> visibleVertices = new HashSet<>();
             for (int i = 0; i < vertices.size(); i++) {
-                if (collideSolid(player, vertices.get(i))) visibleIndices.add(i);
+                if (!collideSolid(player, vertices.get(i))) {
+                    visibleVertices.add(i);
+                    visible = true;
+                }
             }
-            RaytraceDebugs.spawnVertexDisplays(player, entity, vertices, visibleIndices);
+            RaytraceDebugs.spawnVertexDisplays(player, entity, vertices, visibleVertices);
         }
         else {
-            stopDebug();
+            RaytraceDebugs.stopDebug();
+            for (Vector vertex : vertices) {
+                if (!collideSolid(player, vertex)) {
+                    visible = true;
+                    break;
+                }
+            }
         }
-
-        if (!isAntiEntity(entity)) return true;
-        if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) return true;
-        if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) return true;
-
-        for (Vector vertex : vertices) {
-            if (collideSolid(player, vertex)) return true;
-        }
-        return false;
+        return visible;
     }
 
     public static boolean isAntiEntity(LivingEntity entity) {
