@@ -106,7 +106,6 @@ public class RayTraceManager {
         double minY = boundingBox.getMinY();
         double minZ = boundingBox.getMinZ();
 
-        // mid spine (extras * 4 points)
         if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePointsPerCorner must be at least 2");
         for (int i = 0; i < samplePointsPerCorner; i++) {
             double y = Maths.lerp(minY, maxY, ((double) i) / (samplePointsPerCorner-1));
