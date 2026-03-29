@@ -8,6 +8,7 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
+import org.jspecify.annotations.NonNull;
 
 import static RayTraceAntiEntityESP.manager.events.EventManager.*;
 
@@ -124,7 +125,7 @@ public class EventListener extends PacketListenerAbstract implements Listener {
     }
 
     @Override
-    public void onPacketSend(PacketSendEvent event) {
+    public void onPacketSend(@NonNull PacketSendEvent event) {
         packetSendManager(event);
     }
 }

@@ -1,12 +1,14 @@
 package RayTraceAntiEntityESP.misc;
 
+import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
-import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -46,47 +48,6 @@ public class StringFormat {
     private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("§x§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])");
     private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("§([0-9a-fk-orA-FK-OR])");
 
-    public static String formatToRoman(int num) {
-        if (num <= 0 || num > 100) return String.valueOf(num);
-
-        int[] values = {100, 90, 50, 40, 10, 9, 5, 4, 1};
-        String[] symbols = {"C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
-
-        StringBuilder result = new StringBuilder();
-
-        for (int i = 0; i < values.length; i++) {
-            while (num >= values[i]) {
-                result.append(symbols[i]);
-                num -= values[i];
-            }
-        }
-
-        return result.toString();
-    }
-
-    public static String formatEnchantName(Enchantment ench) {
-        String key = ench.getKey().getKey();
-        String[] words = key.split("_");
-        StringBuilder formatted = new StringBuilder();
-        for (String word : words) {
-            formatted.append(Character.toUpperCase(word.charAt(0)))
-                    .append(word.substring(1))
-                    .append(" ");
-        }
-        return formatted.toString().trim();
-    }
-
-    public static String formatMaterialName(Material material) {
-        String[] words = material.name().toLowerCase().split("_");
-        StringBuilder formatted = new StringBuilder();
-        for (String word : words) {
-            formatted.append(Character.toUpperCase(word.charAt(0)))
-                    .append(word.substring(1))
-                    .append(" ");
-        }
-        return formatted.toString().trim();
-    }
-
     public static String applyColorCodes(String text) {
         text = LEGACY_HEX_PATTERN.matcher(text).replaceAll("<#$1$2$3$4$5$6>");
         text = LEGACY_CODE_PATTERN.matcher(text).replaceAll("&$1");
@@ -98,11 +59,23 @@ public class StringFormat {
     }
 
     public static String formatToString(CommandSender sender, String text) {
+        PluginManager pluginManager = Bukkit.getPluginManager();
+        Plugin plugin = pluginManager.getPlugin("PlaceholderAPI");
+        if (plugin != null && pluginManager.isPluginEnabled("PlaceholderAPI")) {
+            if (PlaceholderAPI.containsPlaceholders(text))
+                text = PlaceholderAPI.setPlaceholders(sender instanceof Player p ? p : null, text);
+        }
         text = applyColorCodes(text);
         return LEGACY_SERIALIZER.serialize(MINI_MESSAGE.deserialize(text));
     }
 
     public static Component formatToComponent(CommandSender sender, String text) {
+        PluginManager pluginManager = Bukkit.getPluginManager();
+        Plugin plugin = pluginManager.getPlugin("PlaceholderAPI");
+        if (plugin != null && pluginManager.isPluginEnabled("PlaceholderAPI")) {
+            if (PlaceholderAPI.containsPlaceholders(text))
+                text = PlaceholderAPI.setPlaceholders(sender instanceof Player p ? p : null, text);
+        }
         text = applyColorCodes(text);
         return MINI_MESSAGE.deserialize(text);
     }
