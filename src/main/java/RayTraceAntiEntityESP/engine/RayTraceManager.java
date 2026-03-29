@@ -60,6 +60,9 @@ public class RayTraceManager {
 
     public static boolean isEntityVisible(Player player, LivingEntity entity) {
         double range = getSpigotTrackingRange(entity);
+        if (!isAntiEntity(entity)) {
+            return true;
+        }
         if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
             return true;
         }
@@ -71,6 +74,17 @@ public class RayTraceManager {
             if (!collideSolid(player, vertex)) return true;
         }
         return false;
+    }
+
+    public static boolean isAntiEntity(LivingEntity entity) {
+        String typeName = entity.getType().name().toLowerCase();
+        boolean whiteListed = antiEntities.contains(typeName);
+        if (antiMode.equalsIgnoreCase("blacklist")) {
+            return !whiteListed;
+        } else if (antiMode.equalsIgnoreCase("whitelist")) {
+            return whiteListed;
+        }
+        return whiteListed;
     }
 
     public static List<Vector> getEntityVertices(Player player, LivingEntity entity, double checkingRange) {
@@ -102,15 +116,30 @@ public class RayTraceManager {
 
             if (includeCorners) {
                 if (boundingBoxExtraValue > 0) {
-                    vertices.add(new Vector(minX - boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
-                    vertices.add(new Vector(minX - boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
-                    vertices.add(new Vector(maxX + boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
-                    vertices.add(new Vector(maxX + boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
+                    double eMinX = minX - boundingBoxExtraValue;
+                    double eMaxX = maxX + boundingBoxExtraValue;
+                    double eMinZ = minZ - boundingBoxExtraValue;
+                    double eMaxZ = maxZ + boundingBoxExtraValue;
+
+                    vertices.add(new Vector(eMinX, y, eMinZ));
+                    vertices.add(new Vector(eMinX, y, eMaxZ));
+                    vertices.add(new Vector(eMaxX, y, eMaxZ));
+                    vertices.add(new Vector(eMaxX, y, eMinZ));
+
+                    vertices.add(new Vector(midX, y, eMinZ));
+                    vertices.add(new Vector(midX, y, eMaxZ));
+                    vertices.add(new Vector(eMinX, y, midZ));
+                    vertices.add(new Vector(eMaxX, y, midZ));
                 }
                 vertices.add(new Vector(minX, y, minZ));
                 vertices.add(new Vector(minX, y, maxZ));
                 vertices.add(new Vector(maxX, y, maxZ));
                 vertices.add(new Vector(maxX, y, minZ));
+
+                vertices.add(new Vector(midX, y, minZ));
+                vertices.add(new Vector(midX, y, maxZ));
+                vertices.add(new Vector(minX, y, midZ));
+                vertices.add(new Vector(maxX, y, midZ));
             }
         }
         return vertices;
