@@ -74,6 +74,9 @@ public class RayTraceManager {
     }
 
     public static List<Vector> getEntityVertices(Player player, LivingEntity entity, double checkingRange) {
+
+        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
+
         ArrayList<Vector> vertices = new ArrayList<>();
         BoundingBox boundingBox = entity.getBoundingBox();
         double maxX = boundingBox.getMaxX();
@@ -85,8 +88,6 @@ public class RayTraceManager {
         double minX = boundingBox.getMinX();
         double minY = boundingBox.getMinY();
         double minZ = boundingBox.getMinZ();
-
-        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
 
         double distance = player.getLocation().distance(entity.getLocation());
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
