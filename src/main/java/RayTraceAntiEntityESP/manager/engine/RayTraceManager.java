@@ -1,7 +1,8 @@
-package RayTraceAntiEntityESP.engine;
+package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
-import RayTraceAntiEntityESP.misc.RaytraceDebugs;
+import RayTraceAntiEntityESP.utils.NameDisplayUtils;
+import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -20,17 +21,17 @@ import static RayTraceAntiEntityESP.config.Config.*;
 
 public class RayTraceManager {
 
-    public static BukkitTask task;
+    private static BukkitTask task;
     public static long currentCheckingIntervalTicks;
 
-    public static boolean collideSolid(Player player, Vector endpoint) {
+    public static boolean notCollideSolid(Player player, Vector endpoint) {
         World world = player.getWorld();
         Vector eyePos = player.getEyeLocation().toVector();
         Vector lookDir = player.getLocation().getDirection();
         if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
         return hitsBlock(world, eyePos, endpoint)
-                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+                || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
+                || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
     public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
@@ -44,9 +45,9 @@ public class RayTraceManager {
     public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
         Vector direction = endpoint.clone().subtract(origin);
         double distance = direction.length();
-        if (distance == 0) return false;
+        if (distance == 0) return true;
         RayTraceResult result = rayTrace(world, origin, direction, distance);
-        return result != null && result.getHitBlock() != null && result.getHitBlock().getType().isOccluding();
+        return result == null || result.getHitBlock() == null || !result.getHitBlock().getType().isOccluding();
     }
 
     public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
@@ -63,15 +64,15 @@ public class RayTraceManager {
         double range = getSpigotTrackingRange(entity);
 
         if (!isAntiEntity(entity)) {
-            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
             return true;
         }
         if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
-            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
             return true;
         }
         if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
-            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
             return true;
         }
 
@@ -81,17 +82,17 @@ public class RayTraceManager {
         if (isDebugEnabled) {
             Set<Integer> visibleVertices = new HashSet<>();
             for (int i = 0; i < vertices.size(); i++) {
-                if (!collideSolid(player, vertices.get(i))) {
+                if (notCollideSolid(player, vertices.get(i))) {
                     visibleVertices.add(i);
                     visible = true;
                 }
             }
-            RaytraceDebugs.spawnVertexDisplays(player, entity, vertices, visibleVertices);
+            RayTraceDebugsUtils.spawnVertexDebugDisplays(player, entity, vertices, visibleVertices);
         }
         else {
-            RaytraceDebugs.stopDebug();
+            RayTraceDebugsUtils.stopDebug();
             for (Vector vertex : vertices) {
-                if (!collideSolid(player, vertex)) {
+                if (notCollideSolid(player, vertex)) {
                     visible = true;
                     break;
                 }
@@ -180,8 +181,10 @@ public class RayTraceManager {
         boolean visibleClient = player.canSee(target);
         if (visibleServer && !visibleClient) {
             VisibilityManager.setNotHidden(player, target);
+            NameDisplayUtils.removeNameplate(player, target);
         } else if (!visibleServer && visibleClient) {
             VisibilityManager.setHidden(player, target);
+            NameDisplayUtils.updateNameplate(player, target, true);
         }
     }
 
@@ -197,7 +200,7 @@ public class RayTraceManager {
                         }
                     }
                 }
-                EntityPacketFilter.bypassSet.clear();
+                PacketFilterManager.bypassSet.clear();
                 return;
             }
             if (currentCheckingIntervalTicks != checkingPeriodTicks) {

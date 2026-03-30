@@ -1,8 +1,7 @@
-package RayTraceAntiEntityESP.engine;
+package RayTraceAntiEntityESP.manager.engine;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 
@@ -14,7 +13,7 @@ public class VisibilityManager {
 
     public static void setNotHidden(Player player, LivingEntity entity) {
         player.hideEntity(plugin, entity);
-        EntityPacketFilter.bypassSet.add(EntityPacketFilter.bypassKey(player, entity.getEntityId()));
+        PacketFilterManager.bypassSet.add(PacketFilterManager.bypassKey(player, entity.getEntityId()));
         player.showEntity(plugin, entity);
     }
 
