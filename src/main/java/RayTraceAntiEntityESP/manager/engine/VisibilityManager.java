@@ -9,12 +9,14 @@ public class VisibilityManager {
 
     public static void setHidden(Player player, LivingEntity entity) {
         player.hideEntity(plugin, entity);
+        FakeNameDisplayManager.applyFakeNameplate(player, entity, true);
     }
 
     public static void setNotHidden(Player player, LivingEntity entity) {
         player.hideEntity(plugin, entity);
         PacketFilterManager.bypassSet.add(PacketFilterManager.bypassKey(player, entity.getEntityId()));
         player.showEntity(plugin, entity);
+        FakeNameDisplayManager.removeNameplate(player, entity);
     }
 
 }

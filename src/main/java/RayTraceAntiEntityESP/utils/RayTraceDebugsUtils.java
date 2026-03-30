@@ -2,7 +2,6 @@ package RayTraceAntiEntityESP.utils;
 
 import org.bukkit.*;
 import org.bukkit.entity.BlockDisplay;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Transformation;
@@ -20,13 +19,19 @@ public class RayTraceDebugsUtils {
     public static final Map<UUID, List<BlockDisplay>> debugDisplays = new HashMap<>();
 
     public static void stopDebug() {
-        debugDisplays.values().forEach(list -> list.forEach(Entity::remove));
+        for (List<BlockDisplay> list : debugDisplays.values()) {
+            for (BlockDisplay display : list) {
+                display.remove();
+            }
+        }
         debugDisplays.clear();
     }
-
     public static void despawnVertexDebugDisplays(LivingEntity entity) {
         List<BlockDisplay> displays = debugDisplays.remove(entity.getUniqueId());
-        if (displays != null) displays.forEach(Entity::remove);
+        if (displays == null) return;
+        for (BlockDisplay display : displays) {
+            display.remove();
+        }
     }
 
     public static void spawnVertexDebugDisplays(Player player, LivingEntity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
