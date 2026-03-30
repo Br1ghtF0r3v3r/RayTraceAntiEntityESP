@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
-import RayTraceAntiEntityESP.utils.NameDisplayUtils;
 import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
@@ -23,6 +22,7 @@ public class RayTraceManager {
 
     private static BukkitTask task;
     public static long currentCheckingIntervalTicks;
+    public static boolean currentIsDebugEnabled;
 
     public static boolean notCollideSolid(Player player, Vector endpoint) {
         World world = player.getWorld();
@@ -177,14 +177,12 @@ public class RayTraceManager {
     //  | not visible  | visible      | spawn packet   |
     //  | not visible  | not visible  | nothing        |
 
-    public static void updateRayTraceChecking(Player player, LivingEntity target, boolean visibleServer) {
-        boolean visibleClient = player.canSee(target);
+    public static void updateRayTraceChecking(Player player, LivingEntity entity, boolean visibleServer) {
+        boolean visibleClient = player.canSee(entity);
         if (visibleServer && !visibleClient) {
-            VisibilityManager.setNotHidden(player, target);
-            NameDisplayUtils.removeNameplate(player, target);
+            VisibilityManager.setNotHidden(player, entity);
         } else if (!visibleServer && visibleClient) {
-            VisibilityManager.setHidden(player, target);
-            NameDisplayUtils.updateNameplate(player, target, true);
+            VisibilityManager.setHidden(player, entity);
         }
     }
 
@@ -192,13 +190,17 @@ public class RayTraceManager {
         if (task != null) task.cancel();
         currentCheckingIntervalTicks = checkingPeriodTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (currentIsDebugEnabled && !isDebugEnabled) {
+                RayTraceDebugsUtils.stopDebug();
+            }
+            currentIsDebugEnabled = isDebugEnabled;
+
             if (!isCheckingEnabled) {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     for (LivingEntity entity : player.getWorld().getLivingEntities()) {
-                        if (!player.canSee(entity)) {
-                            VisibilityManager.setNotHidden(player, entity);
-                        }
+                        if (!player.canSee(entity)) VisibilityManager.setNotHidden(player, entity);
                     }
+                    FakeNameDisplayManager.removeAllNameplates(player);
                 }
                 PacketFilterManager.bypassSet.clear();
                 return;

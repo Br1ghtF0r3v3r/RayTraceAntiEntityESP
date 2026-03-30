@@ -1,15 +1,17 @@
 package RayTraceAntiEntityESP.manager.events;
 
-import RayTraceAntiEntityESP.utils.NameDisplayUtils;
+import RayTraceAntiEntityESP.manager.engine.FakeNameDisplayManager;
 import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
-import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.entityPacketFilter;
+import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
 
 public class EventManager {
 
@@ -77,11 +79,15 @@ public class EventManager {
     }
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
-        NameDisplayUtils.removeAllNameplates(event.getPlayer());
+        Player player = event.getPlayer();
+        FakeNameDisplayManager.removeAllNameplates(player);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            FakeNameDisplayManager.removeNameplate(online, player);
+        }
     }
 
     public static void packetSendManager(PacketSendEvent event) {
-        entityPacketFilter(event);
+        packetFilter(event);
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {

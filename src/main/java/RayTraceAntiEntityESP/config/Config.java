@@ -21,6 +21,7 @@ public class Config {
     public static double perspectiveCheckingDistance;
     public static boolean isFakeDisplayNameEnabled;
     public static long fakeDisplayNamePeriodTicks;
+    public static double fakeDisplayNameOffSetY;
 
     public static List<String> antiEntities;
     public static String antiMode;
@@ -40,6 +41,7 @@ public class Config {
         perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances_from_head", 4);
         isFakeDisplayNameEnabled = plugin.getConfig().getBoolean("fake_name_display.enabled", true);
         fakeDisplayNamePeriodTicks = plugin.getConfig().getLong("fake_name_display.period_ticks", 1);
+        fakeDisplayNameOffSetY = plugin.getConfig().getDouble("fake_name_display.offset_y", 0.25);
 
         antiEntities = plugin.getConfig().getStringList("anti_entities");
         antiMode = plugin.getConfig().getString("anti_mode", "whitelist");
