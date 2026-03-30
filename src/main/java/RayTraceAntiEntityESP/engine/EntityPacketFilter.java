@@ -4,7 +4,6 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.LivingEntity;
@@ -20,31 +19,30 @@ public class EntityPacketFilter extends PacketListenerAbstract {
     public static String bypassKey(Player viewer, int entityId) { return viewer.getUniqueId() + ":" + entityId; }
 
     public static void entityPacketFilter(PacketSendEvent event) {
-        if (event.getPacketType() == PacketType.Play.Server.SPAWN_ENTITY) {
-            WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(event);
-            Player viewer = event.getPlayer();
-            int entityId = spawnPacket.getEntityId();
-            if (viewer.getEntityId() == entityId || bypassSet.remove(bypassKey(viewer, entityId)) || !EntityTypes.isTypeInstanceOf(spawnPacket.getEntityType(), EntityTypes.LIVINGENTITY)) return;
-            event.setCancelled(true);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                LivingEntity entity = viewer.getWorld().getEntities().stream()
-                        .filter(e -> e.getEntityId() == entityId && e instanceof LivingEntity)
-                        .map(e -> (LivingEntity) e).findFirst().orElse(null);
-                if (entity == null) return;
-                if (RayTraceManager.isEntityVisible(viewer, entity)) {
-                    viewer.hideEntity(plugin, entity);
-                    bypassSet.add(bypassKey(viewer, entityId));
-                    viewer.showEntity(plugin, entity);
-                    VisibilityManager.markNotHidden(viewer, entityId);
-                } else {
-                    VisibilityManager.markHidden(viewer, entityId);
-                }
-            });
-        } else if (event.getPacketType() == PacketType.Play.Server.DESTROY_ENTITIES) {
-            Player viewer = event.getPlayer();
-            for (int entityId : new WrapperPlayServerDestroyEntities(event).getEntityIds()) {
-                VisibilityManager.markNotHidden(viewer, entityId);
+        if (event.getPacketType() != PacketType.Play.Server.SPAWN_ENTITY) return;
+
+        WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(event);
+        Player viewer = event.getPlayer();
+        int entityId = spawnPacket.getEntityId();
+
+        if (viewer.getEntityId() == entityId) return;
+        if (!EntityTypes.isTypeInstanceOf(spawnPacket.getEntityType(), EntityTypes.LIVINGENTITY)) return;
+        if (bypassSet.remove(bypassKey(viewer, entityId))) return;
+
+        event.setCancelled(true);
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            LivingEntity entity = viewer.getWorld().getEntities().stream()
+                    .filter(e -> e.getEntityId() == entityId && e instanceof LivingEntity)
+                    .map(e -> (LivingEntity) e)
+                    .findFirst().orElse(null);
+            if (entity == null) return;
+
+            if (RayTraceManager.isEntityVisible(viewer, entity)) {
+                VisibilityManager.setNotHidden(viewer, entity);
+            } else {
+                VisibilityManager.setHidden(viewer, entity);
             }
-        }
+        });
     }
 }
