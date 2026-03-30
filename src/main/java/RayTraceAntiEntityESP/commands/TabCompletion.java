@@ -3,25 +3,73 @@ package RayTraceAntiEntityESP.commands;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.EntityType;
 import org.jspecify.annotations.NonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TabCompletion implements TabCompleter {
 
     @Override
     public List<String> onTabComplete(@NonNull CommandSender sender, Command command, @NonNull String alias, String @NonNull [] args) {
+        if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return null;
 
-        if (command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) {
-            if (args.length == 1) {
-                return List.of("reload", "enabled", "debug");
-            }
-            if (args.length == 2) {
-                if (args[0].equalsIgnoreCase("enabled") || args[0].equalsIgnoreCase("debug")) {
-                    return List.of("true", "false");
-                }
-            }
+        if (args.length == 1) {
+            return filter(args[0], List.of("reload", "enabled", "debug", "checking_period_ticks",
+                    "checking_distance_override", "bounding_box_extra_value", "vertices_layers",
+                    "perspective_checking", "fake_name_display", "anti_mode", "anti_entities"));
         }
+
+        if (args.length == 2) {
+            return switch (args[0].toLowerCase()) {
+                case "enabled", "debug" -> filter(args[1], List.of("true", "false"));
+                case "checking_period_ticks" -> List.of("<ticks>");
+                case "checking_distance_override" -> List.of("<distance>");
+                case "bounding_box_extra_value" -> List.of("<value>");
+                case "vertices_layers" -> List.of("<layers>");
+                case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
+                case "fake_name_display" -> filter(args[1], List.of("enabled", "period_ticks"));
+                case "anti_mode" -> filter(args[1], List.of("whitelist", "blacklist"));
+                case "anti_entities" -> filter(args[1], List.of("add", "remove"));
+                default -> null;
+            };
+        }
+
+        if (args.length == 3) {
+            return switch (args[0].toLowerCase()) {
+                case "perspective_checking" -> switch (args[1].toLowerCase()) {
+                    case "enabled" -> filter(args[2], List.of("true", "false"));
+                    case "distances_from_head" -> List.of("<distance>");
+                    default -> null;
+                };
+                case "fake_name_display" -> switch (args[1].toLowerCase()) {
+                    case "enabled" -> filter(args[2], List.of("true", "false"));
+                    case "period_ticks" -> List.of("<ticks>");
+                    default -> null;
+                };
+                case "anti_entities" -> {
+                    List<String> types = new ArrayList<>();
+                    for (EntityType type : EntityType.values()) {
+                        String name = type.name().toLowerCase();
+                        if (name.startsWith(args[2].toLowerCase())) {
+                            types.add(name);
+                        }
+                    }
+                    yield types;
+                }
+                default -> null;
+            };
+        }
+
         return null;
+    }
+
+    public List<String> filter(String input, List<String> options) {
+        List<String> result = new ArrayList<>();
+        for (String o : options) {
+            if (o.toLowerCase().startsWith(input.toLowerCase())) result.add(o);
+        }
+        return result;
     }
 }
