@@ -16,9 +16,9 @@ import java.util.regex.Pattern;
 
 public class StringFormat {
 
-    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
-    private static final Map<String, String> COLOR_CODES = new LinkedHashMap<>();
+    public static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
+    public static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
+    public static final Map<String, String> COLOR_CODES = new LinkedHashMap<>();
     static {
         COLOR_CODES.put("&0", "<black>");
         COLOR_CODES.put("&1", "<dark_blue>");
@@ -44,9 +44,9 @@ public class StringFormat {
         COLOR_CODES.put("&r", "<reset>");
     }
 
-    private static final Pattern HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
-    private static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("§x§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])");
-    private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("§([0-9a-fk-orA-FK-OR])");
+    public static final Pattern HEX_PATTERN = Pattern.compile("(?i)&#([0-9a-f]{6})");
+    public static final Pattern LEGACY_HEX_PATTERN = Pattern.compile("§x§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])§([0-9a-fA-F])");
+    public static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("§([0-9a-fk-orA-FK-OR])");
 
     public static String applyColorCodes(String text) {
         text = LEGACY_HEX_PATTERN.matcher(text).replaceAll("<#$1$2$3$4$5$6>");

@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.misc;
+package RayTraceAntiEntityESP.utils;
 
 import org.bukkit.*;
 import org.bukkit.entity.BlockDisplay;
@@ -15,23 +15,23 @@ import java.util.*;
 import static RayTraceAntiEntityESP.Main.plugin;
 
 
-public class RaytraceDebugs {
+public class RayTraceDebugsUtils {
 
-    private static final Map<UUID, List<BlockDisplay>> debugDisplays = new HashMap<>();
+    public static final Map<UUID, List<BlockDisplay>> debugDisplays = new HashMap<>();
 
     public static void stopDebug() {
         debugDisplays.values().forEach(list -> list.forEach(Entity::remove));
         debugDisplays.clear();
     }
 
-    public static void despawnVertexDisplays(LivingEntity entity) {
+    public static void despawnVertexDebugDisplays(LivingEntity entity) {
         List<BlockDisplay> displays = debugDisplays.remove(entity.getUniqueId());
         if (displays != null) displays.forEach(Entity::remove);
     }
 
-    public static void spawnVertexDisplays(Player player, LivingEntity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
+    public static void spawnVertexDebugDisplays(Player player, LivingEntity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
         if (!entity.isValid() || entity.isDead()) {
-            despawnVertexDisplays(entity);
+            despawnVertexDebugDisplays(entity);
             return;
         }
 
