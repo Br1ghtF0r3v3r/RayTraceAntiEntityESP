@@ -11,7 +11,7 @@ perspective_checking:
 fake_name_display:
   enabled: true
   period_ticks: 1
-  offset_y: 0.27
+  offset_y: 0.25
 
 anti_entities:
 - player

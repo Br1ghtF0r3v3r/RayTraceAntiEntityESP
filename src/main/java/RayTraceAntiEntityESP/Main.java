@@ -4,7 +4,7 @@ import RayTraceAntiEntityESP.commands.CommandsHandler;
 import RayTraceAntiEntityESP.manager.engine.RayTraceManager;
 import RayTraceAntiEntityESP.listener.EventListener;
 import RayTraceAntiEntityESP.commands.TabCompletion;
-import RayTraceAntiEntityESP.manager.engine.FakeNameDisplayManager;
+import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -28,7 +28,7 @@ public final class Main extends JavaPlugin {
 
         PacketEvents.getAPI().init();
         RayTraceManager.startRayTraceChecking();
-        FakeNameDisplayManager.startFakeNameDisplayUpdating();
+        FakeNameDisplayUtils.startFakeNameDisplayUpdating();
 
         getLogger().info("RayTraceEntityESP enabled successfully!");
     }

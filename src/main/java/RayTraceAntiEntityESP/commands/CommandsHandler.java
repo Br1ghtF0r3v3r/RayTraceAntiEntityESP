@@ -1,8 +1,10 @@
 package RayTraceAntiEntityESP.commands;
 
+import RayTraceAntiEntityESP.config.Config;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.EntityType;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,6 +20,7 @@ public class CommandsHandler implements CommandExecutor {
         if (args.length == 0) { sendHelp(sender); return true; }
 
         switch (args[0].toLowerCase()) {
+            case "config_value" -> Config.printConfig(sender);
             case "reload" -> { plugin.reloadConfigAll(); sender.sendMessage(formatToString(sender, "&aReloaded!")); }
             case "enabled" -> set(sender, "enabled", args, 1, Boolean::parseBoolean, val -> isCheckingEnabled = val);
             case "debug" -> set(sender, "debug", args, 1, Boolean::parseBoolean, val -> isDebugEnabled = val);
@@ -52,16 +55,35 @@ public class CommandsHandler implements CommandExecutor {
             case "anti_entities" -> {
                 if (args.length < 3) { sender.sendMessage(formatToString(sender, "&cUsage: anti_entities <add|remove> <type>")); return true; }
                 String type = args[2].toLowerCase();
+                try {
+                    EntityType.valueOf(type.toUpperCase());
+                }
+                catch (IllegalArgumentException e) {
+                    sender.sendMessage(formatToString(sender, "&e" + type + " &cis not a valid entity type."));
+                    return true;
+                }
                 switch (args[1].toLowerCase()) {
                     case "add" -> {
-                        antiEntities.add(type);
-                        plugin.getConfig().set("anti_entities", antiEntities);
-                        plugin.saveConfig();
-                        sender.sendMessage(formatToString(sender, "&aAdded &e" + type));
+                        if (!antiEntities.contains(type)) {
+                            antiEntities.add(type);
+                            plugin.getConfig().set("anti_entities", antiEntities);
+                            plugin.saveConfig();
+                            sender.sendMessage(formatToString(sender, "&aAdded &e" + type));
+                        }
+                        else {
+                            sender.sendMessage(formatToString(sender, "&e" + type + " &cis already in the list."));
+                        }
                     }
                     case "remove" -> {
-                        if (antiEntities.remove(type)) { plugin.getConfig().set("anti_entities", antiEntities); plugin.saveConfig(); sender.sendMessage(formatToString(sender, "&aRemoved &e" + type)); }
-                        else sender.sendMessage(formatToString(sender, "&e" + type + " &cnot found."));
+                        if (antiEntities.contains(type)) {
+                            antiEntities.remove(type);
+                            plugin.getConfig().set("anti_entities", antiEntities);
+                            plugin.saveConfig();
+                            sender.sendMessage(formatToString(sender, "&aRemoved &e" + type));
+                        }
+                        else {
+                            sender.sendMessage(formatToString(sender, "&e" + type + " &cnot found."));
+                        }
                     }
                     default -> sender.sendMessage(formatToString(sender, "&cUnknown action: " + args[1]));
                 }
@@ -103,6 +125,7 @@ public class CommandsHandler implements CommandExecutor {
 
     public static void sendHelp(CommandSender sender) {
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP ---"));
+        sender.sendMessage(formatToString(sender, "&e/rtaee config_value &7- Show all config values"));
         sender.sendMessage(formatToString(sender, "&e/rtaee reload"));
         sender.sendMessage(formatToString(sender, "&e/rtaee enabled <true|false>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee debug <true|false>"));

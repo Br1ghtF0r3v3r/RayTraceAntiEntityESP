@@ -16,7 +16,7 @@ public class TabCompletion implements TabCompleter {
         if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return null;
 
         if (args.length == 1) {
-            return filter(args[0], List.of("reload", "enabled", "debug", "checking_period_ticks",
+            return filter(args[0], List.of("config_value", "reload", "enabled", "debug", "checking_period_ticks",
                     "checking_distance_override", "bounding_box_extra_value", "vertices_layers",
                     "perspective_checking", "fake_name_display", "anti_mode", "anti_entities"));
         }
