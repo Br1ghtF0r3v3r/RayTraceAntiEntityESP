@@ -10,7 +10,6 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.*;
@@ -38,9 +37,9 @@ public class PacketFilterManager extends PacketListenerAbstract {
             event.setCancelled(true);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
-                LivingEntity entity = null;
+                Entity entity = null;
                 for (Entity e : viewer.getWorld().getEntities()) {
-                    if (e.getEntityId() == entityId && e instanceof LivingEntity living) {
+                    if (e.getEntityId() == entityId && e instanceof Entity living) {
                         entity = living;
                         break;
                     }
