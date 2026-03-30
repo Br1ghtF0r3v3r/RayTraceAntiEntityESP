@@ -1,12 +1,13 @@
 package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
+import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
 import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
@@ -60,18 +61,21 @@ public class RayTraceManager {
         );
     }
 
-    public static boolean isEntityVisible(Player player, LivingEntity entity) {
+    public static boolean isEntityVisible(Player player, Entity entity) {
+        if (RayTraceDebugsUtils.shouldSkipDebug(entity)) {
+            return true;
+        }
         double range = getSpigotTrackingRange(entity);
-
         if (!isAntiEntity(entity)) {
             if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
             return true;
         }
-        if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
+        double distSq = player.getLocation().distanceSquared(entity.getLocation());
+        if (distSq > range * range) {
             if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
             return true;
         }
-        if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
+        if (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride) {
             if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
             return true;
         }
@@ -90,7 +94,6 @@ public class RayTraceManager {
             RayTraceDebugsUtils.spawnVertexDebugDisplays(player, entity, vertices, visibleVertices);
         }
         else {
-            RayTraceDebugsUtils.stopDebug();
             for (Vector vertex : vertices) {
                 if (notCollideSolid(player, vertex)) {
                     visible = true;
@@ -101,7 +104,7 @@ public class RayTraceManager {
         return visible;
     }
 
-    public static boolean isAntiEntity(LivingEntity entity) {
+    public static boolean isAntiEntity(Entity entity) {
         String typeName = entity.getType().name().toLowerCase();
         boolean whiteListed = antiEntities.contains(typeName);
         if (antiMode.equalsIgnoreCase("blacklist")) {
@@ -112,7 +115,7 @@ public class RayTraceManager {
         return whiteListed;
     }
 
-    public static List<Vector> getEntityVertices(Player player, LivingEntity entity, double checkingRange) {
+    public static List<Vector> getEntityVertices(Player player, Entity entity, double checkingRange) {
 
         if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
 
@@ -131,12 +134,12 @@ public class RayTraceManager {
         double distance = player.getLocation().distance(entity.getLocation());
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-        int scaledSamplePoints = Math.max(2, (int) Math.round(samplePointsPerCorner * (1.0 - ratio)));
+        int scaledSampleLayers = Math.max(2, (int) Math.round(samplePointsPerCorner * (1.0 - ratio)));
 
         boolean includeCorners = ratio < 0.5;
 
-        for (int i = 0; i < scaledSamplePoints; i++) {
-            double y = Maths.lerp(minY, maxY, ((double) i) / (scaledSamplePoints - 1));
+        for (int i = 0; i < scaledSampleLayers; i++) {
+            double y = Maths.lerp(minY, maxY, ((double) i) / (scaledSampleLayers - 1));
             vertices.add(new Vector(midX, y, midZ));
 
             if (includeCorners) {
@@ -177,7 +180,7 @@ public class RayTraceManager {
     //  | not visible  | visible      | spawn packet   |
     //  | not visible  | not visible  | nothing        |
 
-    public static void updateRayTraceChecking(Player player, LivingEntity entity, boolean visibleServer) {
+    public static void updateRayTraceChecking(Player player, Entity entity, boolean visibleServer) {
         boolean visibleClient = player.canSee(entity);
         if (visibleServer && !visibleClient) {
             VisibilityManager.setNotHidden(player, entity);
@@ -197,10 +200,10 @@ public class RayTraceManager {
 
             if (!isCheckingEnabled) {
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                    for (Entity entity : player.getWorld().getEntities()) {
                         if (!player.canSee(entity)) VisibilityManager.setNotHidden(player, entity);
                     }
-                    FakeNameDisplayManager.removeAllNameplates(player);
+                    FakeNameDisplayUtils.removeAllNameplates(player);
                 }
                 PacketFilterManager.bypassSet.clear();
                 return;
@@ -210,7 +213,7 @@ public class RayTraceManager {
                 return;
             }
             for (Player player : Bukkit.getOnlinePlayers()) {
-                for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                for (Entity entity : player.getWorld().getEntities()) {
                     if (entity != player) {
                         RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
                     }
