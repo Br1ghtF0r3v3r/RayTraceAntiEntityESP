@@ -19,6 +19,8 @@ public class Config {
     public static int samplePointsPerCorner;
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
+    public static boolean isFakeDisplayNameEnabled;
+    public static long fakeDisplayNamePeriodTicks;
 
     public static List<String> antiEntities;
     public static String antiMode;
@@ -35,7 +37,9 @@ public class Config {
         boundingBoxExtraValue = plugin.getConfig().getDouble("bounding_box_extra_value", 0.5);
         samplePointsPerCorner = plugin.getConfig().getInt("vertices_layers", 5);
         isPerspectiveCheckingEnabled = plugin.getConfig().getBoolean("perspective_checking.enabled", true);
-        perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances", 4);
+        perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances_from_head", 4);
+        isFakeDisplayNameEnabled = plugin.getConfig().getBoolean("fake_name_display.enabled", true);
+        fakeDisplayNamePeriodTicks = plugin.getConfig().getLong("fake_name_display.period_ticks", 1);
 
         antiEntities = plugin.getConfig().getStringList("anti_entities");
         antiMode = plugin.getConfig().getString("anti_mode", "whitelist");
