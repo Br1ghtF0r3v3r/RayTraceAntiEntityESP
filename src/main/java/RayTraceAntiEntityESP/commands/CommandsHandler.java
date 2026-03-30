@@ -38,6 +38,7 @@ public class CommandsHandler implements CommandExecutor {
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "fake_name_display.enabled", args, 2, Boolean::parseBoolean, val -> isFakeDisplayNameEnabled = val);
                     case "period_ticks" -> set(sender, "fake_name_display.period_ticks", args, 2, Long::parseLong, val -> fakeDisplayNamePeriodTicks = val);
+                    case "offset_y" -> set(sender, "fake_name_display.offset_y", args, 2, Double::parseDouble, val -> fakeDisplayNameOffSetY = val);
                     default -> sender.sendMessage(formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
@@ -110,7 +111,7 @@ public class CommandsHandler implements CommandExecutor {
         sender.sendMessage(formatToString(sender, "&e/rtaee bounding_box_extra_value <value>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee vertices_layers <value>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee perspective_checking <enabled|distances_from_head> <value>"));
-        sender.sendMessage(formatToString(sender, "&e/rtaee fake_name_display <enabled|period_ticks> <value>"));
+        sender.sendMessage(formatToString(sender, "&e/rtaee fake_name_display <enabled|period_ticks|offset_y> <value>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee anti_mode <whitelist|blacklist>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee anti_entities <add|remove> <type>"));
     }

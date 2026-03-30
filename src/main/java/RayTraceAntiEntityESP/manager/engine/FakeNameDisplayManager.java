@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.utils;
+package RayTraceAntiEntityESP.manager.engine;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -14,7 +14,7 @@ import java.util.UUID;
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
 
-public class NameDisplayUtils {
+public class FakeNameDisplayManager {
 
     private static BukkitTask task;
     public static final Map<UUID, Map<UUID, TextDisplay>> nameplates = new HashMap<>();
@@ -32,20 +32,33 @@ public class NameDisplayUtils {
                 startFakeNameDisplayUpdating();
                 return;
             }
-            nameplates.forEach((viewerUUID, playerNameplates) -> {
-                Player viewer = Bukkit.getPlayer(viewerUUID);
-                if (viewer == null) return;
-                playerNameplates.forEach((entityUUID, display) -> {
-                    if (!display.isValid()) return;
-                    for (Entity e : viewer.getWorld().getEntities()) {
-                        if (e.getUniqueId().equals(entityUUID) && e instanceof LivingEntity living) {
-                            display.teleport(living.getLocation().add(0, living.getHeight() + 0.3, 0));
-                            break;
-                        }
-                    }
-                });
-            });
+            updateAllNameplates();
         }, 0L, fakeDisplayNamePeriodTicks);
+    }
+
+    private static void updateAllNameplates() {
+        for (Map.Entry<UUID, Map<UUID, TextDisplay>> entry : nameplates.entrySet()) {
+            Player viewer = Bukkit.getPlayer(entry.getKey());
+            if (viewer == null) continue;
+            updateViewerNameplates(viewer, entry.getValue());
+        }
+    }
+
+    private static void updateViewerNameplates(Player viewer, Map<UUID, TextDisplay> playerNameplates) {
+        for (Map.Entry<UUID, TextDisplay> displayEntry : playerNameplates.entrySet()) {
+            TextDisplay display = displayEntry.getValue();
+            if (!display.isValid()) continue;
+            updateNameplatePosition(viewer, displayEntry.getKey(), display);
+        }
+    }
+
+    private static void updateNameplatePosition(Player viewer, UUID entityUUID, TextDisplay display) {
+        for (Entity e : viewer.getWorld().getEntities()) {
+            if (e.getUniqueId().equals(entityUUID) && e instanceof LivingEntity living) {
+                display.teleport(living.getLocation().add(0, living.getHeight() + fakeDisplayNameOffSetY, 0));
+                break;
+            }
+        }
     }
 
     public static Team getTeam(LivingEntity entity) {
@@ -58,12 +71,16 @@ public class NameDisplayUtils {
     }
 
     public static boolean isNameDisplayVisible(Player viewer, LivingEntity entity) {
+        if (entity.isInvisible()) return false;
+
         if (!(entity instanceof Player)) {
             if (entity.customName() == null || !entity.isCustomNameVisible()) return false;
         }
+
         Team viewerTeam = getTeam(viewer);
         Team entityTeam = getTeam(entity);
         boolean onSameTeam = viewerTeam != null && viewerTeam.equals(entityTeam);
+
         return switch (getTeamVisibility(entityTeam)) {
             case ALWAYS -> true;
             case NEVER -> false;
@@ -72,13 +89,13 @@ public class NameDisplayUtils {
         };
     }
 
-    public static void updateNameplate(Player viewer, LivingEntity entity, boolean entityHidden) {
+    public static void applyFakeNameplate(Player viewer, LivingEntity entity, boolean entityHidden) {
         boolean needsNameplate = isNameDisplayVisible(viewer, entity) && entityHidden;
         Map<UUID, TextDisplay> playerNameplates = nameplates.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
         if (needsNameplate) {
             TextDisplay existing = playerNameplates.get(entity.getUniqueId());
             if (existing == null || !existing.isValid()) {
-                TextDisplay display = spawnNameplate(viewer, entity);
+                TextDisplay display = spawnFakeNameplate(viewer, entity);
                 playerNameplates.put(entity.getUniqueId(), display);
             } else {
                 Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName();
@@ -89,11 +106,9 @@ public class NameDisplayUtils {
         }
     }
 
-    public static TextDisplay spawnNameplate(Player viewer, LivingEntity entity) {
-        Component name = entity instanceof Player
-                ? Component.text(entity.getName())
-                : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
-        Location loc = entity.getLocation().add(0, entity.getHeight() + 0.5, 0);
+    public static TextDisplay spawnFakeNameplate(Player viewer, LivingEntity entity) {
+        Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
+        Location loc = entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0);
         TextDisplay display = loc.getWorld().spawn(loc, TextDisplay.class, d -> {
             d.text(name);
             d.setBillboard(TextDisplay.Billboard.CENTER);
@@ -116,11 +131,18 @@ public class NameDisplayUtils {
 
     public static void removeAllNameplates(Player viewer) {
         Map<UUID, TextDisplay> playerNameplates = nameplates.remove(viewer.getUniqueId());
-        if (playerNameplates != null) playerNameplates.values().forEach(Entity::remove);
+        if (playerNameplates == null) return;
+        for (TextDisplay display : playerNameplates.values()) {
+            display.remove();
+        }
     }
 
     public static void removeAllNameplates() {
-        nameplates.values().forEach(map -> map.values().forEach(Entity::remove));
+        for (Map<UUID, TextDisplay> playerNameplates : nameplates.values()) {
+            for (TextDisplay display : playerNameplates.values()) {
+                display.remove();
+            }
+        }
         nameplates.clear();
     }
 
