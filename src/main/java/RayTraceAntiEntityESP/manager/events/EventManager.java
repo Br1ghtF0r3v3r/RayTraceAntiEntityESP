@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.manager.events;
 
-import RayTraceAntiEntityESP.manager.engine.FakeNameDisplayManager;
+import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
 import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
@@ -80,9 +80,9 @@ public class EventManager {
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        FakeNameDisplayManager.removeAllNameplates(player);
+        FakeNameDisplayUtils.removeAllNameplates(player);
         for (Player online : Bukkit.getOnlinePlayers()) {
-            FakeNameDisplayManager.removeNameplate(online, player);
+            FakeNameDisplayUtils.removeNameplate(online, player);
         }
     }
 
