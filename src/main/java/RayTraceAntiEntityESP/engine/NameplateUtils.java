@@ -1,8 +1,13 @@
 package RayTraceAntiEntityESP.engine;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
@@ -36,5 +41,20 @@ public class NameplateUtils {
             case FOR_OTHER_TEAMS -> onSameTeam;
             default -> true;
         };
+    }
+
+    public static void spawnNameplate(Location location, String name) {
+        TextDisplay textDisplay = (TextDisplay) location.getWorld().spawnEntity(location, EntityType.TEXT_DISPLAY);
+        textDisplay.text(
+                Component.text(name)
+        );
+
+        textDisplay.setBillboard(TextDisplay.Billboard.CENTER); // Makes it rotate to face players
+        textDisplay.setBackgroundColor(Color.fromARGB(128, 0, 0, 0)); // Transparent background
+        textDisplay.setShadowed(true);
+    }
+
+    public static void spawnNameplate(Entity entity) {
+        spawnNameplate(entity.getLocation().add(0, entity.getHeight() + 0.5, 0), entity.getName());
     }
 }
