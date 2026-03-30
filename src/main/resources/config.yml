@@ -7,7 +7,10 @@ bounding_box_extra_value: 0.5
 vertices_layers: 5
 perspective_checking:
   enabled: true
-  distances: 4
+  distances_from_head: 4
+fake_name_display:
+  enabled: true
+  period_ticks: 1
 
 anti_entities:
 - player

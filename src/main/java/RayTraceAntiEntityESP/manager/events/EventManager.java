@@ -1,15 +1,15 @@
 package RayTraceAntiEntityESP.manager.events;
 
-import RayTraceAntiEntityESP.misc.RaytraceDebugs;
+import RayTraceAntiEntityESP.utils.NameDisplayUtils;
+import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
-import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
-import static RayTraceAntiEntityESP.engine.EntityPacketFilter.entityPacketFilter;
+import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.entityPacketFilter;
 
 public class EventManager {
 
@@ -77,6 +77,7 @@ public class EventManager {
     }
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
+        NameDisplayUtils.removeAllNameplates(event.getPlayer());
     }
 
     public static void packetSendManager(PacketSendEvent event) {
@@ -84,7 +85,7 @@ public class EventManager {
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
-        RaytraceDebugs.despawnVertexDisplays(event.getEntity());
+        RayTraceDebugsUtils.despawnVertexDebugDisplays(event.getEntity());
     }
 
 }
