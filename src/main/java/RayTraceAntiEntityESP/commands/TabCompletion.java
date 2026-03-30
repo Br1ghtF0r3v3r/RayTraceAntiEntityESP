@@ -6,7 +6,6 @@ import org.bukkit.command.TabCompleter;
 import org.jspecify.annotations.NonNull;
 
 import java.util.List;
-import java.util.Objects;
 
 public class TabCompletion implements TabCompleter {
 
@@ -15,10 +14,10 @@ public class TabCompletion implements TabCompleter {
 
         if (command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) {
             if (args.length == 1) {
-                return List.of("reload", "enabled");
+                return List.of("reload", "enabled", "debug");
             }
             if (args.length == 2) {
-                if (args[0].equalsIgnoreCase("enabled")) {
+                if (args[0].equalsIgnoreCase("enabled") || args[0].equalsIgnoreCase("debug")) {
                     return List.of("true", "false");
                 }
             }

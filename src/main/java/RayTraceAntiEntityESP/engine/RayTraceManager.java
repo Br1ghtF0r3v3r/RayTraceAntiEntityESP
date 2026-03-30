@@ -1,11 +1,11 @@
 package RayTraceAntiEntityESP.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
+import RayTraceAntiEntityESP.misc.RaytraceDebugs;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -22,7 +22,6 @@ public class RayTraceManager {
 
     public static BukkitTask task;
     public static long currentCheckingIntervalTicks;
-    public static Queue<Player> checkQueue = new LinkedList<>();
 
     public static boolean collideSolid(Player player, Vector endpoint) {
         World world = player.getWorld();
@@ -61,74 +60,112 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityVisible(Player player, LivingEntity entity) {
-        int range = getSpigotTrackingRange(entity);
+        double range = getSpigotTrackingRange(entity);
+
+        if (!isAntiEntity(entity)) {
+            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
+            return true;
+        }
         if (player.getLocation().distanceSquared(entity.getLocation()) > range * range) {
+            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
             return true;
         }
         if (checkingDistanceOverride > 0 && player.getLocation().distanceSquared(entity.getLocation()) < checkingDistanceOverride * checkingDistanceOverride) {
+            if (isDebugEnabled) RaytraceDebugs.despawnVertexDisplays(entity);
             return true;
         }
-        List<Vector> vertices = getEntityVertices(entity);
-        for (Vector vertex : vertices) {
-            if (!collideSolid(player, vertex)) return true;
+
+        List<Vector> vertices = getEntityVertices(player, entity, range);
+        boolean visible = false;
+
+        if (isDebugEnabled) {
+            Set<Integer> visibleVertices = new HashSet<>();
+            for (int i = 0; i < vertices.size(); i++) {
+                if (!collideSolid(player, vertices.get(i))) {
+                    visibleVertices.add(i);
+                    visible = true;
+                }
+            }
+            RaytraceDebugs.spawnVertexDisplays(player, entity, vertices, visibleVertices);
         }
-        return false;
+        else {
+            RaytraceDebugs.stopDebug();
+            for (Vector vertex : vertices) {
+                if (!collideSolid(player, vertex)) {
+                    visible = true;
+                    break;
+                }
+            }
+        }
+        return visible;
     }
 
-    public static List<Vector> getEntityVertices(LivingEntity entity) {
+    public static boolean isAntiEntity(LivingEntity entity) {
+        String typeName = entity.getType().name().toLowerCase();
+        boolean whiteListed = antiEntities.contains(typeName);
+        if (antiMode.equalsIgnoreCase("blacklist")) {
+            return !whiteListed;
+        } else if (antiMode.equalsIgnoreCase("whitelist")) {
+            return whiteListed;
+        }
+        return whiteListed;
+    }
+
+    public static List<Vector> getEntityVertices(Player player, LivingEntity entity, double checkingRange) {
+
+        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
+
         ArrayList<Vector> vertices = new ArrayList<>();
-
         BoundingBox boundingBox = entity.getBoundingBox();
-
-//        // bottom face
-//        vertices.add(new Vector(minX, minY, minZ))
-//        double midX = boundingBox.getCenterX();
-//        double midY = boundingBox.getCenterY();
-//        double midZ = boundingBox.getCenterZ();;
-//        vertices.add(new Vector(minX, minY, maxZ));
-//        vertices.add(new Vector(maxX, minY, maxZ));
-//        vertices.add(new Vector(maxX, minY, minZ));
-//
-//
-//        // top face
-//        vertices.add(new Vector(minX, maxY, minZ));
-//        vertices.add(new Vector(minX, maxY, maxZ));
-//        vertices.add(new Vector(maxX, maxY, maxZ));
-//        vertices.add(new Vector(maxX, maxY, minZ));
-
         double maxX = boundingBox.getMaxX();
         double maxY = boundingBox.getMaxY();
         double maxZ = boundingBox.getMaxZ();
-
         double midX = boundingBox.getCenterX();
         double midY = boundingBox.getCenterY();
         double midZ = boundingBox.getCenterZ();
-
         double minX = boundingBox.getMinX();
         double minY = boundingBox.getMinY();
         double minZ = boundingBox.getMinZ();
 
-        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePointsPerCorner must be at least 2");
-        for (int i = 0; i < samplePointsPerCorner; i++) {
-            double y = Maths.lerp(minY, maxY, ((double) i) / (samplePointsPerCorner-1));
+        double distance = player.getLocation().distance(entity.getLocation());
+        double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-            if (boundingBoxExtraValue > 0) {
-                vertices.add(new Vector(minX - boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
-                vertices.add(new Vector(minX - boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
+        int scaledSamplePoints = Math.max(2, (int) Math.round(samplePointsPerCorner * (1.0 - ratio)));
 
-                vertices.add(new Vector(maxX + boundingBoxExtraValue, y, maxZ + boundingBoxExtraValue));
-                vertices.add(new Vector(maxX + boundingBoxExtraValue, y, minZ - boundingBoxExtraValue));
-            }
+        boolean includeCorners = ratio < 0.5;
 
-            vertices.add(new Vector(minX, y, minZ));
-            vertices.add(new Vector(minX, y, maxZ));
-
+        for (int i = 0; i < scaledSamplePoints; i++) {
+            double y = Maths.lerp(minY, maxY, ((double) i) / (scaledSamplePoints - 1));
             vertices.add(new Vector(midX, y, midZ));
 
-            vertices.add(new Vector(maxX, y, maxZ));
-            vertices.add(new Vector(maxX, y, minZ));
-        }
+            if (includeCorners) {
+                if (boundingBoxExtraValue > 0) {
+                    double eMinX = minX - boundingBoxExtraValue;
+                    double eMaxX = maxX + boundingBoxExtraValue;
+                    double eMinZ = minZ - boundingBoxExtraValue;
+                    double eMaxZ = maxZ + boundingBoxExtraValue;
 
+                    vertices.add(new Vector(eMinX, y, eMinZ));
+                    vertices.add(new Vector(eMinX, y, eMaxZ));
+                    vertices.add(new Vector(eMaxX, y, eMaxZ));
+                    vertices.add(new Vector(eMaxX, y, eMinZ));
+
+                    vertices.add(new Vector(midX, y, eMinZ));
+                    vertices.add(new Vector(midX, y, eMaxZ));
+                    vertices.add(new Vector(eMinX, y, midZ));
+                    vertices.add(new Vector(eMaxX, y, midZ));
+                }
+                vertices.add(new Vector(minX, y, minZ));
+                vertices.add(new Vector(minX, y, maxZ));
+                vertices.add(new Vector(maxX, y, maxZ));
+                vertices.add(new Vector(maxX, y, minZ));
+
+                vertices.add(new Vector(midX, y, minZ));
+                vertices.add(new Vector(midX, y, maxZ));
+                vertices.add(new Vector(minX, y, midZ));
+                vertices.add(new Vector(maxX, y, midZ));
+            }
+        }
         return vertices;
     }
 
@@ -139,8 +176,8 @@ public class RayTraceManager {
     //  | not visible  | visible      | spawn packet   |
     //  | not visible  | not visible  | nothing        |
 
-    public static void updateRayTraceChecking(Player player, Entity target, boolean visibleServer) {
-        boolean visibleClient = !VisibilityManager.isHidden(player, target.getEntityId());
+    public static void updateRayTraceChecking(Player player, LivingEntity target, boolean visibleServer) {
+        boolean visibleClient = player.canSee(target);
         if (visibleServer && !visibleClient) {
             VisibilityManager.setNotHidden(player, target);
         } else if (!visibleServer && visibleClient) {
@@ -148,68 +185,31 @@ public class RayTraceManager {
         }
     }
 
-    private static int playerIndex = 0;
-    private static int entityIndex = 0;
-
     public static void startRayTraceChecking() {
         if (task != null) task.cancel();
         currentCheckingIntervalTicks = checkingPeriodTicks;
-
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!isCheckingEnabled) {
-                for (Player p : Bukkit.getOnlinePlayers()) {
-                    Set<Integer> hidden = VisibilityManager.hiddenEntities.get(p.getUniqueId());
-                    if (hidden != null) {
-                        for (LivingEntity e : p.getWorld().getLivingEntities()) {
-                            if (hidden.contains(e.getEntityId())) VisibilityManager.setNotHidden(p, e);
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                        if (!player.canSee(entity)) {
+                            VisibilityManager.setNotHidden(player, entity);
                         }
                     }
                 }
-                VisibilityManager.hiddenEntities.clear();
                 EntityPacketFilter.bypassSet.clear();
                 return;
             }
-
             if (currentCheckingIntervalTicks != checkingPeriodTicks) {
                 startRayTraceChecking();
                 return;
             }
-
-            List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
-            if (players.isEmpty()) return;
-
-            if (checkingAmountPerPeriod < 1) {
-                for (Player p : players) {
-                    for (LivingEntity e : p.getWorld().getLivingEntities()) {
-                        if (e != p) RayTraceManager.updateRayTraceChecking(p, e, RayTraceManager.isEntityVisible(p, e));
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                for (LivingEntity entity : player.getWorld().getLivingEntities()) {
+                    if (entity != player) {
+                        RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
                     }
                 }
-                return;
-            }
-
-            int processed = 0;
-            while (processed < checkingAmountPerPeriod) {
-                if (playerIndex >= players.size()) {
-                    playerIndex = 0;
-                    entityIndex = 0;
-                }
-
-                Player player = players.get(playerIndex);
-                List<LivingEntity> entities = player.getWorld().getLivingEntities();
-
-                if (entityIndex >= entities.size()) {
-                    entityIndex = 0;
-                    playerIndex++;
-                    continue;
-                }
-
-                LivingEntity entity = entities.get(entityIndex);
-                if (entity != player && entity.isValid()) {
-                    RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
-                    processed++;
-                }
-
-                entityIndex++;
             }
         }, 0L, checkingPeriodTicks);
     }
