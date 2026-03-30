@@ -29,7 +29,7 @@ public class TabCompletion implements TabCompleter {
                 case "bounding_box_extra_value" -> List.of("<value>");
                 case "vertices_layers" -> List.of("<layers>");
                 case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
-                case "fake_name_display" -> filter(args[1], List.of("enabled", "period_ticks"));
+                case "fake_name_display" -> filter(args[1], List.of("enabled", "period_ticks", "offset_y"));
                 case "anti_mode" -> filter(args[1], List.of("whitelist", "blacklist"));
                 case "anti_entities" -> filter(args[1], List.of("add", "remove"));
                 default -> null;
@@ -46,6 +46,7 @@ public class TabCompletion implements TabCompleter {
                 case "fake_name_display" -> switch (args[1].toLowerCase()) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     case "period_ticks" -> List.of("<ticks>");
+                    case "offset_y" -> List.of("<distance>");
                     default -> null;
                 };
                 case "anti_entities" -> {
