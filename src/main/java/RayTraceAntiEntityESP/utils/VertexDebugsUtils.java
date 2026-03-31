@@ -16,7 +16,6 @@ import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.utils.FakeNameDisplayUtils.FAKE_DISPLAY_NAME_KEY;
 
 public class VertexDebugsUtils {
-
     public static final NamespacedKey DEBUG_KEY = new NamespacedKey(plugin, "is_debug_vertex");
     public static final Map<UUID, Map<UUID, List<BlockDisplay>>> VertexDebugBlockDisplays = new HashMap<>();
 
@@ -71,8 +70,10 @@ public class VertexDebugsUtils {
     public static void removeVertexDebugBlockDisplays(Player viewer, Entity entity) {
         Map<UUID, List<BlockDisplay>> viewerDisplays = VertexDebugBlockDisplays.get(viewer.getUniqueId());
         if (viewerDisplays == null) return;
+
         List<BlockDisplay> entityDisplays = viewerDisplays.remove(entity.getUniqueId());
         if (entityDisplays == null) return;
+
         for (BlockDisplay display : entityDisplays) display.remove();
         if (viewerDisplays.isEmpty()) VertexDebugBlockDisplays.remove(viewer.getUniqueId());
     }
