@@ -13,14 +13,17 @@ import static RayTraceAntiEntityESP.misc.StringFormat.formatToString;
 public class Config {
 
     public static boolean isCheckingEnabled;
-    public static boolean isDebugEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
+    public static double checkingBoundingBoxExtraValue;
+    public static int checkingSamplePointsPerCorner;
 
-    public static double boundingBoxExtraValue;
-    public static int samplePointsPerCorner;
+    public static boolean isDebugEnabled;
+    public static long debugPeriodTicks;
+
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
+
     public static boolean isFakeDisplayNameEnabled;
     public static long fakeDisplayNamePeriodTicks;
     public static double fakeDisplayNameOffSetY;
@@ -32,15 +35,18 @@ public class Config {
 
         loadSpigotConfig();
 
-        isCheckingEnabled = plugin.getConfig().getBoolean("enabled", true);
-        isDebugEnabled = plugin.getConfig().getBoolean("debug", false);
-        checkingPeriodTicks = plugin.getConfig().getLong("checking_period_ticks", 1);
-        checkingDistanceOverride = plugin.getConfig().getDouble("checking_distance_override", 0);
+        isCheckingEnabled = plugin.getConfig().getBoolean("checking.enabled", true);
+        checkingPeriodTicks = plugin.getConfig().getLong("checking.period_ticks", 1);
+        checkingDistanceOverride = plugin.getConfig().getDouble("checking.distance_override", 0);
+        checkingBoundingBoxExtraValue = plugin.getConfig().getDouble("checking.bounding_box_extra_value", 0.5);
+        checkingSamplePointsPerCorner = plugin.getConfig().getInt("checking.vertices_layers", 5);
 
-        boundingBoxExtraValue = plugin.getConfig().getDouble("bounding_box_extra_value", 0.5);
-        samplePointsPerCorner = plugin.getConfig().getInt("vertices_layers", 5);
+        isDebugEnabled = plugin.getConfig().getBoolean("debug.enabled", false);
+        debugPeriodTicks = plugin.getConfig().getLong("debug.period_ticks", 1);
+
         isPerspectiveCheckingEnabled = plugin.getConfig().getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances_from_head", 4);
+
         isFakeDisplayNameEnabled = plugin.getConfig().getBoolean("fake_name_display.enabled", true);
         fakeDisplayNamePeriodTicks = plugin.getConfig().getLong("fake_name_display.period_ticks", 1);
         fakeDisplayNameOffSetY = plugin.getConfig().getDouble("fake_name_display.offset_y", 0.25);
@@ -73,15 +79,18 @@ public class Config {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
 
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP Config (File) ---"));
-        sender.sendMessage(formatToString(sender, "&eenabled: &f" + config.getBoolean("enabled")));
-        sender.sendMessage(formatToString(sender, "&edebug: &f" + config.getBoolean("debug")));
-        sender.sendMessage(formatToString(sender, "&echecking_period_ticks: &f" + config.getLong("checking_period_ticks")));
-        sender.sendMessage(formatToString(sender, "&echecking_distance_override: &f" + config.getDouble("checking_distance_override")));
+        sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + config.getBoolean("checking.enabled")));
+        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + config.getLong("checking.period_ticks")));
+        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + config.getDouble("checking.distance_override")));
+        sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + config.getDouble("checking.bounding_box_extra_value")));
+        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + config.getInt("checking.vertices_layers")));
 
-        sender.sendMessage(formatToString(sender, "&ebounding_box_extra_value: &f" + config.getDouble("bounding_box_extra_value")));
-        sender.sendMessage(formatToString(sender, "&evertices_layers: &f" + config.getInt("vertices_layers")));
+        sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + config.getBoolean("debug.enabled")));
+        sender.sendMessage(formatToString(sender, "&edebug.period_ticks: &f" + config.getLong("debug.period_ticks")));
+
         sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + config.getBoolean("perspective_checking.enabled")));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + config.getDouble("perspective_checking.distances_from_head")));
+
         sender.sendMessage(formatToString(sender, "&efake_name_display.enabled: &f" + config.getBoolean("fake_name_display.enabled")));
         sender.sendMessage(formatToString(sender, "&efake_name_display.period_ticks: &f" + config.getLong("fake_name_display.period_ticks")));
         sender.sendMessage(formatToString(sender, "&efake_name_display.offset_y: &f" + config.getDouble("fake_name_display.offset_y")));
