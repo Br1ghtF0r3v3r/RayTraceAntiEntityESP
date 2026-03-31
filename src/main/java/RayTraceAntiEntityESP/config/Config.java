@@ -32,27 +32,28 @@ public class Config {
     public static String antiMode;
 
     public static void setConfig() {
+        org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
 
         loadSpigotConfig();
 
-        isCheckingEnabled = plugin.getConfig().getBoolean("checking.enabled", true);
-        checkingPeriodTicks = plugin.getConfig().getLong("checking.period_ticks", 1);
-        checkingDistanceOverride = plugin.getConfig().getDouble("checking.distance_override", 0);
-        checkingBoundingBoxExtraValue = plugin.getConfig().getDouble("checking.bounding_box_extra_value", 0.5);
-        checkingSamplePointsPerCorner = plugin.getConfig().getInt("checking.vertices_layers", 5);
+        isCheckingEnabled = config.getBoolean("checking.enabled", true);
+        checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
+        checkingDistanceOverride = config.getDouble("checking.distance_override", 5);
+        checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0.5);
+        checkingSamplePointsPerCorner = config.getInt("checking.vertices_layers", 5);
 
-        isDebugEnabled = plugin.getConfig().getBoolean("debug.enabled", false);
-        debugPeriodTicks = plugin.getConfig().getLong("debug.period_ticks", 1);
+        isPerspectiveCheckingEnabled = config.getBoolean("perspective_checking.enabled", true);
+        perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
 
-        isPerspectiveCheckingEnabled = plugin.getConfig().getBoolean("perspective_checking.enabled", true);
-        perspectiveCheckingDistance = plugin.getConfig().getDouble("perspective_checking.distances_from_head", 4);
+        isDebugEnabled = config.getBoolean("debug.enabled", false);
+        debugPeriodTicks = config.getLong("debug.period_ticks", 1);
 
-        isFakeDisplayNameEnabled = plugin.getConfig().getBoolean("fake_name_display.enabled", true);
-        fakeDisplayNamePeriodTicks = plugin.getConfig().getLong("fake_name_display.period_ticks", 1);
-        fakeDisplayNameOffSetY = plugin.getConfig().getDouble("fake_name_display.offset_y", 0.25);
+        isFakeDisplayNameEnabled = config.getBoolean("fake_name_display.enabled", true);
+        fakeDisplayNamePeriodTicks = config.getLong("fake_name_display.period_ticks", 1);
+        fakeDisplayNameOffSetY = config.getDouble("fake_name_display.offset_y", 0.25);
 
-        antiEntities = plugin.getConfig().getStringList("anti_entities");
-        antiMode = plugin.getConfig().getString("anti_mode", "whitelist");
+        antiEntities = config.getStringList("anti_entities");
+        antiMode = config.getString("anti_mode", "whitelist");
 
     }
 
@@ -79,25 +80,25 @@ public class Config {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
 
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP Config (File) ---"));
-        sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + config.getBoolean("checking.enabled")));
-        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + config.getLong("checking.period_ticks")));
-        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + config.getDouble("checking.distance_override")));
-        sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + config.getDouble("checking.bounding_box_extra_value")));
-        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + config.getInt("checking.vertices_layers")));
+        sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + config.getBoolean("checking.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + config.getLong("checking.period_ticks", 1)));
+        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + config.getDouble("checking.distance_override", 5)));
+        sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + config.getDouble("checking.bounding_box_extra_value", 0.5)));
+        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + config.getInt("checking.vertices_layers", 5)));
 
-        sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + config.getBoolean("debug.enabled")));
-        sender.sendMessage(formatToString(sender, "&edebug.period_ticks: &f" + config.getLong("debug.period_ticks")));
+        sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + config.getBoolean("perspective_checking.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + config.getDouble("perspective_checking.distances_from_head", 4)));
 
-        sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + config.getBoolean("perspective_checking.enabled")));
-        sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + config.getDouble("perspective_checking.distances_from_head")));
-
-        sender.sendMessage(formatToString(sender, "&efake_name_display.enabled: &f" + config.getBoolean("fake_name_display.enabled")));
-        sender.sendMessage(formatToString(sender, "&efake_name_display.period_ticks: &f" + config.getLong("fake_name_display.period_ticks")));
-        sender.sendMessage(formatToString(sender, "&efake_name_display.offset_y: &f" + config.getDouble("fake_name_display.offset_y")));
+        sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + config.getBoolean("debug.enabled", false)));
+        sender.sendMessage(formatToString(sender, "&edebug.period_ticks: &f" + config.getLong("debug.period_ticks", 1)));
+        
+        sender.sendMessage(formatToString(sender, "&efake_name_display.enabled: &f" + config.getBoolean("fake_name_display.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&efake_name_display.period_ticks: &f" + config.getLong("fake_name_display.period_ticks", 1)));
+        sender.sendMessage(formatToString(sender, "&efake_name_display.offset_y: &f" + config.getDouble("fake_name_display.offset_y", 0.25)));
 
         List<String> entities = config.getStringList("anti_entities");
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", entities)));
-        sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + config.getString("anti_mode")));
+        sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + config.getString("anti_mode", "whitelist")));
     }
 
 }
