@@ -56,17 +56,24 @@ public class DebugsUtils {
             for (Map.Entry<UUID, DebugEntry> debugEntry : viewerEntry.getValue().entrySet()) {
                 Entity entity = Bukkit.getEntity(debugEntry.getKey());
                 if (entity == null) continue;
+
                 DebugEntry entry = debugEntry.getValue();
 
-                cleanupExcessDebugBlockDisplays(entry.displays(), entry.vertices().size());
-                for (int i = 0; i < entry.vertices().size(); i++) {
-                    boolean visible = entry.visibleVertices().contains(i);
+                List<BlockDisplay> displays = entry.displays();
+                List<Vector> vertices = entry.vertices();
+                Set<Integer> visibleVertices = entry.visibleVertices();
+
+                for (int i = vertices.size(); i < displays.size(); i++) displays.get(i).remove();
+                if (vertices.size() < displays.size()) displays.subList(vertices.size(), displays.size()).clear();
+
+                for (int i = 0; i < vertices.size(); i++) {
+                    boolean visible = visibleVertices.contains(i);
                     Material mat = visible ? Material.LIME_WOOL : Material.RED_WOOL;
-                    if (i < entry.displays().size()) {
-                        entry.displays().get(i).setBlock(mat.createBlockData());
-                        entry.displays().get(i).teleport(getLocation(entity.getWorld(), entry.vertices().get(i)));
+                    if (i < displays.size()) {
+                        displays.get(i).setBlock(mat.createBlockData());
+                        displays.get(i).teleport(getLocation(entity.getWorld(), vertices.get(i)));
                     } else {
-                        entry.displays().add(spawnDebugBlockDisplay(viewer, entity, entry.vertices().get(i), visible));
+                        displays.add(spawnDebugBlockDisplay(viewer, entity, vertices.get(i), visible));
                     }
                 }
             }
@@ -105,11 +112,6 @@ public class DebugsUtils {
         });
         viewer.showEntity(plugin, display);
         return display;
-    }
-
-    public static void cleanupExcessDebugBlockDisplays(List<BlockDisplay> displays, int targetSize) {
-        for (int i = targetSize; i < displays.size(); i++) displays.get(i).remove();
-        if (targetSize < displays.size()) displays.subList(targetSize, displays.size()).clear();
     }
 
     public static void removeDebugBlockDisplays(Player viewer, Entity entity) {
