@@ -11,8 +11,8 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
 import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
+import static RayTraceAntiEntityESP.utils.DebugsUtils.removeDebugBlockDisplays;
 import static RayTraceAntiEntityESP.utils.FakeNameDisplayUtils.removeFakeNameDisplay;
-import static RayTraceAntiEntityESP.utils.VertexDebugsUtils.removeVertexDebugBlockDisplays;
 
 public class EventManager {
 
@@ -86,9 +86,9 @@ public class EventManager {
         for (Player online : Bukkit.getOnlinePlayers()) {
             removeFakeNameDisplay(online, player);
         }
-        removeVertexDebugBlockDisplays(player);
+        removeDebugBlockDisplays(player);
         for (Player online : Bukkit.getOnlinePlayers()) {
-            removeVertexDebugBlockDisplays(online, player);
+            removeDebugBlockDisplays(online, player);
         }
     }
 
@@ -98,7 +98,7 @@ public class EventManager {
 
     public static void entityDeathManager(EntityDeathEvent event) {
         for (Player online : Bukkit.getOnlinePlayers()) {
-            removeVertexDebugBlockDisplays(online, event.getEntity());
+            removeDebugBlockDisplays(online, event.getEntity());
         }
     }
 
