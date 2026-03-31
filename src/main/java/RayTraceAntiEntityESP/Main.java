@@ -27,6 +27,7 @@ public final class Main extends JavaPlugin {
         registerCommands();
 
         PacketEvents.getAPI().init();
+
         RayTraceManager.startRayTraceChecking();
         FakeNameDisplayUtils.startFakeNameDisplayUpdating();
 
