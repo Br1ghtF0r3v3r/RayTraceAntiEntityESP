@@ -2,7 +2,6 @@ package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
 import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
-import RayTraceAntiEntityESP.utils.VertexDebugsUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -18,17 +17,18 @@ import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.utils.VertexDebugsUtils.removeAllVertexDebugBlockDisplays;
+import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.clearPacketBypass;
+import static RayTraceAntiEntityESP.utils.DebugsUtils.*;
 
 public class RayTraceManager {
 
     private static BukkitTask task;
     private static long currentCheckingIntervalTicks;
 
-    public static boolean notCollideSolid(Player player, Vector endpoint) {
-        World world = player.getWorld();
-        Vector eyePos = player.getEyeLocation().toVector();
-        Vector lookDir = player.getLocation().getDirection();
+    public static boolean notCollideSolid(Player viewer, Vector endpoint) {
+        World world = viewer.getWorld();
+        Vector eyePos = viewer.getEyeLocation().toVector();
+        Vector lookDir = viewer.getLocation().getDirection();
         if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
         return hitsBlock(world, eyePos, endpoint)
                 || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
@@ -61,42 +61,44 @@ public class RayTraceManager {
         );
     }
 
-    public static boolean isEntityVisible(Player player, Entity entity) {
+    public static boolean isEntityVisible(Player viewer, Entity entity) {
         double range = getSpigotTrackingRange(entity);
         if (!isAntiEntity(entity)) {
-            if (isDebugEnabled) VertexDebugsUtils.removeVertexDebugBlockDisplays(player, entity);
+            removeDebugBlockDisplays(viewer, entity);
             return true;
         }
-        double distSq = player.getLocation().distanceSquared(entity.getLocation());
+        double distSq = viewer.getLocation().distanceSquared(entity.getLocation());
         if (distSq > range * range) {
-            if (isDebugEnabled) VertexDebugsUtils.removeVertexDebugBlockDisplays(player, entity);
+            removeDebugBlockDisplays(viewer, entity);
             return true;
         }
         if (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride) {
-            if (isDebugEnabled) VertexDebugsUtils.removeVertexDebugBlockDisplays(player, entity);
+            removeDebugBlockDisplays(viewer, entity);
             return true;
         }
 
-        List<Vector> vertices = getEntityVertices(player, entity, range);
+        List<Vector> vertices = getEntityVertices(viewer, entity, range);
         boolean visible = false;
 
         if (isDebugEnabled) {
             Set<Integer> visibleVertices = new HashSet<>();
-            for (int i = 0; i < vertices.size(); i++) {
-                if (notCollideSolid(player, vertices.get(i))) {
+            int i = 0;
+            for (Vector vertex : vertices) {
+                if (notCollideSolid(viewer, vertex)) {
                     visibleVertices.add(i);
                     visible = true;
                 }
+                i++;
             }
-            VertexDebugsUtils.applyVertexDebugBlockDisplays(player, entity, vertices, visibleVertices);
+            applyDebug(viewer, entity, vertices, visibleVertices);
         } else {
-            removeAllVertexDebugBlockDisplays();
             for (Vector vertex : vertices) {
-                if (notCollideSolid(player, vertex)) {
+                if (notCollideSolid(viewer, vertex)) {
                     visible = true;
                     break;
                 }
             }
+            removeAllDebugBlockDisplays();
         }
         return visible;
     }
@@ -112,9 +114,9 @@ public class RayTraceManager {
         return whiteListed;
     }
 
-    public static List<Vector> getEntityVertices(Player player, Entity entity, double checkingRange) {
+    public static List<Vector> getEntityVertices(Player viewer, Entity entity, double checkingRange) {
 
-        if (samplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
+        if (checkingSamplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
 
         ArrayList<Vector> vertices = new ArrayList<>();
         BoundingBox boundingBox = entity.getBoundingBox();
@@ -128,10 +130,10 @@ public class RayTraceManager {
         double minY = boundingBox.getMinY();
         double minZ = boundingBox.getMinZ();
 
-        double distance = player.getLocation().distance(entity.getLocation());
+        double distance = viewer.getLocation().distance(entity.getLocation());
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-        int scaledSampleLayers = Math.max(2, (int) Math.round(samplePointsPerCorner * (1.0 - ratio)));
+        int scaledSampleLayers = Math.max(2, (int) Math.round(checkingSamplePointsPerCorner * (1.0 - ratio)));
 
         boolean includeCorners = ratio < 0.5;
 
@@ -140,11 +142,11 @@ public class RayTraceManager {
             vertices.add(new Vector(midX, y, midZ));
 
             if (includeCorners) {
-                if (boundingBoxExtraValue > 0) {
-                    double eMinX = minX - boundingBoxExtraValue;
-                    double eMaxX = maxX + boundingBoxExtraValue;
-                    double eMinZ = minZ - boundingBoxExtraValue;
-                    double eMaxZ = maxZ + boundingBoxExtraValue;
+                if (checkingBoundingBoxExtraValue > 0) {
+                    double eMinX = minX - checkingBoundingBoxExtraValue;
+                    double eMaxX = maxX + checkingBoundingBoxExtraValue;
+                    double eMinZ = minZ - checkingBoundingBoxExtraValue;
+                    double eMaxZ = maxZ + checkingBoundingBoxExtraValue;
 
                     vertices.add(new Vector(eMinX, y, eMinZ));
                     vertices.add(new Vector(eMinX, y, eMaxZ));
@@ -177,12 +179,12 @@ public class RayTraceManager {
     //  | not visible  | visible      | spawn packet   |
     //  | not visible  | not visible  | nothing        |
 
-    public static void updateRayTraceChecking(Player player, Entity entity, boolean visibleServer) {
-        boolean visibleClient = player.canSee(entity);
+    public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer) {
+        boolean visibleClient = viewer.canSee(entity);
         if (visibleServer && !visibleClient) {
-            VisibilityManager.setNotHidden(player, entity);
+            VisibilityManager.setNotHidden(viewer, entity);
         } else if (!visibleServer && visibleClient) {
-            VisibilityManager.setHidden(player, entity);
+            VisibilityManager.setHidden(viewer, entity);
         }
     }
 
@@ -191,23 +193,23 @@ public class RayTraceManager {
         currentCheckingIntervalTicks = checkingPeriodTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!isCheckingEnabled) {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    for (Entity entity : player.getWorld().getEntities()) {
-                        if (!player.canSee(entity)) VisibilityManager.setNotHidden(player, entity);
+                for (Player viewer : Bukkit.getOnlinePlayers()) {
+                    for (Entity entity : viewer.getWorld().getEntities()) {
+                        if (!viewer.canSee(entity)) VisibilityManager.setNotHidden(viewer, entity);
                     }
-                    FakeNameDisplayUtils.removeFakeNameDisplay(player);
+                    FakeNameDisplayUtils.removeFakeNameDisplay(viewer);
                 }
-                PacketFilterManager.bypassSet.clear();
+                clearPacketBypass();
                 return;
             }
             if (currentCheckingIntervalTicks != checkingPeriodTicks) {
                 startRayTraceChecking();
                 return;
             }
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                for (Entity entity : player.getWorld().getEntities()) {
-                    if (entity != player) {
-                        RayTraceManager.updateRayTraceChecking(player, entity, RayTraceManager.isEntityVisible(player, entity));
+            for (Player viewer : Bukkit.getOnlinePlayers()) {
+                for (Entity entity : viewer.getWorld().getEntities()) {
+                    if (entity != viewer) {
+                        RayTraceManager.updateRayTraceChecking(viewer, entity, RayTraceManager.isEntityVisible(viewer, entity));
                     }
                 }
             }

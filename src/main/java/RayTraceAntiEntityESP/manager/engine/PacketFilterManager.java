@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.manager.engine;
 
+import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -18,7 +19,21 @@ import static RayTraceAntiEntityESP.Main.plugin;
 public class PacketFilterManager extends PacketListenerAbstract {
 
     public static final Set<String> bypassSet = Collections.synchronizedSet(new HashSet<>());
-    public static String bypassKey(Player viewer, UUID entityUUID) { return viewer.getUniqueId() + ":" + entityUUID; }
+    public static String bypassKey(Player viewer, UUID entityId) {
+        return viewer.getUniqueId() + ":" + entityId;
+    }
+
+    public static boolean addPacketBypass(Player viewer, UUID entityId) {
+        return PacketFilterManager.bypassSet.add(bypassKey(viewer, entityId));
+    }
+
+    public static boolean removePacketBypass(Player viewer, UUID entityId) {
+        return PacketFilterManager.bypassSet.remove(bypassKey(viewer, entityId));
+    }
+
+    public static void clearPacketBypass() {
+        PacketFilterManager.bypassSet.clear();
+    }
 
     public static void packetFilter(PacketSendEvent event) {
         PacketTypeCommon packetType = event.getPacketType();
@@ -26,19 +41,18 @@ public class PacketFilterManager extends PacketListenerAbstract {
 
         if (packetType == PacketType.Play.Server.SPAWN_ENTITY) {
 
-            WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(event);
-            UUID entityUUID = spawnPacket.getUUID().get();
+            WrapperPlayServerSpawnEntity packet = new WrapperPlayServerSpawnEntity(event);
+            if (packet.getUUID().isEmpty()) return;
+            UUID entityUUID = packet.getUUID().get();
 
-            if (viewer.getUniqueId() == entityUUID) return;
-            if (bypassSet.remove(bypassKey(viewer, entityUUID))) return;
+            if (viewer.getUniqueId().equals(entityUUID)) return;
+            if (removePacketBypass(viewer, entityUUID)) return;
 
             event.setCancelled(true);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
-                Entity entity = viewer.getWorld().getEntity(entityUUID);
-
+                Entity entity = Bukkit.getEntity(entityUUID);
                 if (entity == null) return;
-
                 if (RayTraceManager.isEntityVisible(viewer, entity)) {
                     VisibilityManager.setNotHidden(viewer, entity);
                 } else {
@@ -47,24 +61,25 @@ public class PacketFilterManager extends PacketListenerAbstract {
             });
         }
         else if (packetType == PacketType.Play.Server.PLAYER_INFO_REMOVE) {
-
             WrapperPlayServerPlayerInfoRemove packet = new WrapperPlayServerPlayerInfoRemove(event);
-            List<UUID> uuids = new ArrayList<>(packet.getProfileIds());
 
-            uuids.removeIf(uuid -> {
+            List<UUID> original = packet.getProfileIds();
+            List<UUID> filtered = new ArrayList<>();
+
+            for (UUID uuid : original) {
                 Player target = Bukkit.getPlayer(uuid);
-                return target != null && !viewer.canSee(target);
-            });
-            if (uuids.size() != packet.getProfileIds().size()) {
-                if (uuids.isEmpty()) {
-                    event.setCancelled(true);
+                if (target != null
+                        && !viewer.canSee(target)
+                        && FakeNameDisplayUtils.fakeNameDisplay.containsKey(viewer.getUniqueId())
+                        && FakeNameDisplayUtils.fakeNameDisplay.get(viewer.getUniqueId()).containsKey(uuid)) {
+                    continue;
                 }
-                else {
-                    event.setCancelled(true);
-                    WrapperPlayServerPlayerInfoRemove newPacket = new WrapperPlayServerPlayerInfoRemove(uuids);
-                    PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, newPacket);
-                }
+                filtered.add(uuid);
             }
+
+            if (filtered.size() == original.size()) return;
+            event.setCancelled(true);
+            if (!filtered.isEmpty()) PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerPlayerInfoRemove(filtered));
         }
     }
 }
