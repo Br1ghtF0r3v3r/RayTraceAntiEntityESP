@@ -21,13 +21,13 @@ public final class Main extends JavaPlugin {
 
         plugin = this;
 
-        reloadConfigAll();
-
         getServer().getPluginManager().registerEvents(new EventListener(), this);
         PacketEvents.getAPI().getEventManager().registerListener(new EventListener());
         registerCommands();
 
         PacketEvents.getAPI().init();
+
+        reloadConfigAll();
 
         getLogger().info("RayTraceEntityESP enabled successfully!");
     }
