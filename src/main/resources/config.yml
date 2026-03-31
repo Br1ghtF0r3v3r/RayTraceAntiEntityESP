@@ -1,13 +1,18 @@
-enabled: true
-debug: false
-checking_period_ticks: 1
-checking_distance_override: 5
+checking:
+  enabled: true
+  period_ticks: 1
+  distance_override: 5
+  bounding_box_extra_value: 0.5
+  vertices_layers: 5
 
-bounding_box_extra_value: 0.5
-vertices_layers: 5
 perspective_checking:
   enabled: true
   distances_from_head: 4
+
+debug:
+  enabled: false
+  period_ticks: 1
+
 fake_name_display:
   enabled: true
   period_ticks: 1
