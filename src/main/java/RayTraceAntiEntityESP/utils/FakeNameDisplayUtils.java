@@ -15,65 +15,68 @@ import java.util.UUID;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
+import static RayTraceAntiEntityESP.misc.Team.getTeam;
+import static RayTraceAntiEntityESP.misc.Team.getTeamVisibility;
+import static RayTraceAntiEntityESP.utils.VertexDebugsUtils.DEBUG_KEY;
 
 public class FakeNameDisplayUtils {
 
     private static BukkitTask task;
-    public static final Map<UUID, Map<UUID, TextDisplay>> nameplates = new HashMap<>();
-    public static final NamespacedKey FAKE_DISPLAY_NAME_KEY = new NamespacedKey(plugin, "is_fake_display_name");
-    public static long currentFakeDisplayNamePeriodTicks;
+    private static long currentFakeNameDisplayPeriodTicks;
+
+    public static final NamespacedKey FAKE_DISPLAY_NAME_KEY = new NamespacedKey(plugin, "is_fake_textDisplay_name");
+    public static final Map<UUID, Map<UUID, TextDisplay>> fakeNameDisplay = new HashMap<>();
 
     public static void startFakeNameDisplayUpdating() {
         if (task != null) task.cancel();
-        currentFakeDisplayNamePeriodTicks = fakeDisplayNamePeriodTicks;
+        currentFakeNameDisplayPeriodTicks = fakeDisplayNamePeriodTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!isFakeDisplayNameEnabled) {
-                removeAllNameplates();
+                removeAllFakeNameDisplay();
                 return;
             }
-            if (currentFakeDisplayNamePeriodTicks != fakeDisplayNamePeriodTicks) {
+            if (currentFakeNameDisplayPeriodTicks != fakeDisplayNamePeriodTicks) {
                 startFakeNameDisplayUpdating();
                 return;
             }
-            updateAllNameplates();
+            updateAllFakeNameDisplays();
         }, 0L, fakeDisplayNamePeriodTicks);
     }
 
-    public static void updateAllNameplates() {
-        for (Map.Entry<UUID, Map<UUID, TextDisplay>> entry : nameplates.entrySet()) {
+    public static void updateAllFakeNameDisplays() {
+        for (Map.Entry<UUID, Map<UUID, TextDisplay>> entry : fakeNameDisplay.entrySet()) {
             Player viewer = Bukkit.getPlayer(entry.getKey());
             if (viewer == null) continue;
-            updateViewerNameplates(viewer, entry.getValue());
+            updateViewerFakeNameDisplay(entry.getValue());
         }
     }
 
-    public static void updateViewerNameplates(Player viewer, Map<UUID, TextDisplay> playerNameplates) {
-        for (Map.Entry<UUID, TextDisplay> displayEntry : playerNameplates.entrySet()) {
+    public static void updateViewerFakeNameDisplay(Map<UUID, TextDisplay> viewerNameplates) {
+        for (Map.Entry<UUID, TextDisplay> displayEntry : viewerNameplates.entrySet()) {
+            Entity entity = Bukkit.getEntity(displayEntry.getKey());
+            if (entity == null) continue;
             TextDisplay display = displayEntry.getValue();
-            if (!display.isValid()) continue;
-            updateNameplatePosition(viewer, displayEntry.getKey(), display);
-        }
-    }
-
-    public static void updateNameplatePosition(Player viewer, UUID entityUUID, TextDisplay display) {
-        for (Entity e : viewer.getWorld().getEntities()) {
-            if (e.getUniqueId().equals(entityUUID)) {
-                display.teleport(e.getLocation().add(0, e.getHeight() + fakeDisplayNameOffSetY, 0));
-                break;
+            if (display.isValid()) {
+                updateFakeNameDisplayPosition(displayEntry.getKey(), display);
+                updateFakeNameDisplayText(displayEntry.getKey(), display);
             }
         }
     }
 
-    public static Team getTeam(Entity entity) {
-        return Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(entity.getScoreboardEntryName());
+    public static void updateFakeNameDisplayText(UUID entityUUID, TextDisplay textDisplay) {
+        Entity entity = Bukkit.getEntity(entityUUID);
+        if (entity == null) return;
+        Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
+        textDisplay.text(name);
     }
 
-    public static Team.OptionStatus getTeamVisibility(Team team) {
-        if (team == null) return Team.OptionStatus.ALWAYS;
-        return team.getOption(Team.Option.NAME_TAG_VISIBILITY);
+    public static void updateFakeNameDisplayPosition(UUID entityUUID, TextDisplay textDisplay) {
+        Entity entity = Bukkit.getEntity(entityUUID);
+        if (entity == null) return;
+        textDisplay.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
     }
 
-    public static boolean isNameDisplayVisible(Player viewer, Entity entity) {
+    public static boolean isNametextDisplayVisible(Player viewer, Entity entity) {
         if (entity.isInvisible()) return false;
 
         if (!(entity instanceof Player)) {
@@ -92,28 +95,28 @@ public class FakeNameDisplayUtils {
         };
     }
 
-    public static void applyFakeNameplate(Player viewer, Entity entity, boolean entityHidden) {
-        boolean needsNameplate = isNameDisplayVisible(viewer, entity) && entityHidden;
-        Map<UUID, TextDisplay> playerNameplates = nameplates.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
-        if (needsNameplate) {
-            TextDisplay existing = playerNameplates.get(entity.getUniqueId());
-            if (existing == null || !existing.isValid()) {
-                TextDisplay display = spawnFakeNameplate(viewer, entity);
-                playerNameplates.put(entity.getUniqueId(), display);
-            } else {
-                Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName();
-                existing.text(name);
-            }
-        } else {
-            removeNameplate(viewer, entity);
+    public static boolean shouldSkipSpawningFakeNameDisplay(Entity entity) {
+        return entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE) || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
+    }
+
+    public static void applyFakeNameDisplay(Player viewer, Entity entity) {
+        if (shouldSkipSpawningFakeNameDisplay(entity)) return;
+        if (!entity.isValid() || entity.isDead()) {
+            removeFakeNameDisplay(viewer, entity);
+            return;
+        }
+        Map<UUID, TextDisplay> viewerDisplays = fakeNameDisplay.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
+        TextDisplay entityDisplays = viewerDisplays.get(entity.getUniqueId());
+        if (entityDisplays == null || !entityDisplays.isValid()) {
+            TextDisplay textDisplay = spawnFakeNameDisplay(viewer, entity);
+            updateAllFakeNameDisplays();
+            viewerDisplays.put(entity.getUniqueId(), textDisplay);
         }
     }
 
-    public static TextDisplay spawnFakeNameplate(Player viewer, Entity entity) {
-        Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
-        Location loc = entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0);
-        TextDisplay display = loc.getWorld().spawn(loc, TextDisplay.class, d -> {
-            d.text(name);
+    public static TextDisplay spawnFakeNameDisplay(Player viewer, Entity entity) {
+        Location loc = entity.getLocation();
+        TextDisplay textDisplay = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
             d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setBillboard(TextDisplay.Billboard.CENTER);
             d.setTextOpacity((byte) 128);
@@ -121,33 +124,33 @@ public class FakeNameDisplayUtils {
             d.setPersistent(false);
             d.setVisibleByDefault(false);
         });
-        viewer.showEntity(plugin, display);
-        return display;
+        viewer.showEntity(plugin, textDisplay);
+        return textDisplay;
     }
 
-    public static void removeNameplate(Player viewer, Entity entity) {
-        Map<UUID, TextDisplay> playerNameplates = nameplates.get(viewer.getUniqueId());
+    public static void removeFakeNameDisplay(Player viewer, Entity entity) {
+        Map<UUID, TextDisplay> playerNameplates = fakeNameDisplay.get(viewer.getUniqueId());
         if (playerNameplates == null) return;
-        TextDisplay display = playerNameplates.remove(entity.getUniqueId());
-        if (display != null) display.remove();
-        if (playerNameplates.isEmpty()) nameplates.remove(viewer.getUniqueId());
+        TextDisplay textDisplay = playerNameplates.remove(entity.getUniqueId());
+        if (textDisplay != null) textDisplay.remove();
+        if (playerNameplates.isEmpty()) fakeNameDisplay.remove(viewer.getUniqueId());
     }
 
-    public static void removeAllNameplates(Player viewer) {
-        Map<UUID, TextDisplay> playerNameplates = nameplates.remove(viewer.getUniqueId());
-        if (playerNameplates == null) return;
-        for (TextDisplay display : playerNameplates.values()) {
-            display.remove();
+    public static void removeFakeNameDisplay(Player viewer) {
+        Map<UUID, TextDisplay> viewerFakeNameDisplay = fakeNameDisplay.remove(viewer.getUniqueId());
+        if (viewerFakeNameDisplay == null) return;
+        for (TextDisplay textDisplay : viewerFakeNameDisplay.values()) {
+            textDisplay.remove();
         }
     }
 
-    public static void removeAllNameplates() {
-        for (Map<UUID, TextDisplay> playerNameplates : nameplates.values()) {
-            for (TextDisplay display : playerNameplates.values()) {
-                display.remove();
+    public static void removeAllFakeNameDisplay() {
+        for (Map<UUID, TextDisplay> playerNameplates : fakeNameDisplay.values()) {
+            for (TextDisplay textDisplay : playerNameplates.values()) {
+                textDisplay.remove();
             }
         }
-        nameplates.clear();
+        fakeNameDisplay.clear();
     }
 
 }

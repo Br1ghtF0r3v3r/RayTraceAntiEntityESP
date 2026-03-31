@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.manager.events;
 
 import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
-import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
@@ -12,6 +11,8 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
 import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
+import static RayTraceAntiEntityESP.utils.FakeNameDisplayUtils.removeFakeNameDisplay;
+import static RayTraceAntiEntityESP.utils.VertexDebugsUtils.removeVertexDebugBlockDisplays;
 
 public class EventManager {
 
@@ -80,9 +81,14 @@ public class EventManager {
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        FakeNameDisplayUtils.removeAllNameplates(player);
+
+        FakeNameDisplayUtils.removeFakeNameDisplay(player);
         for (Player online : Bukkit.getOnlinePlayers()) {
-            FakeNameDisplayUtils.removeNameplate(online, player);
+            removeFakeNameDisplay(online, player);
+        }
+        removeVertexDebugBlockDisplays(player);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            removeVertexDebugBlockDisplays(online, player);
         }
     }
 
@@ -91,7 +97,9 @@ public class EventManager {
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
-        RayTraceDebugsUtils.despawnVertexDebugDisplays(event.getEntity());
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            removeVertexDebugBlockDisplays(online, event.getEntity());
+        }
     }
 
 }
