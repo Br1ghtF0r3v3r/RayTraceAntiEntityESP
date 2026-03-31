@@ -20,7 +20,7 @@ public class VisibilityManager {
 
     public static void setNotHidden(Player viewer, Entity entity) {
         viewer.hideEntity(plugin, entity);
-        PacketFilterManager.bypassSet.add(PacketFilterManager.bypassKey(viewer, entity.getEntityId()));
+        PacketFilterManager.bypassSet.add(PacketFilterManager.bypassKey(viewer, entity.getUniqueId()));
         viewer.showEntity(plugin, entity);
 
         FakeNameDisplayUtils.removeFakeNameDisplay(viewer, entity);
