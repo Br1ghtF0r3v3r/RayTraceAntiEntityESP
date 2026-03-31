@@ -40,8 +40,8 @@ public class PacketFilterManager extends PacketListenerAbstract {
         Player viewer = event.getPlayer();
 
         if (packetType == PacketType.Play.Server.SPAWN_ENTITY) {
-
             WrapperPlayServerSpawnEntity packet = new WrapperPlayServerSpawnEntity(event);
+
             if (packet.getUUID().isEmpty()) return;
             UUID entityUUID = packet.getUUID().get();
 

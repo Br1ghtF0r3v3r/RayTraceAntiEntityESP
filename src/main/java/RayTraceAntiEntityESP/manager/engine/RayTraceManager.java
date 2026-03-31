@@ -98,7 +98,6 @@ public class RayTraceManager {
                     break;
                 }
             }
-            removeAllDebugBlockDisplays();
         }
         return visible;
     }
@@ -189,7 +188,10 @@ public class RayTraceManager {
     }
 
     public static void startRayTraceChecking() {
-        if (task != null) task.cancel();
+        if (task != null) {
+            task.cancel();
+            task = null;
+        }
         currentCheckingIntervalTicks = checkingPeriodTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (!isCheckingEnabled) {
@@ -200,6 +202,8 @@ public class RayTraceManager {
                     FakeNameDisplayUtils.removeFakeNameDisplay(viewer);
                 }
                 clearPacketBypass();
+                task.cancel();
+                task = null;
                 return;
             }
             if (currentCheckingIntervalTicks != checkingPeriodTicks) {

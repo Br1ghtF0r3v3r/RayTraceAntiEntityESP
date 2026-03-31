@@ -56,6 +56,7 @@ public class FakeNameDisplayUtils {
             for (Map.Entry<UUID, TextDisplay> displayEntry : viewerEntry.getValue().entrySet()) {
                 Entity entity = Bukkit.getEntity(displayEntry.getKey());
                 if (entity == null) continue;
+
                 TextDisplay display = displayEntry.getValue();
                 if (!display.isValid()) continue;
 
