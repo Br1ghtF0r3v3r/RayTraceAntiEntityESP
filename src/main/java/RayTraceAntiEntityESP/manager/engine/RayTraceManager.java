@@ -2,7 +2,7 @@ package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
 import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
-import RayTraceAntiEntityESP.utils.RayTraceDebugsUtils;
+import RayTraceAntiEntityESP.utils.VertexDebugsUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -18,12 +18,12 @@ import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
+import static RayTraceAntiEntityESP.utils.VertexDebugsUtils.removeAllVertexDebugBlockDisplays;
 
 public class RayTraceManager {
 
     private static BukkitTask task;
-    public static long currentCheckingIntervalTicks;
-    public static boolean currentIsDebugEnabled;
+    private static long currentCheckingIntervalTicks;
 
     public static boolean notCollideSolid(Player player, Vector endpoint) {
         World world = player.getWorld();
@@ -62,21 +62,18 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityVisible(Player player, Entity entity) {
-        if (RayTraceDebugsUtils.shouldSkipDebug(entity)) {
-            return true;
-        }
         double range = getSpigotTrackingRange(entity);
         if (!isAntiEntity(entity)) {
-            if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
+            if (isDebugEnabled) VertexDebugsUtils.removeVertexDebugBlockDisplays(player, entity);
             return true;
         }
         double distSq = player.getLocation().distanceSquared(entity.getLocation());
         if (distSq > range * range) {
-            if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
+            if (isDebugEnabled) VertexDebugsUtils.removeVertexDebugBlockDisplays(player, entity);
             return true;
         }
         if (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride) {
-            if (isDebugEnabled) RayTraceDebugsUtils.despawnVertexDebugDisplays(entity);
+            if (isDebugEnabled) VertexDebugsUtils.removeVertexDebugBlockDisplays(player, entity);
             return true;
         }
 
@@ -91,9 +88,9 @@ public class RayTraceManager {
                     visible = true;
                 }
             }
-            RayTraceDebugsUtils.spawnVertexDebugDisplays(player, entity, vertices, visibleVertices);
-        }
-        else {
+            VertexDebugsUtils.applyVertexDebugBlockDisplays(player, entity, vertices, visibleVertices);
+        } else {
+            removeAllVertexDebugBlockDisplays();
             for (Vector vertex : vertices) {
                 if (notCollideSolid(player, vertex)) {
                     visible = true;
@@ -193,17 +190,12 @@ public class RayTraceManager {
         if (task != null) task.cancel();
         currentCheckingIntervalTicks = checkingPeriodTicks;
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (currentIsDebugEnabled && !isDebugEnabled) {
-                RayTraceDebugsUtils.stopDebug();
-            }
-            currentIsDebugEnabled = isDebugEnabled;
-
             if (!isCheckingEnabled) {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     for (Entity entity : player.getWorld().getEntities()) {
                         if (!player.canSee(entity)) VisibilityManager.setNotHidden(player, entity);
                     }
-                    FakeNameDisplayUtils.removeAllNameplates(player);
+                    FakeNameDisplayUtils.removeFakeNameDisplay(player);
                 }
                 PacketFilterManager.bypassSet.clear();
                 return;
