@@ -53,25 +53,13 @@ public class FakeNameDisplayUtils {
         for (Map.Entry<UUID, TextDisplay> displayEntry : viewerNameplates.entrySet()) {
             Entity entity = Bukkit.getEntity(displayEntry.getKey());
             if (entity == null) continue;
-            TextDisplay display = displayEntry.getValue();
-            if (display.isValid()) {
-                updateFakeNameDisplayPosition(displayEntry.getKey(), display);
-                updateFakeNameDisplayText(displayEntry.getKey(), display);
+            TextDisplay textDisplay = displayEntry.getValue();
+            if (textDisplay.isValid()) {
+                Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
+                textDisplay.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
+                textDisplay.text(name);
             }
         }
-    }
-
-    public static void updateFakeNameDisplayText(UUID entityUUID, TextDisplay textDisplay) {
-        Entity entity = Bukkit.getEntity(entityUUID);
-        if (entity == null) return;
-        Component name = entity instanceof Player ? Component.text(entity.getName()) : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
-        textDisplay.text(name);
-    }
-
-    public static void updateFakeNameDisplayPosition(UUID entityUUID, TextDisplay textDisplay) {
-        Entity entity = Bukkit.getEntity(entityUUID);
-        if (entity == null) return;
-        textDisplay.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
     }
 
     public static boolean isNametextDisplayVisible(Player viewer, Entity entity) {
@@ -89,13 +77,11 @@ public class FakeNameDisplayUtils {
             case FOR_OTHER_TEAMS -> !onSameTeam;
         };
     }
-
-    public static boolean shouldSkipSpawningFakeNameDisplay(Entity entity) {
-        return entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE) || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
-    }
-
     public static void applyFakeNameDisplay(Player viewer, Entity entity) {
-        if (shouldSkipSpawningFakeNameDisplay(entity)) return;
+        boolean shouldSkipSpawningFakeNameDisplay = entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE) ||
+                entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
+        if (shouldSkipSpawningFakeNameDisplay) return;
+
         if (!entity.isValid() || entity.isDead()) {
             removeFakeNameDisplay(viewer, entity);
             return;
@@ -124,16 +110,18 @@ public class FakeNameDisplayUtils {
     }
 
     public static void removeFakeNameDisplay(Player viewer, Entity entity) {
-        Map<UUID, TextDisplay> playerNameplates = fakeNameDisplay.get(viewer.getUniqueId());
-        if (playerNameplates == null) return;
-        TextDisplay textDisplay = playerNameplates.remove(entity.getUniqueId());
+        Map<UUID, TextDisplay> viewerFakeNameDisplay = fakeNameDisplay.get(viewer.getUniqueId());
+        if (viewerFakeNameDisplay == null) return;
+
+        TextDisplay textDisplay = viewerFakeNameDisplay.remove(entity.getUniqueId());
         if (textDisplay != null) textDisplay.remove();
-        if (playerNameplates.isEmpty()) fakeNameDisplay.remove(viewer.getUniqueId());
+        if (viewerFakeNameDisplay.isEmpty()) fakeNameDisplay.remove(viewer.getUniqueId());
     }
 
     public static void removeFakeNameDisplay(Player viewer) {
         Map<UUID, TextDisplay> viewerFakeNameDisplay = fakeNameDisplay.remove(viewer.getUniqueId());
         if (viewerFakeNameDisplay == null) return;
+
         for (TextDisplay textDisplay : viewerFakeNameDisplay.values()) {
             textDisplay.remove();
         }
