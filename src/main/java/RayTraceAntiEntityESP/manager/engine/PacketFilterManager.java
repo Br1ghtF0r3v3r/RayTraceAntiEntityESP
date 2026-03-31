@@ -18,7 +18,7 @@ import static RayTraceAntiEntityESP.Main.plugin;
 public class PacketFilterManager extends PacketListenerAbstract {
 
     public static final Set<String> bypassSet = Collections.synchronizedSet(new HashSet<>());
-    public static String bypassKey(Player viewer, int entityId) { return viewer.getUniqueId() + ":" + entityId; }
+    public static String bypassKey(Player viewer, UUID entityUUID) { return viewer.getUniqueId() + ":" + entityUUID; }
 
     public static void packetFilter(PacketSendEvent event) {
         PacketTypeCommon packetType = event.getPacketType();
@@ -27,21 +27,16 @@ public class PacketFilterManager extends PacketListenerAbstract {
         if (packetType == PacketType.Play.Server.SPAWN_ENTITY) {
 
             WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(event);
-            int entityId = spawnPacket.getEntityId();
+            UUID entityUUID = spawnPacket.getUUID().get();
 
-            if (viewer.getEntityId() == entityId) return;
-            if (bypassSet.remove(bypassKey(viewer, entityId))) return;
+            if (viewer.getUniqueId() == entityUUID) return;
+            if (bypassSet.remove(bypassKey(viewer, entityUUID))) return;
 
             event.setCancelled(true);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
-                Entity entity = null;
-                for (Entity e : viewer.getWorld().getEntities()) {
-                    if (e.getEntityId() == entityId) {
-                        entity = e;
-                        break;
-                    }
-                }
+                Entity entity = viewer.getWorld().getEntity(entityUUID);
+
                 if (entity == null) return;
 
                 if (RayTraceManager.isEntityVisible(viewer, entity)) {
