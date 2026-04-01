@@ -12,7 +12,7 @@ public class VisibilityManager {
     public static void setHidden(Player viewer, Entity entity) {
         viewer.hideEntity(plugin, entity);
 
-        FakeNameDisplay.applyFakeNameDisplay(viewer, entity);
+        FakeNameDisplay.applyDisplay(viewer, entity);
     }
 
     public static void setNotHidden(Player viewer, Entity entity) {
@@ -20,7 +20,7 @@ public class VisibilityManager {
         addPacketBypass(viewer, entity.getUniqueId());
         viewer.showEntity(plugin, entity);
 
-        FakeNameDisplay.removeFakeNameDisplay(viewer, entity);
+        FakeNameDisplay.removeDisplay(viewer, entity);
     }
 
 }
