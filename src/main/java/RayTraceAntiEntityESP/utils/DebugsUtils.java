@@ -15,7 +15,6 @@ import org.joml.Vector3f;
 import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.config.Config.*;
 import static RayTraceAntiEntityESP.utils.FakeNameDisplay.FAKE_DISPLAY_NAME_KEY;
 
 public class DebugsUtils {
@@ -33,14 +32,15 @@ public class DebugsUtils {
             task.cancel();
             task = null;
         }
+        removeAllDisplays();
     }
 
     public static void startTask() {
         killTask();
-        task = Bukkit.getScheduler().runTaskTimer(plugin, DebugsUtils::updateAllDebugs, 0L, Config.debugPeriodTicks);
+        task = Bukkit.getScheduler().runTaskTimer(plugin, DebugsUtils::updateDisplays, 0L, Config.debugPeriodTicks);
     }
 
-    public static void updateAllDebugs() {
+    public static void updateDisplays() {
         for (Map.Entry<UUID, Map<UUID, DebugEntry>> viewerEntry : debugs.entrySet()) {
             Player viewer = Bukkit.getPlayer(viewerEntry.getKey());
             if (viewer == null) continue;
@@ -65,19 +65,19 @@ public class DebugsUtils {
                         displays.get(i).setBlock(mat.createBlockData());
                         displays.get(i).teleport(getLocation(entity.getWorld(), vertices.get(i)));
                     } else {
-                        displays.add(spawnDebugBlockDisplay(viewer, entity, vertices.get(i), visible));
+                        displays.add(spawnDisplay(viewer, entity, vertices.get(i), visible));
                     }
                 }
             }
         }
     }
 
-    public static void applyDebug(Player viewer, Entity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
+    public static void applyDisplay(Player viewer, Entity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
         boolean shouldSkipDebug = entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE)
                 || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
         if (shouldSkipDebug) return;
         if (!entity.isValid() || entity.isDead()) {
-            removeDebugBlockDisplays(viewer, entity);
+            removeDisplay(viewer, entity);
             return;
         }
         Map<UUID, DebugEntry> viewerDebug = debugs.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
@@ -91,7 +91,7 @@ public class DebugsUtils {
         viewerDebug.put(entity.getUniqueId(), new DebugEntry(displays, new ArrayList<>(vertices), new HashSet<>(visibleVertices)));
     }
 
-    public static BlockDisplay spawnDebugBlockDisplay(Player viewer, Entity entity, Vector vertex, boolean visible) {
+    public static BlockDisplay spawnDisplay(Player viewer, Entity entity, Vector vertex, boolean visible) {
         BlockDisplay display = entity.getWorld().spawn(getLocation(entity.getWorld(), vertex), BlockDisplay.class, d -> {
             d.setBlock((visible ? Material.LIME_WOOL : Material.RED_WOOL).createBlockData());
             d.getPersistentDataContainer().set(DEBUG_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -106,7 +106,7 @@ public class DebugsUtils {
         return display;
     }
 
-    public static void removeDebugBlockDisplays(Player viewer, Entity entity) {
+    public static void removeDisplay(Player viewer, Entity entity) {
         Map<UUID, DebugEntry> viewerDebug = debugs.get(viewer.getUniqueId());
         if (viewerDebug == null) return;
         DebugEntry entry = viewerDebug.remove(entity.getUniqueId());
@@ -115,7 +115,7 @@ public class DebugsUtils {
         if (viewerDebug.isEmpty()) debugs.remove(viewer.getUniqueId());
     }
 
-    public static void removeDebugBlockDisplays(Player viewer) {
+    public static void removeDisplay(Player viewer) {
         Map<UUID, DebugEntry> viewerDebug = debugs.remove(viewer.getUniqueId());
         if (viewerDebug == null) return;
         for (DebugEntry entry : viewerDebug.values()) {
@@ -123,7 +123,7 @@ public class DebugsUtils {
         }
     }
 
-    public static void removeAllDebugBlockDisplays() {
+    public static void removeAllDisplays() {
         for (Map<UUID, DebugEntry> viewerDebug : debugs.values()) {
             for (DebugEntry entry : viewerDebug.values()) {
                 for (BlockDisplay display : entry.displays()) display.remove();
