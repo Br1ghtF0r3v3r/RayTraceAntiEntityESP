@@ -39,7 +39,7 @@ public class FakeNameDisplay {
         task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateDisplays, 0L, tickDelay);
     }
 
-    public static void updateDisplays() {
+    private static void updateDisplays() {
         for (Map.Entry<UUID, Map<UUID, TextDisplay>> viewerEntry : fakeNameDisplay.entrySet()) {
             Player viewer = Bukkit.getPlayer(viewerEntry.getKey());
             if (viewer == null) continue;
@@ -79,7 +79,7 @@ public class FakeNameDisplay {
         }
     }
 
-    public static TextDisplay spawnDisplay(Player viewer, Entity entity) {
+    private static TextDisplay spawnDisplay(Player viewer, Entity entity) {
         Location loc = entity.getLocation();
         TextDisplay textDisplay = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
             d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -118,7 +118,7 @@ public class FakeNameDisplay {
         fakeNameDisplay.clear();
     }
 
-    public static boolean isDisplayVisible(Player viewer, Entity entity) {
+    private static boolean isDisplayVisible(Player viewer, Entity entity) {
         if (entity.isInvisible()) return false;
 
         if (!(entity instanceof Player)) {
