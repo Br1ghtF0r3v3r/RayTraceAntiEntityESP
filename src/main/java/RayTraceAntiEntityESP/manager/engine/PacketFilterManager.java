@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.utils.FakeNameDisplay;
+import RayTraceAntiEntityESP.utils.VisibilityUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -54,9 +55,9 @@ public class PacketFilterManager extends PacketListenerAbstract {
                 Entity entity = Bukkit.getEntity(entityUUID);
                 if (entity == null) return;
                 if (RayTraceManager.isEntityVisible(viewer, entity)) {
-                    VisibilityManager.setNotHidden(viewer, entity);
+                    VisibilityUtils.setNotHidden(viewer, entity);
                 } else {
-                    VisibilityManager.setHidden(viewer, entity);
+                    VisibilityUtils.setHidden(viewer, entity);
                 }
             });
         }
