@@ -1,7 +1,7 @@
 package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
-import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
+import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -199,7 +199,7 @@ public class RayTraceManager {
                     for (Entity entity : viewer.getWorld().getEntities()) {
                         if (!viewer.canSee(entity)) VisibilityManager.setNotHidden(viewer, entity);
                     }
-                    FakeNameDisplayUtils.removeFakeNameDisplay(viewer);
+                    FakeNameDisplay.removeFakeNameDisplay(viewer);
                 }
                 clearPacketBypass();
                 task.cancel();

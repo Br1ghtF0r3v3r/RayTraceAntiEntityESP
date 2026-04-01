@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.manager.events;
 
-import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
+import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
@@ -12,7 +12,7 @@ import org.bukkit.event.player.*;
 
 import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.removeDebugBlockDisplays;
-import static RayTraceAntiEntityESP.utils.FakeNameDisplayUtils.removeFakeNameDisplay;
+import static RayTraceAntiEntityESP.utils.FakeNameDisplay.removeFakeNameDisplay;
 
 public class EventManager {
 
@@ -82,7 +82,7 @@ public class EventManager {
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        FakeNameDisplayUtils.removeFakeNameDisplay(player);
+        FakeNameDisplay.removeFakeNameDisplay(player);
         for (Player online : Bukkit.getOnlinePlayers()) {
             removeFakeNameDisplay(online, player);
         }
