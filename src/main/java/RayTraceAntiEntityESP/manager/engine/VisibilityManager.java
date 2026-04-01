@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.manager.engine;
 
-import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
+import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -12,7 +12,7 @@ public class VisibilityManager {
     public static void setHidden(Player viewer, Entity entity) {
         viewer.hideEntity(plugin, entity);
 
-        FakeNameDisplayUtils.applyFakeNameDisplay(viewer, entity);
+        FakeNameDisplay.applyFakeNameDisplay(viewer, entity);
     }
 
     public static void setNotHidden(Player viewer, Entity entity) {
@@ -20,7 +20,7 @@ public class VisibilityManager {
         addPacketBypass(viewer, entity.getUniqueId());
         viewer.showEntity(plugin, entity);
 
-        FakeNameDisplayUtils.removeFakeNameDisplay(viewer, entity);
+        FakeNameDisplay.removeFakeNameDisplay(viewer, entity);
     }
 
 }
