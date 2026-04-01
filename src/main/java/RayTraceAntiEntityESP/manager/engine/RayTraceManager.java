@@ -2,6 +2,7 @@ package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
 import RayTraceAntiEntityESP.utils.FakeNameDisplay;
+import RayTraceAntiEntityESP.utils.VisibilityUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -181,9 +182,9 @@ public class RayTraceManager {
     public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer) {
         boolean visibleClient = viewer.canSee(entity);
         if (visibleServer && !visibleClient) {
-            VisibilityManager.setNotHidden(viewer, entity);
+            VisibilityUtils.setNotHidden(viewer, entity);
         } else if (!visibleServer && visibleClient) {
-            VisibilityManager.setHidden(viewer, entity);
+            VisibilityUtils.setHidden(viewer, entity);
         }
     }
 
@@ -197,7 +198,7 @@ public class RayTraceManager {
             if (!isCheckingEnabled) {
                 for (Player viewer : Bukkit.getOnlinePlayers()) {
                     for (Entity entity : viewer.getWorld().getEntities()) {
-                        if (!viewer.canSee(entity)) VisibilityManager.setNotHidden(viewer, entity);
+                        if (!viewer.canSee(entity)) VisibilityUtils.setNotHidden(viewer, entity);
                     }
                     FakeNameDisplay.removeDisplay(viewer);
                 }
