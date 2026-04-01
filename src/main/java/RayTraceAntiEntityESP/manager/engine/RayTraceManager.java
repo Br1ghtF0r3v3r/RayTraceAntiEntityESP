@@ -199,7 +199,7 @@ public class RayTraceManager {
                     for (Entity entity : viewer.getWorld().getEntities()) {
                         if (!viewer.canSee(entity)) VisibilityManager.setNotHidden(viewer, entity);
                     }
-                    FakeNameDisplay.removeFakeNameDisplay(viewer);
+                    FakeNameDisplay.removeDisplay(viewer);
                 }
                 clearPacketBypass();
                 task.cancel();

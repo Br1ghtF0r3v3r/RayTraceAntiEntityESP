@@ -36,10 +36,10 @@ public class FakeNameDisplay {
 
     public static void startTask() {
         killTask();
-        task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateAllFakeNameDisplays, 0L, tickDelay);
+        task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateDisplays, 0L, tickDelay);
     }
 
-    public static void updateAllFakeNameDisplays() {
+    public static void updateDisplays() {
         for (Map.Entry<UUID, Map<UUID, TextDisplay>> viewerEntry : fakeNameDisplay.entrySet()) {
             Player viewer = Bukkit.getPlayer(viewerEntry.getKey());
             if (viewer == null) continue;
@@ -60,26 +60,26 @@ public class FakeNameDisplay {
         }
     }
 
-    public static void applyFakeNameDisplay(Player viewer, Entity entity) {
+    public static void applyDisplay(Player viewer, Entity entity) {
         boolean shouldSkipFakeNameDisplay = entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE)
                 || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
         if (shouldSkipFakeNameDisplay) return;
         if (!entity.isValid() || entity.isDead()) {
-            removeFakeNameDisplay(viewer, entity);
+            removeDisplay(viewer, entity);
             return;
         }
-        if (!isNametextDisplayVisible(viewer, entity)) {
-            removeFakeNameDisplay(viewer, entity);
+        if (!isDisplayVisible(viewer, entity)) {
+            removeDisplay(viewer, entity);
             return;
         }
         Map<UUID, TextDisplay> viewerDisplays = fakeNameDisplay.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
         TextDisplay existingDisplay = viewerDisplays.get(entity.getUniqueId());
         if (existingDisplay == null || !existingDisplay.isValid()) {
-            viewerDisplays.put(entity.getUniqueId(), spawnFakeNameDisplay(viewer, entity));
+            viewerDisplays.put(entity.getUniqueId(), spawnDisplay(viewer, entity));
         }
     }
 
-    public static TextDisplay spawnFakeNameDisplay(Player viewer, Entity entity) {
+    public static TextDisplay spawnDisplay(Player viewer, Entity entity) {
         Location loc = entity.getLocation();
         TextDisplay textDisplay = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
             d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
@@ -93,7 +93,7 @@ public class FakeNameDisplay {
         return textDisplay;
     }
 
-    public static void removeFakeNameDisplay(Player viewer, Entity entity) {
+    public static void removeDisplay(Player viewer, Entity entity) {
         Map<UUID, TextDisplay> display = fakeNameDisplay.get(viewer.getUniqueId());
         if (display == null) return;
         TextDisplay textDisplay = display.remove(entity.getUniqueId());
@@ -101,7 +101,7 @@ public class FakeNameDisplay {
         if (display.isEmpty()) fakeNameDisplay.remove(viewer.getUniqueId());
     }
 
-    public static void removeFakeNameDisplay(Player viewer) {
+    public static void removeDisplay(Player viewer) {
         Map<UUID, TextDisplay> viewerFakeNameDisplay = fakeNameDisplay.remove(viewer.getUniqueId());
         if (viewerFakeNameDisplay == null) return;
         for (TextDisplay textDisplay : viewerFakeNameDisplay.values()) {
@@ -109,7 +109,7 @@ public class FakeNameDisplay {
         }
     }
 
-    public static void removeAllFakeNameDisplay() {
+    public static void removeAllDisplays() {
         for (Map<UUID, TextDisplay> playerNameplates : fakeNameDisplay.values()) {
             for (TextDisplay textDisplay : playerNameplates.values()) {
                 textDisplay.remove();
@@ -118,7 +118,7 @@ public class FakeNameDisplay {
         fakeNameDisplay.clear();
     }
 
-    public static boolean isNametextDisplayVisible(Player viewer, Entity entity) {
+    public static boolean isDisplayVisible(Player viewer, Entity entity) {
         if (entity.isInvisible()) return false;
 
         if (!(entity instanceof Player)) {
