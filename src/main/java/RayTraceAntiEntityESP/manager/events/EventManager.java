@@ -12,7 +12,7 @@ import org.bukkit.event.player.*;
 
 import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.removeDebugBlockDisplays;
-import static RayTraceAntiEntityESP.utils.FakeNameDisplay.removeFakeNameDisplay;
+import static RayTraceAntiEntityESP.utils.FakeNameDisplay.removeDisplay;
 
 public class EventManager {
 
@@ -82,9 +82,9 @@ public class EventManager {
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        FakeNameDisplay.removeFakeNameDisplay(player);
+        FakeNameDisplay.removeDisplay(player);
         for (Player online : Bukkit.getOnlinePlayers()) {
-            removeFakeNameDisplay(online, player);
+            FakeNameDisplay.removeDisplay(online, player);
         }
         removeDebugBlockDisplays(player);
         for (Player online : Bukkit.getOnlinePlayers()) {
