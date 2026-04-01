@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
+import RayTraceAntiEntityESP.utils.DebugsUtils;
 import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import RayTraceAntiEntityESP.utils.VisibilityUtils;
 import org.bukkit.Bukkit;
@@ -23,7 +24,6 @@ import static RayTraceAntiEntityESP.utils.DebugsUtils.*;
 public class RayTraceManager {
 
     private static BukkitTask task;
-    private static long currentCheckingIntervalTicks;
 
     public static boolean notCollideSolid(Player viewer, Vector endpoint) {
         World world = viewer.getWorld();
@@ -90,7 +90,7 @@ public class RayTraceManager {
                 }
                 i++;
             }
-            applyDisplay(viewer, entity, vertices, visibleVertices);
+            DebugsUtils.applyDisplay(viewer, entity, vertices, visibleVertices);
         } else {
             for (Vector vertex : vertices) {
                 if (notCollideSolid(viewer, vertex)) {
@@ -187,29 +187,22 @@ public class RayTraceManager {
         }
     }
 
-    public static void startRayTraceChecking() {
+    public static void killTask() {
         if (task != null) {
             task.cancel();
             task = null;
         }
-        currentCheckingIntervalTicks = checkingPeriodTicks;
+        for (Player viewer : Bukkit.getOnlinePlayers()) {
+            for (Entity entity : viewer.getWorld().getEntities()) {
+                if (!viewer.canSee(entity)) VisibilityUtils.setNotHidden(viewer, entity);
+            }
+            FakeNameDisplay.removeDisplay(viewer);
+        }
+        PacketFilterManager.bypassPacketSet.clear();
+    }
+
+    public static void startTask() {
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!isCheckingEnabled) {
-                for (Player viewer : Bukkit.getOnlinePlayers()) {
-                    for (Entity entity : viewer.getWorld().getEntities()) {
-                        if (!viewer.canSee(entity)) VisibilityUtils.setNotHidden(viewer, entity);
-                    }
-                    FakeNameDisplay.removeDisplay(viewer);
-                }
-                PacketFilterManager.bypassPacketSet.clear();
-                task.cancel();
-                task = null;
-                return;
-            }
-            if (currentCheckingIntervalTicks != checkingPeriodTicks) {
-                startRayTraceChecking();
-                return;
-            }
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 for (Entity entity : viewer.getWorld().getEntities()) {
                     if (entity != viewer) {
