@@ -4,10 +4,7 @@ import RayTraceAntiEntityESP.misc.Maths;
 import RayTraceAntiEntityESP.utils.DebugsUtils;
 import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import RayTraceAntiEntityESP.utils.VisibilityUtils;
-import org.bukkit.Bukkit;
-import org.bukkit.FluidCollisionMode;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -29,10 +26,10 @@ public class RayTraceManager {
         World world = viewer.getWorld();
         Vector eyePos = viewer.getEyeLocation().toVector();
         Vector lookDir = viewer.getLocation().getDirection();
-        if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
-        return hitsBlock(world, eyePos, endpoint)
-                || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                || hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+        if (!isPerspectiveCheckingEnabled) return notHitsBlock(world, eyePos, endpoint);
+        return notHitsBlock(world, eyePos, endpoint)
+                || notHitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
+                || notHitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
     public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
@@ -43,12 +40,12 @@ public class RayTraceManager {
                 : eyePos.clone().add(direction.multiply(maxDistance));
     }
 
-    public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
+    public static boolean notHitsBlock(World world, Vector origin, Vector endpoint) {
         Vector direction = endpoint.clone().subtract(origin);
         double distance = direction.length();
         if (distance == 0) return true;
         RayTraceResult result = rayTrace(world, origin, direction, distance);
-        return result == null || result.getHitBlock() == null || !result.getHitBlock().getType().isOccluding();
+        return result == null || result.getHitBlock() == null || !result.getHitBlock().getType().isSolid();
     }
 
     public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
@@ -202,6 +199,7 @@ public class RayTraceManager {
     }
 
     public static void startTask() {
+        killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 for (Entity entity : viewer.getWorld().getEntities()) {
