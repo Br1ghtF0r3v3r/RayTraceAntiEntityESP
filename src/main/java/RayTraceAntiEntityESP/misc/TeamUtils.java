@@ -13,5 +13,4 @@ public class TeamUtils {
         if (team == null) return Team.OptionStatus.ALWAYS;
         return team.getOption(Team.Option.NAME_TAG_VISIBILITY);
     }
-
 }
