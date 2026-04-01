@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.manager.engine;
 
-import RayTraceAntiEntityESP.utils.FakeNameDisplayUtils;
+import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -70,8 +70,8 @@ public class PacketFilterManager extends PacketListenerAbstract {
                 Player target = Bukkit.getPlayer(uuid);
                 if (target != null
                         && !viewer.canSee(target)
-                        && FakeNameDisplayUtils.fakeNameDisplay.containsKey(viewer.getUniqueId())
-                        && FakeNameDisplayUtils.fakeNameDisplay.get(viewer.getUniqueId()).containsKey(uuid)) {
+                        && FakeNameDisplay.fakeNameDisplay.containsKey(viewer.getUniqueId())
+                        && FakeNameDisplay.fakeNameDisplay.get(viewer.getUniqueId()).containsKey(uuid)) {
                     continue;
                 }
                 filtered.add(uuid);

@@ -19,7 +19,7 @@ import static RayTraceAntiEntityESP.misc.Team.getTeam;
 import static RayTraceAntiEntityESP.misc.Team.getTeamVisibility;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
 
-public class FakeNameDisplayUtils {
+public class FakeNameDisplay {
 
     private static BukkitTask task;
     private static long currentFakeNameDisplayPeriodTicks;

@@ -15,7 +15,7 @@ import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.utils.FakeNameDisplayUtils.FAKE_DISPLAY_NAME_KEY;
+import static RayTraceAntiEntityESP.utils.FakeNameDisplay.FAKE_DISPLAY_NAME_KEY;
 
 public class DebugsUtils {
 
