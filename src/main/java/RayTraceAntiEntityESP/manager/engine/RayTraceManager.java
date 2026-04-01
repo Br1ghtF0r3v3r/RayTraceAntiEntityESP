@@ -18,7 +18,6 @@ import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.clearPacketBypass;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.*;
 
 public class RayTraceManager {
@@ -65,16 +64,16 @@ public class RayTraceManager {
     public static boolean isEntityVisible(Player viewer, Entity entity) {
         double range = getSpigotTrackingRange(entity);
         if (!isAntiEntity(entity)) {
-            removeDebugBlockDisplays(viewer, entity);
+            removeDisplay(viewer, entity);
             return true;
         }
         double distSq = viewer.getLocation().distanceSquared(entity.getLocation());
         if (distSq > range * range) {
-            removeDebugBlockDisplays(viewer, entity);
+            removeDisplay(viewer, entity);
             return true;
         }
         if (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride) {
-            removeDebugBlockDisplays(viewer, entity);
+            removeDisplay(viewer, entity);
             return true;
         }
 
@@ -91,7 +90,7 @@ public class RayTraceManager {
                 }
                 i++;
             }
-            applyDebug(viewer, entity, vertices, visibleVertices);
+            applyDisplay(viewer, entity, vertices, visibleVertices);
         } else {
             for (Vector vertex : vertices) {
                 if (notCollideSolid(viewer, vertex)) {
@@ -202,7 +201,7 @@ public class RayTraceManager {
                     }
                     FakeNameDisplay.removeDisplay(viewer);
                 }
-                clearPacketBypass();
+                PacketFilterManager.bypassPacketSet.clear();
                 task.cancel();
                 task = null;
                 return;

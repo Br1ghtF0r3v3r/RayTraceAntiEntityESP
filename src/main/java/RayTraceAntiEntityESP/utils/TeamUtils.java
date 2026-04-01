@@ -1,10 +1,11 @@
-package RayTraceAntiEntityESP.misc;
+package RayTraceAntiEntityESP.utils;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.scoreboard.Team;
 
 public class TeamUtils {
+
     public static Team getTeam(Entity entity) {
         return Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(entity.getScoreboardEntryName());
     }
@@ -13,4 +14,5 @@ public class TeamUtils {
         if (team == null) return Team.OptionStatus.ALWAYS;
         return team.getOption(Team.Option.NAME_TAG_VISIBILITY);
     }
+
 }
