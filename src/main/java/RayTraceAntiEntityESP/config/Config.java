@@ -60,8 +60,17 @@ public class Config {
 
 
         RayTraceManager.startRayTraceChecking();
-        FakeNameDisplay.startTask();
-        DebugsUtils.startTask();
+        if (isFakeDisplayNameEnabled) {
+            FakeNameDisplay.startTask();
+        } else {
+            FakeNameDisplay.killTask();
+        }
+
+        if (isDebugEnabled) {
+            DebugsUtils.startTask();
+        } else {
+            DebugsUtils.killTask();
+        }
     }
 
     public static YamlConfiguration spigotConfig;
