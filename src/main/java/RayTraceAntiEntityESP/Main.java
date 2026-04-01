@@ -44,10 +44,6 @@ public final class Main extends JavaPlugin {
         saveDefaultConfig();
         reloadConfig();
         setConfig();
-
-        RayTraceManager.startRayTraceChecking();
-        FakeNameDisplay.startFakeNameDisplayUpdating();
-        DebugsUtils.startDebugUpdating();
     }
 
     public void registerCommands() {

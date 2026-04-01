@@ -1,5 +1,8 @@
 package RayTraceAntiEntityESP.config;
 
+import RayTraceAntiEntityESP.manager.engine.RayTraceManager;
+import RayTraceAntiEntityESP.utils.DebugsUtils;
+import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -55,6 +58,10 @@ public class Config {
         antiEntities = config.getStringList("anti_entities");
         antiMode = config.getString("anti_mode", "whitelist");
 
+
+        RayTraceManager.startRayTraceChecking();
+        FakeNameDisplay.startTask();
+        DebugsUtils.startDebugUpdating();
     }
 
     public static YamlConfiguration spigotConfig;
