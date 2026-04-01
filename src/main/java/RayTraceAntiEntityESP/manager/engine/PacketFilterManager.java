@@ -44,10 +44,8 @@ public class PacketFilterManager extends PacketListenerAbstract {
             event.setCancelled(true);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
-
                 Entity entity = Bukkit.getEntity(entityUUID);
-                if (entity == null || entity.isDead() || !entity.isValid()) return;
-
+                if (entity == null) return;
                 if (RayTraceManager.isEntityVisible(viewer, entity)) {
                     VisibilityUtils.setNotHidden(viewer, entity);
                 } else {
@@ -61,12 +59,12 @@ public class PacketFilterManager extends PacketListenerAbstract {
             List<UUID> original = packet.getProfileIds();
             List<UUID> filtered = new ArrayList<>();
 
-            for (UUID targetUUID : original) {
+            for (UUID entityUUID : original) {
 
-                if (viewer.getUniqueId().equals(targetUUID)) continue;
-                if (bypassPacketSet.contains(bypassHiddenKey(viewer, targetUUID))) continue;
+                if (viewer.getUniqueId().equals(entityUUID)) continue;
+                if (bypassPacketSet.contains(bypassHiddenKey(viewer, entityUUID))) continue;
 
-                filtered.add(targetUUID);
+                filtered.add(entityUUID);
             }
 
             if (filtered.size() == original.size()) return;
