@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.utils;
 
+import RayTraceAntiEntityESP.config.Config;
 import org.bukkit.*;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
@@ -20,32 +21,23 @@ import static RayTraceAntiEntityESP.utils.FakeNameDisplay.FAKE_DISPLAY_NAME_KEY;
 public class DebugsUtils {
 
     private static BukkitTask task;
-    private static long currentDebugPeriodTicks;
 
     public static final NamespacedKey DEBUG_KEY = new NamespacedKey(plugin, "is_debug_vertex");
     public static final Map<UUID, Map<UUID, DebugEntry>> debugs = new HashMap<>();
 
-    public record DebugEntry(List<BlockDisplay> displays, List<Vector> vertices, Set<Integer> visibleVertices) {}
+    public record DebugEntry(List<BlockDisplay> displays, List<Vector> vertices, Set<Integer> visibleVertices) {
+    }
 
-    public static void startDebugUpdating() {
+    public static void killTask() {
         if (task != null) {
             task.cancel();
             task = null;
         }
-        currentDebugPeriodTicks = debugPeriodTicks;
-        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!isDebugEnabled) {
-                removeAllDebugBlockDisplays();
-                task.cancel();
-                task = null;
-                return;
-            }
-            if (currentDebugPeriodTicks != debugPeriodTicks) {
-                startDebugUpdating();
-                return;
-            }
-            updateAllDebugs();
-        }, 0L, debugPeriodTicks);
+    }
+
+    public static void startTask() {
+        killTask();
+        task = Bukkit.getScheduler().runTaskTimer(plugin, DebugsUtils::updateAllDebugs, 0L, Config.debugPeriodTicks);
     }
 
     public static void updateAllDebugs() {
