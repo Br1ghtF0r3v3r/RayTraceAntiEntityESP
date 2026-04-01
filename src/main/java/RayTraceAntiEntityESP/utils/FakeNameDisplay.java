@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.utils;
 
 import RayTraceAntiEntityESP.config.Config;
+import RayTraceAntiEntityESP.misc.TeamUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -17,8 +18,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.misc.Team.getTeam;
-import static RayTraceAntiEntityESP.misc.Team.getTeamVisibility;
+import static RayTraceAntiEntityESP.misc.TeamUtils.getTeam;
+import static RayTraceAntiEntityESP.misc.TeamUtils.getTeamVisibility;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
 
 public class FakeNameDisplay {
@@ -53,9 +54,14 @@ public class FakeNameDisplay {
                 TextDisplay display = displayEntry.getValue();
                 if (!display.isValid()) continue;
 
-                Component name = entity instanceof Player
-                        ? Component.text(entity.getName())
-                        : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
+                Component name;
+                if (entity instanceof Player) {
+                    Team team = TeamUtils.getTeam(entity);
+                    name = team.prefix()
+                            .append(entity.name())
+                            .append(team.suffix());
+                }
+                else name = entity.customName() != null ? entity.customName() : Component.text(entity.getName());
                 display.text(name);
                 display.teleport(entity.getLocation().add(0, entity.getHeight() + Config.fakeDisplayNameOffSetY, 0));
             }
