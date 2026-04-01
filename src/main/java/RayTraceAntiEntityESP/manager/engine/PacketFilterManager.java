@@ -1,6 +1,5 @@
 package RayTraceAntiEntityESP.manager.engine;
 
-import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import RayTraceAntiEntityESP.utils.VisibilityUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
@@ -19,21 +18,14 @@ import static RayTraceAntiEntityESP.Main.plugin;
 
 public class PacketFilterManager extends PacketListenerAbstract {
 
-    public static final Set<String> bypassSet = Collections.synchronizedSet(new HashSet<>());
-    public static String bypassKey(Player viewer, UUID entityId) {
-        return viewer.getUniqueId() + ":" + entityId;
+    public static final Set<String> bypassPacketSet = Collections.synchronizedSet(new HashSet<>());
+
+    public static String bypassShowKey(Player viewer, UUID entityUUID) {
+        return viewer.getUniqueId() + ":show:" + entityUUID;
     }
 
-    public static boolean addPacketBypass(Player viewer, UUID entityId) {
-        return PacketFilterManager.bypassSet.add(bypassKey(viewer, entityId));
-    }
-
-    public static boolean removePacketBypass(Player viewer, UUID entityId) {
-        return PacketFilterManager.bypassSet.remove(bypassKey(viewer, entityId));
-    }
-
-    public static void clearPacketBypass() {
-        PacketFilterManager.bypassSet.clear();
+    public static String bypassHiddenKey(Player viewer, UUID entityUUID) {
+        return viewer.getUniqueId() + ":hidden:" + entityUUID;
     }
 
     public static void packetFilter(PacketSendEvent event) {
@@ -47,13 +39,15 @@ public class PacketFilterManager extends PacketListenerAbstract {
             UUID entityUUID = packet.getUUID().get();
 
             if (viewer.getUniqueId().equals(entityUUID)) return;
-            if (removePacketBypass(viewer, entityUUID)) return;
+            if (bypassPacketSet.remove(bypassShowKey(viewer, entityUUID))) return;
 
             event.setCancelled(true);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
+
                 Entity entity = Bukkit.getEntity(entityUUID);
-                if (entity == null) return;
+                if (entity == null || entity.isDead() || !entity.isValid()) return;
+
                 if (RayTraceManager.isEntityVisible(viewer, entity)) {
                     VisibilityUtils.setNotHidden(viewer, entity);
                 } else {
@@ -67,20 +61,21 @@ public class PacketFilterManager extends PacketListenerAbstract {
             List<UUID> original = packet.getProfileIds();
             List<UUID> filtered = new ArrayList<>();
 
-            for (UUID uuid : original) {
-                Player target = Bukkit.getPlayer(uuid);
-                if (target != null
-                        && !viewer.canSee(target)
-                        && FakeNameDisplay.fakeNameDisplay.containsKey(viewer.getUniqueId())
-                        && FakeNameDisplay.fakeNameDisplay.get(viewer.getUniqueId()).containsKey(uuid)) {
-                    continue;
-                }
-                filtered.add(uuid);
+            for (UUID targetUUID : original) {
+
+                if (viewer.getUniqueId().equals(targetUUID)) continue;
+                if (bypassPacketSet.contains(bypassHiddenKey(viewer, targetUUID))) continue;
+
+                filtered.add(targetUUID);
             }
 
             if (filtered.size() == original.size()) return;
+
             event.setCancelled(true);
-            if (!filtered.isEmpty()) PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerPlayerInfoRemove(filtered));
+
+            if (!filtered.isEmpty()) {
+                PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerPlayerInfoRemove(filtered));
+            }
         }
     }
 }

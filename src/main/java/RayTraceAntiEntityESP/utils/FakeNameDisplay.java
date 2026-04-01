@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.utils;
 
 import RayTraceAntiEntityESP.config.Config;
-import RayTraceAntiEntityESP.misc.TeamUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -18,8 +17,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.misc.TeamUtils.getTeam;
-import static RayTraceAntiEntityESP.misc.TeamUtils.getTeamVisibility;
+import static RayTraceAntiEntityESP.utils.TeamUtils.getTeam;
+import static RayTraceAntiEntityESP.utils.TeamUtils.getTeamVisibility;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
 
 public class FakeNameDisplay {
@@ -35,6 +34,7 @@ public class FakeNameDisplay {
             task.cancel();
             task = null;
         }
+        removeAllDisplays();
     }
 
     public static void startTask() {
@@ -76,7 +76,7 @@ public class FakeNameDisplay {
             removeDisplay(viewer, entity);
             return;
         }
-        if (!isDisplayVisible(viewer, entity)) {
+        if (!isNameVisible(viewer, entity)) {
             removeDisplay(viewer, entity);
             return;
         }
@@ -126,7 +126,7 @@ public class FakeNameDisplay {
         fakeNameDisplay.clear();
     }
 
-    private static boolean isDisplayVisible(Player viewer, Entity entity) {
+    private static boolean isNameVisible(Player viewer, Entity entity) {
         if (entity.isInvisible()) return false;
 
         if (!(entity instanceof Player)) {

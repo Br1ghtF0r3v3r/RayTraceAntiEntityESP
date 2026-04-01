@@ -1,5 +1,7 @@
 package RayTraceAntiEntityESP.manager.events;
 
+import RayTraceAntiEntityESP.config.Config;
+import RayTraceAntiEntityESP.utils.DebugsUtils;
 import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
@@ -11,8 +13,6 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
 import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
-import static RayTraceAntiEntityESP.utils.DebugsUtils.removeDebugBlockDisplays;
-import static RayTraceAntiEntityESP.utils.FakeNameDisplay.removeDisplay;
 
 public class EventManager {
 
@@ -82,13 +82,17 @@ public class EventManager {
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        FakeNameDisplay.removeDisplay(player);
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            FakeNameDisplay.removeDisplay(online, player);
+        if (Config.isFakeDisplayNameEnabled) {
+            FakeNameDisplay.removeDisplay(player);
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                FakeNameDisplay.removeDisplay(online, player);
+            }
         }
-        removeDebugBlockDisplays(player);
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            removeDebugBlockDisplays(online, player);
+        if (Config.isDebugEnabled) {
+            DebugsUtils.removeDisplay(player);
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                DebugsUtils.removeDisplay(online, player);
+            }
         }
     }
 
@@ -97,8 +101,10 @@ public class EventManager {
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            removeDebugBlockDisplays(online, event.getEntity());
+        if (Config.isDebugEnabled) {
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                DebugsUtils.removeDisplay(online, event.getEntity());
+            }
         }
     }
 
