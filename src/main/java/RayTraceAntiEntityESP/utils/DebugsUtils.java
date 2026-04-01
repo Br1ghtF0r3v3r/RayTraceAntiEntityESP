@@ -24,7 +24,7 @@ public class DebugsUtils {
     public static final NamespacedKey DEBUG_KEY = new NamespacedKey(plugin, "is_debug_vertex");
     public static final Map<UUID, Map<UUID, DebugEntry>> debugs = new HashMap<>();
 
-    public record DebugEntry(List<BlockDisplay> displays, List<Vector> vertices, Set<Integer> visibleVertices) {
+    public record DebugEntry(List<BlockDisplay> display, List<Vector> vertices, Set<Integer> visibleVertices) {
     }
 
     public static void killTask() {
@@ -51,7 +51,7 @@ public class DebugsUtils {
 
                 DebugEntry entry = debugEntry.getValue();
 
-                List<BlockDisplay> displays = entry.displays();
+                List<BlockDisplay> displays = entry.display();
                 List<Vector> vertices = entry.vertices();
                 Set<Integer> visibleVertices = entry.visibleVertices();
 
@@ -59,13 +59,16 @@ public class DebugsUtils {
                 if (vertices.size() < displays.size()) displays.subList(vertices.size(), displays.size()).clear();
 
                 for (int i = 0; i < vertices.size(); i++) {
+
                     boolean visible = visibleVertices.contains(i);
                     Material mat = visible ? Material.LIME_WOOL : Material.RED_WOOL;
+                    Vector vertex = vertices.get(i);
+
                     if (i < displays.size()) {
                         displays.get(i).setBlock(mat.createBlockData());
-                        displays.get(i).teleport(getLocation(entity.getWorld(), vertices.get(i)));
+                        displays.get(i).teleport(new Location(entity.getWorld(), vertex.getX() - 0.025, vertex.getY() - 0.025, vertex.getZ() - 0.025));
                     } else {
-                        displays.add(spawnDisplay(viewer, entity, vertices.get(i), visible));
+                        displays.add(spawnDisplay(viewer, entity));
                     }
                 }
             }
@@ -80,20 +83,20 @@ public class DebugsUtils {
             removeDisplay(viewer, entity);
             return;
         }
-        Map<UUID, DebugEntry> viewerDebug = debugs.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
-        DebugEntry existingDisplay = viewerDebug.get(entity.getUniqueId());
-        List<BlockDisplay> displays;
+        Map<UUID, DebugEntry> viewerDisplays = debugs.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
+        DebugEntry existingDisplay = viewerDisplays.get(entity.getUniqueId());
+        List<BlockDisplay> display;
         if (existingDisplay == null) {
-            displays = new ArrayList<>();
+            display = new ArrayList<>();
         } else {
-            displays = existingDisplay.displays();
+            display = existingDisplay.display();
         }
-        viewerDebug.put(entity.getUniqueId(), new DebugEntry(displays, new ArrayList<>(vertices), new HashSet<>(visibleVertices)));
+        viewerDisplays.put(entity.getUniqueId(), new DebugEntry(display, new ArrayList<>(vertices), new HashSet<>(visibleVertices)));
     }
 
-    public static BlockDisplay spawnDisplay(Player viewer, Entity entity, Vector vertex, boolean visible) {
-        BlockDisplay display = entity.getWorld().spawn(getLocation(entity.getWorld(), vertex), BlockDisplay.class, d -> {
-            d.setBlock((visible ? Material.LIME_WOOL : Material.RED_WOOL).createBlockData());
+    public static BlockDisplay spawnDisplay(Player viewer, Entity entity) {
+        Location loc = entity.getLocation();
+        BlockDisplay display = entity.getWorld().spawn(loc, BlockDisplay.class, d -> {
             d.getPersistentDataContainer().set(DEBUG_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setPersistent(false);
             d.setVisibleByDefault(false);
@@ -111,7 +114,7 @@ public class DebugsUtils {
         if (viewerDebug == null) return;
         DebugEntry entry = viewerDebug.remove(entity.getUniqueId());
         if (entry == null) return;
-        for (BlockDisplay display : entry.displays()) display.remove();
+        for (BlockDisplay display : entry.display()) display.remove();
         if (viewerDebug.isEmpty()) debugs.remove(viewer.getUniqueId());
     }
 
@@ -119,21 +122,18 @@ public class DebugsUtils {
         Map<UUID, DebugEntry> viewerDebug = debugs.remove(viewer.getUniqueId());
         if (viewerDebug == null) return;
         for (DebugEntry entry : viewerDebug.values()) {
-            for (BlockDisplay display : entry.displays()) display.remove();
+            for (BlockDisplay display : entry.display()) display.remove();
         }
     }
 
     public static void removeAllDisplays() {
         for (Map<UUID, DebugEntry> viewerDebug : debugs.values()) {
             for (DebugEntry entry : viewerDebug.values()) {
-                for (BlockDisplay display : entry.displays()) display.remove();
+                for (BlockDisplay display : entry.display()) display.remove();
             }
         }
         debugs.clear();
     }
 
-    public static Location getLocation(World world, Vector vertex) {
-        return new Location(world, vertex.getX() - 0.025, vertex.getY() - 0.025, vertex.getZ() - 0.025);
-    }
 }
 

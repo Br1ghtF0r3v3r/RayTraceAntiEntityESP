@@ -17,14 +17,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.utils.TeamUtils.getTeam;
-import static RayTraceAntiEntityESP.utils.TeamUtils.getTeamVisibility;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
 
 public class FakeNameDisplay {
 
     private static BukkitTask task;
-    private static final long tickDelay = Config.fakeDisplayNamePeriodTicks;
 
     public static final NamespacedKey FAKE_DISPLAY_NAME_KEY = new NamespacedKey(plugin, "is_fake_textDisplay_name");
     public static final Map<UUID, Map<UUID, TextDisplay>> fakeNameDisplay = new HashMap<>();
@@ -39,10 +36,10 @@ public class FakeNameDisplay {
 
     public static void startTask() {
         killTask();
-        task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateDisplays, 0L, tickDelay);
+        task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateDisplays, 0L, Config.fakeDisplayNamePeriodTicks);
     }
 
-    private static void updateDisplays() {
+    public static void updateDisplays() {
         for (Map.Entry<UUID, Map<UUID, TextDisplay>> viewerEntry : fakeNameDisplay.entrySet()) {
             Player viewer = Bukkit.getPlayer(viewerEntry.getKey());
             if (viewer == null) continue;
@@ -76,20 +73,24 @@ public class FakeNameDisplay {
             removeDisplay(viewer, entity);
             return;
         }
-        if (!isNameVisible(viewer, entity)) {
+        if (!VisibilityUtils.isNameVisible(viewer, entity)) {
             removeDisplay(viewer, entity);
             return;
         }
         Map<UUID, TextDisplay> viewerDisplays = fakeNameDisplay.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
         TextDisplay existingDisplay = viewerDisplays.get(entity.getUniqueId());
-        if (existingDisplay == null || !existingDisplay.isValid()) {
-            viewerDisplays.put(entity.getUniqueId(), spawnDisplay(viewer, entity));
+        TextDisplay display;
+        if (existingDisplay != null && existingDisplay.isValid()) {
+            display = existingDisplay;
+        } else {
+            display = spawnDisplay(viewer, entity);
         }
+        viewerDisplays.put(entity.getUniqueId(), display);
     }
 
-    private static TextDisplay spawnDisplay(Player viewer, Entity entity) {
+    public static TextDisplay spawnDisplay(Player viewer, Entity entity) {
         Location loc = entity.getLocation();
-        TextDisplay textDisplay = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
+        TextDisplay display = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
             d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setBillboard(TextDisplay.Billboard.CENTER);
             d.setTextOpacity((byte) 128);
@@ -97,15 +98,19 @@ public class FakeNameDisplay {
             d.setPersistent(false);
             d.setVisibleByDefault(false);
         });
-        viewer.showEntity(plugin, textDisplay);
-        return textDisplay;
+        viewer.showEntity(plugin, display);
+        return display;
     }
 
     public static void removeDisplay(Player viewer, Entity entity) {
         Map<UUID, TextDisplay> display = fakeNameDisplay.get(viewer.getUniqueId());
         if (display == null) return;
         TextDisplay textDisplay = display.remove(entity.getUniqueId());
-        if (textDisplay != null) textDisplay.remove();
+        if (textDisplay == null) {
+            return;
+        } else {
+            textDisplay.remove();
+        }
         if (display.isEmpty()) fakeNameDisplay.remove(viewer.getUniqueId());
     }
 
@@ -124,25 +129,6 @@ public class FakeNameDisplay {
             }
         }
         fakeNameDisplay.clear();
-    }
-
-    private static boolean isNameVisible(Player viewer, Entity entity) {
-        if (entity.isInvisible()) return false;
-
-        if (!(entity instanceof Player)) {
-            if (entity.customName() == null || !entity.isCustomNameVisible()) return false;
-        }
-
-        Team viewerTeam = getTeam(viewer);
-        Team entityTeam = getTeam(entity);
-        boolean onSameTeam = viewerTeam != null && viewerTeam.equals(entityTeam);
-
-        return switch (getTeamVisibility(entityTeam)) {
-            case ALWAYS -> true;
-            case NEVER -> false;
-            case FOR_OWN_TEAM -> onSameTeam;
-            case FOR_OTHER_TEAMS -> !onSameTeam;
-        };
     }
 
 }

@@ -59,7 +59,12 @@ public class Config {
         antiMode = config.getString("anti_mode", "whitelist");
 
 
-        RayTraceManager.startRayTraceChecking();
+        if (isCheckingEnabled) {
+            RayTraceManager.startTask();
+        } else {
+            RayTraceManager.killTask();
+        }
+
         if (isFakeDisplayNameEnabled) {
             FakeNameDisplay.startTask();
         } else {
