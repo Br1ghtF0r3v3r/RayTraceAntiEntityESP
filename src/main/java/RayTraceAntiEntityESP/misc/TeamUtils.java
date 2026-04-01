@@ -3,8 +3,7 @@ package RayTraceAntiEntityESP.misc;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 
-public class Team {
-
+public class TeamUtils {
     public static org.bukkit.scoreboard.Team getTeam(Entity entity) {
         return Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(entity.getScoreboardEntryName());
     }
