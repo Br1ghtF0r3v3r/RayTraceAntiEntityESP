@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.utils;
 
+import RayTraceAntiEntityESP.config.Config;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -14,7 +15,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.config.Config.*;
 import static RayTraceAntiEntityESP.misc.Team.getTeam;
 import static RayTraceAntiEntityESP.misc.Team.getTeamVisibility;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
@@ -22,30 +22,21 @@ import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
 public class FakeNameDisplay {
 
     private static BukkitTask task;
-    private static long currentFakeNameDisplayPeriodTicks;
+    private static final long tickDelay = Config.fakeDisplayNamePeriodTicks;
 
     public static final NamespacedKey FAKE_DISPLAY_NAME_KEY = new NamespacedKey(plugin, "is_fake_textDisplay_name");
     public static final Map<UUID, Map<UUID, TextDisplay>> fakeNameDisplay = new HashMap<>();
 
-    public static void startFakeNameDisplayUpdating() {
+    public static void killTask() {
         if (task != null) {
             task.cancel();
             task = null;
         }
-        currentFakeNameDisplayPeriodTicks = fakeDisplayNamePeriodTicks;
-        task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!isFakeDisplayNameEnabled) {
-                removeAllFakeNameDisplay();
-                task.cancel();
-                task = null;
-                return;
-            }
-            if (currentFakeNameDisplayPeriodTicks != fakeDisplayNamePeriodTicks) {
-                startFakeNameDisplayUpdating();
-                return;
-            }
-            updateAllFakeNameDisplays();
-        }, 0L, fakeDisplayNamePeriodTicks);
+    }
+
+    public static void startTask() {
+        killTask();
+        task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateAllFakeNameDisplays, 0L, tickDelay);
     }
 
     public static void updateAllFakeNameDisplays() {
@@ -64,7 +55,7 @@ public class FakeNameDisplay {
                         ? Component.text(entity.getName())
                         : entity.customName() != null ? entity.customName() : Component.text(entity.getName());
                 display.text(name);
-                display.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
+                display.teleport(entity.getLocation().add(0, entity.getHeight() + Config.fakeDisplayNameOffSetY, 0));
             }
         }
     }
