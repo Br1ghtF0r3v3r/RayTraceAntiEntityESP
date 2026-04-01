@@ -61,7 +61,7 @@ public class Config {
 
         RayTraceManager.startRayTraceChecking();
         FakeNameDisplay.startTask();
-        DebugsUtils.startDebugUpdating();
+        DebugsUtils.startTask();
     }
 
     public static YamlConfiguration spigotConfig;
