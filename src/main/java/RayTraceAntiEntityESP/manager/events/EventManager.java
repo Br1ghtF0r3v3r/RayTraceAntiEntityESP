@@ -6,6 +6,7 @@ import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
@@ -101,9 +102,16 @@ public class EventManager {
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
+        Entity entity = event.getEntity();
+
         if (Config.isDebugEnabled) {
             for (Player online : Bukkit.getOnlinePlayers()) {
-                DebugsUtils.removeDisplay(online, event.getEntity());
+                DebugsUtils.removeDisplay(online, entity);
+            }
+        }
+        if (Config.isFakeDisplayNameEnabled) {
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                FakeNameDisplay.removeDisplay(online, entity);
             }
         }
     }
