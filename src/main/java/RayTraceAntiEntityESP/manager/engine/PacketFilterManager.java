@@ -53,7 +53,7 @@ public class PacketFilterManager extends PacketListenerAbstract {
                 }
             });
         }
-        else if (packetType == PacketType.Play.Server.PLAYER_INFO_REMOVE) {
+        if (packetType == PacketType.Play.Server.PLAYER_INFO_REMOVE) {
             WrapperPlayServerPlayerInfoRemove packet = new WrapperPlayServerPlayerInfoRemove(event);
 
             List<UUID> original = packet.getProfileIds();
