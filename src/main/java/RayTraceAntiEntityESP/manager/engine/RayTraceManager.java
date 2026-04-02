@@ -32,20 +32,37 @@ public class RayTraceManager {
                 || notHitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
+    public static boolean notHitsBlock(World world, Vector origin, Vector endpoint) {
+        Vector direction = endpoint.clone().subtract(origin);
+        double distance = direction.length();
+        if (distance == 0) return true;
+
+        Vector rayStart = origin.clone();
+        double distanceLeft = distance;
+
+        while (distanceLeft > 0) {
+            RayTraceResult result = rayTrace(world, rayStart, direction, distanceLeft);
+
+            if (result == null || result.getHitBlock() == null) return true;
+
+            Material blockType = result.getHitBlock().getType();
+
+            if (blockType.isOccluding()) return false;
+
+            Vector pastTheBlock = result.getHitPosition().add(direction.clone().normalize().multiply(0.05));
+            distanceLeft -= rayStart.distance(pastTheBlock);
+            rayStart = pastTheBlock;
+        }
+
+        return true;
+    }
+
     public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
         direction = direction.normalize();
         RayTraceResult result = rayTrace(world, eyePos, direction, maxDistance);
         return result != null && result.getHitBlock() != null
                 ? result.getHitPosition().subtract(direction.multiply(0.1))
                 : eyePos.clone().add(direction.multiply(maxDistance));
-    }
-
-    public static boolean notHitsBlock(World world, Vector origin, Vector endpoint) {
-        Vector direction = endpoint.clone().subtract(origin);
-        double distance = direction.length();
-        if (distance == 0) return true;
-        RayTraceResult result = rayTrace(world, origin, direction, distance);
-        return result == null || result.getHitBlock() == null || !result.getHitBlock().getType().isSolid();
     }
 
     public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
