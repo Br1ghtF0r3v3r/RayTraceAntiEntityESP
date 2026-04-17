@@ -121,6 +121,8 @@ public class RayTraceManager {
     }
 
     public static boolean isAntiEntity(Entity entity) {
+        if (!bypassTag.isEmpty() && entity.getScoreboardTags().contains(bypassTag)) return false;
+
         String typeName = entity.getType().name().toLowerCase();
         boolean whiteListed = antiEntities.contains(typeName);
         if (antiMode.equalsIgnoreCase("blacklist")) {
