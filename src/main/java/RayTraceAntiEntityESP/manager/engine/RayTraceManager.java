@@ -75,12 +75,16 @@ public class RayTraceManager {
         );
     }
 
-    public static boolean isEntityVisible(Player viewer, Entity entity) {
-        double range = getSpigotTrackingRange(entity);
+    public static boolean isEntityInSight(Player viewer, Entity entity) {
         if (!isAntiEntity(entity)) {
             removeDisplay(viewer, entity);
             return true;
         }
+        if (entity.isGlowing()) {
+            removeDisplay(viewer, entity);
+            return true;
+        }
+        double range = getSpigotTrackingRange(entity);
         double distSq = viewer.getLocation().distanceSquared(entity.getLocation());
         if (distSq > range * range) {
             removeDisplay(viewer, entity);
@@ -221,7 +225,7 @@ public class RayTraceManager {
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 for (Entity entity : viewer.getWorld().getEntities()) {
                     if (entity != viewer) {
-                        RayTraceManager.updateRayTraceChecking(viewer, entity, RayTraceManager.isEntityVisible(viewer, entity));
+                        RayTraceManager.updateRayTraceChecking(viewer, entity, RayTraceManager.isEntityInSight(viewer, entity));
                     }
                 }
             }
