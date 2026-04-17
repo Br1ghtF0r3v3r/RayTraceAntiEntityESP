@@ -21,3 +21,5 @@ fake_name_display:
 anti_entities:
 - player
 anti_mode: whitelist
+
+bypass_tag: "raytrace_anti_esp_bypass"
