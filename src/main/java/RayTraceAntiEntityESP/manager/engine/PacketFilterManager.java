@@ -46,7 +46,7 @@ public class PacketFilterManager extends PacketListenerAbstract {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Entity entity = Bukkit.getEntity(entityUUID);
                 if (entity == null) return;
-                if (RayTraceManager.isEntityVisible(viewer, entity)) {
+                if (RayTraceManager.isEntityInSight(viewer, entity)) {
                     VisibilityUtils.setNotHidden(viewer, entity);
                 } else {
                     VisibilityUtils.setHidden(viewer, entity);
