@@ -74,12 +74,18 @@ public class RayTraceManager {
         );
     }
 
+    public static boolean isEntityGlowing(Player player, Entity entity) {
+        Set<Integer> playerSet = PacketManager.glowingEntities.get(player.getUniqueId());
+        if (playerSet == null) return entity.isGlowing();
+        return entity.isGlowing() || playerSet.contains(entity.getEntityId());
+    }
+
     public static boolean isEntityInSight(Player viewer, Entity entity) {
         if (!isAntiEntity(entity)) {
             DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
-        if (entity.isGlowing()) {
+        if (isEntityGlowing(viewer, entity)) {
             DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
@@ -217,7 +223,7 @@ public class RayTraceManager {
             }
             FakeNameDisplay.removeDisplay(viewer);
         }
-        PacketFilterManager.bypassPacketSet.clear();
+        PacketManager.bypassPacketSet.clear();
     }
 
     public static void startTask() {

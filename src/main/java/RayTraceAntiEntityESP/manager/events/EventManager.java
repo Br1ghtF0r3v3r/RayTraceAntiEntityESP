@@ -13,7 +13,7 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
-import static RayTraceAntiEntityESP.manager.engine.PacketFilterManager.packetFilter;
+import static RayTraceAntiEntityESP.manager.engine.PacketManager.packetManager;
 
 public class EventManager {
 
@@ -98,7 +98,7 @@ public class EventManager {
     }
 
     public static void packetSendManager(PacketSendEvent event) {
-        packetFilter(event);
+        packetManager(event);
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
