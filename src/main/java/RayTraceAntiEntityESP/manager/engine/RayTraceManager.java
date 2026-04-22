@@ -21,20 +21,20 @@ public class RayTraceManager {
 
     private static BukkitTask task;
 
-    public static boolean notCollideSolid(Player viewer, Vector endpoint) {
+    public static boolean collideSolid(Player viewer, Vector endpoint) {
         World world = viewer.getWorld();
         Vector eyePos = viewer.getEyeLocation().toVector();
         Vector lookDir = viewer.getLocation().getDirection();
-        if (!isPerspectiveCheckingEnabled) return notHitsBlock(world, eyePos, endpoint);
-        return notHitsBlock(world, eyePos, endpoint)
-                || notHitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                || notHitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+        if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
+        return hitsBlock(world, eyePos, endpoint)
+                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
+                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
-    public static boolean notHitsBlock(World world, Vector origin, Vector endpoint) {
+    public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
         Vector direction = endpoint.clone().subtract(origin);
         double distance = direction.length();
-        if (distance == 0) return true;
+        if (distance == 0) return false;
 
         Vector rayStart = origin.clone();
         double distanceLeft = distance;
@@ -46,14 +46,14 @@ public class RayTraceManager {
 
             Material blockType = result.getHitBlock().getType();
 
-            if (blockType.isOccluding()) return false;
+            if (blockType.isOccluding()) return true;
 
             Vector pastTheBlock = result.getHitPosition().add(direction.clone().normalize().multiply(0.05));
             distanceLeft -= rayStart.distance(pastTheBlock);
             rayStart = pastTheBlock;
         }
 
-        return true;
+        return false;
     }
 
     public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
@@ -101,7 +101,7 @@ public class RayTraceManager {
             Set<Integer> visibleVertices = new HashSet<>();
             int i = 0;
             for (Vector vertex : vertices) {
-                if (notCollideSolid(viewer, vertex)) {
+                if (!collideSolid(viewer, vertex)) {
                     visibleVertices.add(i);
                     visible = true;
                 }
@@ -110,7 +110,7 @@ public class RayTraceManager {
             DebugsUtils.applyDisplay(viewer, entity, vertices, visibleVertices);
         } else {
             for (Vector vertex : vertices) {
-                if (notCollideSolid(viewer, vertex)) {
+                if (!collideSolid(viewer, vertex)) {
                     visible = true;
                     break;
                 }
