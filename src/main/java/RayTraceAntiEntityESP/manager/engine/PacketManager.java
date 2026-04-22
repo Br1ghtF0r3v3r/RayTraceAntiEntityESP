@@ -6,6 +6,7 @@ import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoRemove;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 import org.bukkit.Bukkit;
@@ -13,12 +14,14 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 
-public class PacketFilterManager extends PacketListenerAbstract {
+public class PacketManager extends PacketListenerAbstract {
 
     public static final Set<String> bypassPacketSet = Collections.synchronizedSet(new HashSet<>());
+    public static final Map<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
 
     public static String bypassShowKey(Player viewer, UUID entityUUID) {
         return viewer.getUniqueId() + ":show:" + entityUUID;
@@ -28,7 +31,7 @@ public class PacketFilterManager extends PacketListenerAbstract {
         return viewer.getUniqueId() + ":hidden:" + entityUUID;
     }
 
-    public static void packetFilter(PacketSendEvent event) {
+    public static void packetManager(PacketSendEvent event) {
         PacketTypeCommon packetType = event.getPacketType();
         Player viewer = event.getPlayer();
 
@@ -73,6 +76,30 @@ public class PacketFilterManager extends PacketListenerAbstract {
 
             if (!filtered.isEmpty()) {
                 PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerPlayerInfoRemove(filtered));
+            }
+        }
+        if (packetType == PacketType.Play.Server.ENTITY_METADATA) {
+            WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(event);
+
+            UUID playerUUID = event.getPlayer();
+
+            Set<Integer> playerSet = glowingEntities.get(playerUUID);
+            if (playerSet == null) {
+                playerSet = new HashSet<>();
+                glowingEntities.put(playerUUID, playerSet);
+            }
+            for (var data : packet.getEntityMetadata()) {
+                if (data.getIndex() == 0) {
+                    Object value = data.getValue();
+                    if (value instanceof Byte flags) {
+                        boolean isGlowing = (flags & 0x40) != 0;
+                        if (isGlowing) {
+                            playerSet.add(packet.getEntityId());
+                        } else {
+                            playerSet.remove(packet.getEntityId());
+                        }
+                    }
+                }
             }
         }
     }
