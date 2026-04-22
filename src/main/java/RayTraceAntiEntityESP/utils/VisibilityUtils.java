@@ -1,7 +1,7 @@
 package RayTraceAntiEntityESP.utils;
 
 import RayTraceAntiEntityESP.config.Config;
-import RayTraceAntiEntityESP.manager.engine.PacketFilterManager;
+import RayTraceAntiEntityESP.manager.engine.PacketManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
@@ -13,7 +13,7 @@ import static RayTraceAntiEntityESP.utils.TeamUtils.getTeamVisibility;
 public class VisibilityUtils {
 
     public static void setHidden(Player player, Entity entity) {
-        PacketFilterManager.bypassPacketSet.add(PacketFilterManager.bypassHiddenKey(player, entity.getUniqueId()));
+        PacketManager.bypassPacketSet.add(PacketManager.bypassHiddenKey(player, entity.getUniqueId()));
         player.hideEntity(plugin, entity);
 
         if (Config.isFakeDisplayNameEnabled) {
@@ -22,10 +22,10 @@ public class VisibilityUtils {
     }
 
     public static void setNotHidden(Player player, Entity entity) {
-        PacketFilterManager.bypassPacketSet.remove(PacketFilterManager.bypassHiddenKey(player, entity.getUniqueId()));
+        PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(player, entity.getUniqueId()));
         player.hideEntity(plugin, entity);
         
-        PacketFilterManager.bypassPacketSet.add(PacketFilterManager.bypassShowKey(player, entity.getUniqueId()));
+        PacketManager.bypassPacketSet.add(PacketManager.bypassShowKey(player, entity.getUniqueId()));
         player.showEntity(plugin, entity);
 
         if (Config.isFakeDisplayNameEnabled) {
