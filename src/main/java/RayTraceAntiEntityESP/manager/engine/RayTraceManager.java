@@ -16,7 +16,6 @@ import java.util.*;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.utils.DebugsUtils.*;
 
 public class RayTraceManager {
 
@@ -77,21 +76,21 @@ public class RayTraceManager {
 
     public static boolean isEntityInSight(Player viewer, Entity entity) {
         if (!isAntiEntity(entity)) {
-            removeDisplay(viewer, entity);
+            DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
         if (entity.isGlowing()) {
-            removeDisplay(viewer, entity);
+            DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
         double range = getSpigotTrackingRange(entity);
         double distSq = viewer.getLocation().distanceSquared(entity.getLocation());
         if (distSq > range * range) {
-            removeDisplay(viewer, entity);
+            DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
         if (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride) {
-            removeDisplay(viewer, entity);
+            DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
 
