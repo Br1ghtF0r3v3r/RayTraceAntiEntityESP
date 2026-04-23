@@ -19,7 +19,7 @@ public class Config {
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
     public static double checkingBoundingBoxExtraValue;
-    public static int checkingSamplePointsPerCorner;
+    public static int checkingSampleLayers;
 
     public static boolean isDebugEnabled;
     public static long debugPeriodTicks;
@@ -44,7 +44,7 @@ public class Config {
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
         checkingDistanceOverride = config.getDouble("checking.distance_override", 5);
         checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0.5);
-        checkingSamplePointsPerCorner = config.getInt("checking.vertices_layers", 5);
+        checkingSampleLayers = config.getInt("checking.vertices_layers", 5);
 
         isPerspectiveCheckingEnabled = config.getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
