@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.manager.engine;
 
+import RayTraceAntiEntityESP.utils.TeamUtils;
 import RayTraceAntiEntityESP.utils.VisibilityUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
@@ -9,6 +10,7 @@ import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoRemove;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -98,6 +100,41 @@ public class PacketManager extends PacketListenerAbstract {
                         } else {
                             playerSet.remove(packet.getEntityId());
                         }
+                    }
+                }
+            }
+        }
+        if (packetType == PacketType.Play.Server.TEAMS) {
+            WrapperPlayServerTeams packet = new WrapperPlayServerTeams(event);
+            String teamName = packet.getTeamName();
+            WrapperPlayServerTeams.TeamMode mode = packet.getTeamMode();
+
+            if (mode == WrapperPlayServerTeams.TeamMode.CREATE || mode == WrapperPlayServerTeams.TeamMode.UPDATE) {
+                if (packet.getTeamInfo().isPresent()) {
+                    WrapperPlayServerTeams.ScoreBoardTeamInfo info = packet.getTeamInfo().get();
+                    TeamUtils.teamColors.put(teamName, info.getColor());
+                    TeamUtils.teamPrefixes.put(teamName, info.getPrefix());
+                }
+            }
+
+            if (mode == WrapperPlayServerTeams.TeamMode.CREATE || mode == WrapperPlayServerTeams.TeamMode.ADD_ENTITIES) {
+                for (String entry : packet.getPlayers()) {
+                    TeamUtils.entryToTeam.put(entry, teamName);
+                }
+            }
+
+            if (mode == WrapperPlayServerTeams.TeamMode.REMOVE_ENTITIES) {
+                for (String entry : packet.getPlayers()) {
+                    TeamUtils.entryToTeam.remove(entry);
+                }
+            }
+
+            if (mode == WrapperPlayServerTeams.TeamMode.REMOVE) {
+                TeamUtils.teamColors.remove(teamName);
+                TeamUtils.teamPrefixes.remove(teamName);
+                for (Map.Entry<String, String> entry : TeamUtils.entryToTeam.entrySet()) {
+                    if (entry.getValue().equals(teamName)) {
+                        TeamUtils.entryToTeam.remove(entry.getKey());
                     }
                 }
             }
