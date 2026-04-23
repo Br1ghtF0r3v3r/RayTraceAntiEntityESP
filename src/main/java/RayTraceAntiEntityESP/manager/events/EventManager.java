@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.manager.events;
 
 import RayTraceAntiEntityESP.config.Config;
+import RayTraceAntiEntityESP.manager.engine.PacketManager;
 import RayTraceAntiEntityESP.utils.DebugsUtils;
 import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -12,8 +13,6 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
-
-import static RayTraceAntiEntityESP.manager.engine.PacketManager.packetManager;
 
 public class EventManager {
 
@@ -98,7 +97,7 @@ public class EventManager {
     }
 
     public static void packetSendManager(PacketSendEvent event) {
-        packetManager(event);
+        PacketManager.packetManager(event);
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
