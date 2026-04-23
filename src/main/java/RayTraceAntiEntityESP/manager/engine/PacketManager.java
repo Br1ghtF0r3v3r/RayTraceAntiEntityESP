@@ -82,14 +82,9 @@ public class PacketManager extends PacketListenerAbstract {
         }
         if (packetType == PacketType.Play.Server.ENTITY_METADATA) {
             WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(event);
-
-            UUID playerUUID = event.getPlayer();
-
-            Set<Integer> playerSet = glowingEntities.get(playerUUID);
-            if (playerSet == null) {
-                playerSet = new HashSet<>();
-                glowingEntities.put(playerUUID, playerSet);
-            }
+            Player player = event.getPlayer();
+            UUID playerUUID = player.getUniqueId();
+            Set<Integer> playerSet = glowingEntities.computeIfAbsent(playerUUID, k -> new HashSet<>());
             for (var data : packet.getEntityMetadata()) {
                 if (data.getIndex() == 0) {
                     Object value = data.getValue();
