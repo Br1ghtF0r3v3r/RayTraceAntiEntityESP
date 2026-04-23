@@ -1,11 +1,8 @@
 package RayTraceAntiEntityESP;
 
 import RayTraceAntiEntityESP.commands.CommandsHandler;
-import RayTraceAntiEntityESP.manager.engine.RayTraceManager;
 import RayTraceAntiEntityESP.listener.EventListener;
 import RayTraceAntiEntityESP.commands.TabCompletion;
-import RayTraceAntiEntityESP.utils.DebugsUtils;
-import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import com.github.retrooper.packetevents.PacketEvents;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,11 +18,11 @@ public final class Main extends JavaPlugin {
 
         plugin = this;
 
+        PacketEvents.getAPI().init();
+
         getServer().getPluginManager().registerEvents(new EventListener(), this);
         PacketEvents.getAPI().getEventManager().registerListener(new EventListener());
         registerCommands();
-
-        PacketEvents.getAPI().init();
 
         reloadConfigAll();
 

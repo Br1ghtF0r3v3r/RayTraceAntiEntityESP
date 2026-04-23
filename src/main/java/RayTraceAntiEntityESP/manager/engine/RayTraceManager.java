@@ -21,14 +21,14 @@ public class RayTraceManager {
 
     private static BukkitTask task;
 
-    public static boolean collideSolid(Player viewer, Vector endpoint) {
+    public static boolean isVisible(Player viewer, Vector endpoint) {
         World world = viewer.getWorld();
         Vector eyePos = viewer.getEyeLocation().toVector();
         Vector lookDir = viewer.getLocation().getDirection();
-        if (!isPerspectiveCheckingEnabled) return hitsBlock(world, eyePos, endpoint);
-        return hitsBlock(world, eyePos, endpoint)
-                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                && hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+        if (!isPerspectiveCheckingEnabled) return !hitsBlock(world, eyePos, endpoint);
+        return !hitsBlock(world, eyePos, endpoint)
+                && !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
+                && !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
     public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
@@ -42,7 +42,7 @@ public class RayTraceManager {
         while (distanceLeft > 0) {
             RayTraceResult result = rayTrace(world, rayStart, direction, distanceLeft);
 
-            if (result == null || result.getHitBlock() == null) return true;
+            if (result == null || result.getHitBlock() == null) return false;
 
             Material blockType = result.getHitBlock().getType();
 
@@ -81,21 +81,13 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityInSight(Player viewer, Entity entity) {
-        if (!isAntiEntity(entity)) {
-            DebugsUtils.removeDisplay(viewer, entity);
-            return true;
-        }
-        if (isEntityGlowing(viewer, entity)) {
-            DebugsUtils.removeDisplay(viewer, entity);
-            return true;
-        }
         double range = getSpigotTrackingRange(entity);
         double distSq = viewer.getLocation().distanceSquared(entity.getLocation());
-        if (distSq > range * range) {
-            DebugsUtils.removeDisplay(viewer, entity);
-            return true;
-        }
-        if (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride) {
+
+        if (!isAntiEntity(entity)
+                || isEntityGlowing(viewer, entity)
+                || distSq > range * range
+                || (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride)) {
             DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
@@ -107,7 +99,7 @@ public class RayTraceManager {
             Set<Integer> visibleVertices = new HashSet<>();
             int i = 0;
             for (Vector vertex : vertices) {
-                if (!collideSolid(viewer, vertex)) {
+                if (isVisible(viewer, vertex)) {
                     visibleVertices.add(i);
                     visible = true;
                 }
@@ -116,7 +108,7 @@ public class RayTraceManager {
             DebugsUtils.applyDisplay(viewer, entity, vertices, visibleVertices);
         } else {
             for (Vector vertex : vertices) {
-                if (!collideSolid(viewer, vertex)) {
+                if (isVisible(viewer, vertex)) {
                     visible = true;
                     break;
                 }
@@ -140,7 +132,7 @@ public class RayTraceManager {
 
     public static List<Vector> getEntityVertices(Player viewer, Entity entity, double checkingRange) {
 
-        if (checkingSamplePointsPerCorner < 2) throw new ExceptionInInitializerError("samplePoints must be at least 2");
+        if (checkingSampleLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
 
         ArrayList<Vector> vertices = new ArrayList<>();
         BoundingBox boundingBox = entity.getBoundingBox();
@@ -148,7 +140,6 @@ public class RayTraceManager {
         double maxY = boundingBox.getMaxY();
         double maxZ = boundingBox.getMaxZ();
         double midX = boundingBox.getCenterX();
-        double midY = boundingBox.getCenterY();
         double midZ = boundingBox.getCenterZ();
         double minX = boundingBox.getMinX();
         double minY = boundingBox.getMinY();
@@ -157,7 +148,7 @@ public class RayTraceManager {
         double distance = viewer.getLocation().distance(entity.getLocation());
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-        int scaledSampleLayers = Math.max(2, (int) Math.round(checkingSamplePointsPerCorner * (1.0 - ratio)));
+        int scaledSampleLayers = Math.max(2, (int) Math.round(checkingSampleLayers * (1.0 - ratio)));
 
         boolean includeCorners = ratio < 0.5;
 
