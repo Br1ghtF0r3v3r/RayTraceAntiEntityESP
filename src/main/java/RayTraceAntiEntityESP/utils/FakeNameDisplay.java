@@ -2,6 +2,7 @@ package RayTraceAntiEntityESP.utils;
 
 import RayTraceAntiEntityESP.config.Config;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static RayTraceAntiEntityESP.Main.plugin;
+import static RayTraceAntiEntityESP.config.Config.fakeDisplayNameOffSetY;
 import static RayTraceAntiEntityESP.utils.DebugsUtils.DEBUG_KEY;
 
 public class FakeNameDisplay {
@@ -60,7 +62,7 @@ public class FakeNameDisplay {
                 }
                 else name = entity.customName() != null ? entity.customName() : Component.text(entity.getName());
                 display.text(name);
-                display.teleport(entity.getLocation().add(0, entity.getHeight() + Config.fakeDisplayNameOffSetY, 0));
+                display.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
             }
         }
     }
@@ -89,8 +91,28 @@ public class FakeNameDisplay {
     }
 
     public static TextDisplay spawnDisplay(Player viewer, Entity entity) {
-        Location loc = entity.getLocation();
+        Component name;
+        if (entity instanceof Player) {
+            name = Component.text(entity.getName());
+        } else if (entity.customName() != null) {
+            name = entity.customName();
+        } else {
+            name = Component.text(entity.getName());
+        }
+
+        NamedTextColor teamColor = TeamUtils.getTeamColor(entity);
+        if (teamColor != null && name != null) {
+            name = name.color(teamColor);
+        }
+        Component teamPrefix = TeamUtils.getTeamPrefix(entity);
+        if (teamPrefix != null && name != null) {
+            name = teamPrefix.append(name);
+        }
+
+        Component finalName = name;
+        Location loc = entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0);
         TextDisplay display = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
+            d.text(finalName);
             d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setBillboard(TextDisplay.Billboard.CENTER);
             d.setTextOpacity((byte) 128);
