@@ -39,10 +39,8 @@ public class PacketManager extends PacketListenerAbstract {
 
         if (packetType == PacketType.Play.Server.SPAWN_ENTITY) {
             WrapperPlayServerSpawnEntity packet = new WrapperPlayServerSpawnEntity(event);
-
             if (packet.getUUID().isEmpty()) return;
             UUID entityUUID = packet.getUUID().get();
-
             if (viewer.getUniqueId().equals(entityUUID)) return;
             if (bypassPacketSet.remove(bypassShowKey(viewer, entityUUID))) return;
 

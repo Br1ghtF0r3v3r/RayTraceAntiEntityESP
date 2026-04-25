@@ -23,6 +23,7 @@ public class VisibilityUtils {
 
     public static void setNotHidden(Player player, Entity entity) {
         PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(player, entity.getUniqueId()));
+        player.hideEntity(plugin, entity);
 
         PacketManager.bypassPacketSet.add(PacketManager.bypassShowKey(player, entity.getUniqueId()));
         player.showEntity(plugin, entity);
@@ -33,16 +34,13 @@ public class VisibilityUtils {
     }
 
     public static boolean isNameVisible(Player viewer, Entity entity) {
-        if (entity.isInvisible()) return false;
-
+        if (viewer.equals(entity)) return false;
         if (!(entity instanceof Player)) {
             if (entity.customName() == null || !entity.isCustomNameVisible()) return false;
         }
-
         Team viewerTeam = getTeam(viewer);
         Team entityTeam = getTeam(entity);
         boolean onSameTeam = viewerTeam != null && viewerTeam.equals(entityTeam);
-
         return switch (getTeamVisibility(entityTeam)) {
             case ALWAYS -> true;
             case NEVER -> false;
