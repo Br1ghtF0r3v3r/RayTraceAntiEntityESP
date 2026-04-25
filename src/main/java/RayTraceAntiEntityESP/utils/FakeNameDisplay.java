@@ -11,7 +11,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.scoreboard.Team;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,56 +40,7 @@ public class FakeNameDisplay {
         task = Bukkit.getScheduler().runTaskTimer(plugin, FakeNameDisplay::updateDisplays, 0L, Config.fakeDisplayNamePeriodTicks);
     }
 
-    public static void updateDisplays() {
-        for (Map.Entry<UUID, Map<UUID, TextDisplay>> viewerEntry : fakeNameDisplay.entrySet()) {
-            Player viewer = Bukkit.getPlayer(viewerEntry.getKey());
-            if (viewer == null) continue;
-
-            for (Map.Entry<UUID, TextDisplay> displayEntry : viewerEntry.getValue().entrySet()) {
-                Entity entity = Bukkit.getEntity(displayEntry.getKey());
-                if (entity == null) continue;
-
-                TextDisplay display = displayEntry.getValue();
-                if (!display.isValid()) continue;
-
-                Component name;
-                if (entity instanceof Player) {
-                    Team team = TeamUtils.getTeam(entity);
-                    name = team.prefix()
-                            .append(entity.name())
-                            .append(team.suffix());
-                }
-                else name = entity.customName() != null ? entity.customName() : Component.text(entity.getName());
-                display.text(name);
-                display.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
-            }
-        }
-    }
-
-    public static void applyDisplay(Player viewer, Entity entity) {
-        boolean shouldSkipFakeNameDisplay = entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE)
-                || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
-        if (shouldSkipFakeNameDisplay) return;
-        if (!entity.isValid() || entity.isDead()) {
-            removeDisplay(viewer, entity);
-            return;
-        }
-        if (!VisibilityUtils.isNameVisible(viewer, entity)) {
-            removeDisplay(viewer, entity);
-            return;
-        }
-        Map<UUID, TextDisplay> viewerDisplays = fakeNameDisplay.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
-        TextDisplay existingDisplay = viewerDisplays.get(entity.getUniqueId());
-        TextDisplay display;
-        if (existingDisplay != null && existingDisplay.isValid()) {
-            display = existingDisplay;
-        } else {
-            display = spawnDisplay(viewer, entity);
-        }
-        viewerDisplays.put(entity.getUniqueId(), display);
-    }
-
-    public static TextDisplay spawnDisplay(Player viewer, Entity entity) {
+    private static Component buildName(Entity entity) {
         Component name;
         if (entity instanceof Player) {
             name = Component.text(entity.getName());
@@ -101,27 +51,66 @@ public class FakeNameDisplay {
         }
 
         NamedTextColor teamColor = TeamUtils.getTeamColor(entity);
-        if (teamColor != null && name != null) {
-            name = name.color(teamColor);
-        }
-        Component teamPrefix = TeamUtils.getTeamPrefix(entity);
-        if (teamPrefix != null && name != null) {
-            name = teamPrefix.append(name);
-        }
+        if (teamColor != null && name != null) name = name.color(teamColor);
 
-        Component finalName = name;
+        Component teamPrefix = TeamUtils.getTeamPrefix(entity);
+        if (teamPrefix != null && name != null) name = teamPrefix.append(name);
+
+        return name;
+    }
+
+    public static void updateDisplays() {
+        for (Map.Entry<UUID, Map<UUID, TextDisplay>> viewerEntry : fakeNameDisplay.entrySet()) {
+            Player viewer = Bukkit.getPlayer(viewerEntry.getKey());
+            if (viewer == null) continue;
+            for (Map.Entry<UUID, TextDisplay> displayEntry : viewerEntry.getValue().entrySet()) {
+                Entity entity = Bukkit.getEntity(displayEntry.getKey());
+                if (entity == null) continue;
+                TextDisplay display = displayEntry.getValue();
+                if (!display.isValid()) continue;
+
+                display.text(buildName(entity));
+                display.teleport(entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0));
+
+                if (!VisibilityUtils.isNameVisible(viewer, entity) || viewer.canSee(entity) || entity.isInvisible() || (entity instanceof Player player && player.isSneaking())) {
+                    viewer.hideEntity(plugin, display);
+                    continue;
+                }
+
+                viewer.showEntity(plugin, display);
+            }
+        }
+    }
+
+    public static void applyDisplay(Player viewer, Entity entity) {
+        if (entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE)
+                || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE)) return;
+        if (!entity.isValid() || entity.isDead()) {
+            removeDisplay(viewer, entity);
+            return;
+        }
+        if (!VisibilityUtils.isNameVisible(viewer, entity) || viewer.canSee(entity)) {
+            removeDisplay(viewer, entity);
+            return;
+        }
+        Map<UUID, TextDisplay> viewerDisplays = fakeNameDisplay.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
+        TextDisplay existing = viewerDisplays.get(entity.getUniqueId());
+        if (existing == null || !existing.isValid()) {
+            viewerDisplays.put(entity.getUniqueId(), spawnDisplay(entity));
+        }
+    }
+
+    public static TextDisplay spawnDisplay(Entity entity) {
+        Component finalName = buildName(entity);
         Location loc = entity.getLocation().add(0, entity.getHeight() + fakeDisplayNameOffSetY, 0);
-        TextDisplay display = entity.getWorld().spawn(loc, TextDisplay.class, d -> {
+        return entity.getWorld().spawn(loc, TextDisplay.class, d -> {
             d.text(finalName);
-            d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setBillboard(TextDisplay.Billboard.CENTER);
             d.setTextOpacity((byte) 128);
             d.setSeeThrough(true);
+            d.getPersistentDataContainer().set(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setPersistent(false);
-            d.setVisibleByDefault(false);
         });
-        viewer.showEntity(plugin, display);
-        return display;
     }
 
     public static void removeDisplay(Player viewer, Entity entity) {

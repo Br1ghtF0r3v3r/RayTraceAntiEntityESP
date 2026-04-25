@@ -24,8 +24,7 @@ public class DebugsUtils {
     public static final NamespacedKey DEBUG_KEY = new NamespacedKey(plugin, "is_debug_vertex");
     public static final Map<UUID, Map<UUID, DebugEntry>> debugs = new HashMap<>();
 
-    public record DebugEntry(List<BlockDisplay> display, List<Vector> vertices, Set<Integer> visibleVertices) {
-    }
+    public record DebugEntry(List<BlockDisplay> display, List<Vector> vertices, Set<Integer> visibleVertices) { }
 
     public static void killTask() {
         if (task != null) {
@@ -68,7 +67,7 @@ public class DebugsUtils {
                         displays.get(i).setBlock(mat.createBlockData());
                         displays.get(i).teleport(new Location(entity.getWorld(), vertex.getX() - 0.025, vertex.getY() - 0.025, vertex.getZ() - 0.025));
                     } else {
-                        displays.add(spawnDisplay(viewer, entity));
+                        displays.add(spawnDisplay(entity));
                     }
                 }
             }
@@ -76,37 +75,38 @@ public class DebugsUtils {
     }
 
     public static void applyDisplay(Player viewer, Entity entity, List<Vector> vertices, Set<Integer> visibleVertices) {
-        boolean shouldSkipDebug = entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE)
-                || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE);
-        if (shouldSkipDebug) return;
+        if (entity.getPersistentDataContainer().has(DEBUG_KEY, PersistentDataType.BYTE)
+                || entity.getPersistentDataContainer().has(FAKE_DISPLAY_NAME_KEY, PersistentDataType.BYTE)) return;
         if (!entity.isValid() || entity.isDead()) {
             removeDisplay(viewer, entity);
             return;
         }
         Map<UUID, DebugEntry> viewerDisplays = debugs.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
-        DebugEntry existingDisplay = viewerDisplays.get(entity.getUniqueId());
-        List<BlockDisplay> display;
-        if (existingDisplay == null) {
-            display = new ArrayList<>();
-        } else {
-            display = existingDisplay.display();
+        DebugEntry existing = viewerDisplays.get(entity.getUniqueId());
+        List<BlockDisplay> displays = existing != null ? existing.display() : new ArrayList<>();
+
+        for (int i = vertices.size(); i < displays.size(); i++) displays.get(i).remove();
+        if (vertices.size() < displays.size()) displays.subList(vertices.size(), displays.size()).clear();
+
+        for (int i = 0; i < vertices.size(); i++) {
+            if (i > displays.size()) {
+                displays.add(spawnDisplay(entity));
+            }
         }
-        viewerDisplays.put(entity.getUniqueId(), new DebugEntry(display, new ArrayList<>(vertices), new HashSet<>(visibleVertices)));
+
+        viewerDisplays.put(entity.getUniqueId(), new DebugEntry(displays, new ArrayList<>(vertices), new HashSet<>(visibleVertices)));
     }
 
-    public static BlockDisplay spawnDisplay(Player viewer, Entity entity) {
+    public static BlockDisplay spawnDisplay(Entity entity) {
         Location loc = entity.getLocation();
-        BlockDisplay display = entity.getWorld().spawn(loc, BlockDisplay.class, d -> {
+        return entity.getWorld().spawn(loc, BlockDisplay.class, d -> {
             d.getPersistentDataContainer().set(DEBUG_KEY, PersistentDataType.BYTE, (byte) 1);
             d.setPersistent(false);
-            d.setVisibleByDefault(false);
             d.setTransformation(new Transformation(
                     new Vector3f(0, 0, 0), new AxisAngle4f(0, 0, 0, 1),
                     new Vector3f(0.05f, 0.05f, 0.05f), new AxisAngle4f(0, 0, 0, 1)
             ));
         });
-        viewer.showEntity(plugin, display);
-        return display;
     }
 
     public static void removeDisplay(Player viewer, Entity entity) {
@@ -136,4 +136,3 @@ public class DebugsUtils {
     }
 
 }
-
