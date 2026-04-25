@@ -27,8 +27,8 @@ public class RayTraceManager {
         Vector lookDir = viewer.getLocation().getDirection();
         if (!isPerspectiveCheckingEnabled) return !hitsBlock(world, eyePos, endpoint);
         return !hitsBlock(world, eyePos, endpoint)
-                && !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                && !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+                || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
+                || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
     public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
