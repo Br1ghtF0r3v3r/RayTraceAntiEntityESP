@@ -16,7 +16,7 @@ public class TabCompletion implements TabCompleter {
         if (args.length == 1) {
             return filter(args[0], List.of("config_value", "reload", "enabled", "checking_period_ticks",
                     "checking_distance_override", "bounding_box_extra_value", "vertices_layers",
-                    "perspective_checking", "debug", "fake_name_display", "anti_mode", "anti_entities"));
+                    "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities"));
         }
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
@@ -24,8 +24,8 @@ public class TabCompletion implements TabCompleter {
                 case "checking_period_ticks", "checking_distance_override",
                      "bounding_box_extra_value", "vertices_layers" -> List.of("<value>");
                 case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
-                case "debug" -> filter(args[1], List.of("enabled", "period_ticks"));
-                case "fake_name_display" -> filter(args[1], List.of("enabled", "period_ticks", "offset_y"));
+                case "debug" -> filter(args[1], List.of("enabled"));
+                case "display_name" -> filter(args[1], List.of("enabled", "offset_y"));
                 case "anti_mode" -> filter(args[1], List.of("whitelist", "blacklist"));
                 case "anti_entities" -> filter(args[1], List.of("add", "remove"));
                 default -> null;
@@ -40,12 +40,11 @@ public class TabCompletion implements TabCompleter {
                 };
                 case "debug" -> switch (args[1].toLowerCase()) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
-                    case "period_ticks" -> List.of("<value>");
                     default -> null;
                 };
-                case "fake_name_display" -> switch (args[1].toLowerCase()) {
+                case "display_name" -> switch (args[1].toLowerCase()) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
-                    case "period_ticks", "offset_y" -> List.of("<value>");
+                    case "offset_y" -> List.of("<value>");
                     default -> null;
                 };
                 case "anti_entities" -> {
