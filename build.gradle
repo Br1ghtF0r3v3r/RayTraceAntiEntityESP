@@ -2,6 +2,7 @@ plugins {
     id "com.gradleup.shadow" version "9.3.0"
     id "xyz.jpenilla.run-paper" version "3.0.2"
     id "java"
+    id "io.papermc.paperweight.userdev" version "2.0.0-beta.21"
 }
 
 tasks {
@@ -15,6 +16,10 @@ tasks {
         enabled = false
     }
 
+    tasks.assemble {
+        dependsOn(tasks.reobfJar)
+    }
+
     runServer {
         serverJar(file("run/server.jar"))
         minecraftVersion("")
@@ -25,6 +30,7 @@ tasks {
 allprojects {
     repositories {
         mavenCentral()
+        gradlePluginPortal()
         maven{url "https://repo.papermc.io/repository/maven-public/"}
         maven{url "https://repo.codemc.io/repository/maven-releases/"}
         maven{url "https://repo.codemc.io/repository/maven-snapshots/"}
@@ -36,6 +42,7 @@ dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "com.github.retrooper:packetevents-spigot:2.11.2"
     compileOnly "me.clip:placeholderapi:2.12.2"
+    paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
 }
 
 java {
