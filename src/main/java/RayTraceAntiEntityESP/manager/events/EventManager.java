@@ -2,8 +2,7 @@ package RayTraceAntiEntityESP.manager.events;
 
 import RayTraceAntiEntityESP.config.Config;
 import RayTraceAntiEntityESP.manager.engine.PacketManager;
-import RayTraceAntiEntityESP.utils.DebugsUtils;
-import RayTraceAntiEntityESP.utils.FakeNameDisplay;
+import RayTraceAntiEntityESP.manager.engine.DisplayNameManager;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
@@ -82,36 +81,22 @@ public class EventManager {
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        if (Config.isFakeDisplayNameEnabled) {
-            FakeNameDisplay.removeDisplay(player);
-            for (Player online : Bukkit.getOnlinePlayers()) {
-                FakeNameDisplay.removeDisplay(online, player);
-            }
-        }
-        if (Config.isDebugEnabled) {
-            DebugsUtils.removeDisplay(player);
-            for (Player online : Bukkit.getOnlinePlayers()) {
-                DebugsUtils.removeDisplay(online, player);
-            }
+        if (Config.isDisplayNameEnabled) {
+            DisplayNameManager.removeDisplay(player);
+            DisplayNameManager.removeDisplayForEntity(player);
         }
     }
 
     public static void packetSendManager(PacketSendEvent event) {
         PacketManager.packetManager(event);
+
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
         Entity entity = event.getEntity();
 
-        if (Config.isDebugEnabled) {
-            for (Player online : Bukkit.getOnlinePlayers()) {
-                DebugsUtils.removeDisplay(online, entity);
-            }
-        }
-        if (Config.isFakeDisplayNameEnabled) {
-            for (Player online : Bukkit.getOnlinePlayers()) {
-                FakeNameDisplay.removeDisplay(online, entity);
-            }
+        if (Config.isDisplayNameEnabled) {
+            DisplayNameManager.removeDisplayForEntity(entity);
         }
     }
 
