@@ -9,8 +9,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDe
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
-import io.papermc.paper.adventure.PaperAdventure;
-import net.minecraft.network.chat.Component;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -72,7 +71,7 @@ public class NametagCloneUtils {
         metadata.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) 0x20));
 
         if (customName != null) {
-            metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_ADV_COMPONENT, Optional.of(PaperAdventure.asAdventure(customName))));
+            metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_ADV_COMPONENT, Optional.of(customName)));
             metadata.add(new EntityData<>(3, EntityDataTypes.BOOLEAN, true));
         }
 

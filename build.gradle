@@ -1,8 +1,14 @@
+import proguard.gradle.ProGuardTask
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath "com.guardsquare:proguard-gradle:7.6.1" }
+}
+
 plugins {
+    id "java"
     id "com.gradleup.shadow" version "9.3.0"
     id "xyz.jpenilla.run-paper" version "3.0.2"
-    id "java"
-    id "io.papermc.paperweight.userdev" version "2.0.0-beta.21"
 }
 
 tasks {
@@ -10,22 +16,48 @@ tasks {
         archiveBaseName.set("${project.name}")
         archiveClassifier.set("")
         archiveVersion.set("")
+        mergeServiceFiles()
     }
-
     tasks.jar {
         enabled = false
     }
-
-    tasks.assemble {
-        dependsOn(tasks.reobfJar)
-    }
-
     runServer {
         serverJar(file("run/server.jar"))
         minecraftVersion("")
         systemProperty("com.mojang.eula.agree", true)
     }
 }
+
+tasks.register("obfuscate", ProGuardTask) {
+    dependsOn tasks.shadowJar
+
+    def inputJar = tasks.shadowJar.archiveFile.get().asFile
+    def tempJar = new File(inputJar.parentFile, "${project.name}-temp.jar")
+
+    injars inputJar
+    outjars tempJar
+
+    libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
+    configurations.compileClasspath.each { libraryjars it }
+
+    printmapping layout.buildDirectory.file("libs/mapping.txt")
+
+    keep "public class ${main} extends org.bukkit.plugin.java.JavaPlugin"
+    keepclassmembers "class * implements org.bukkit.command.CommandExecutor { *; }"
+    keepclassmembers "class * implements org.bukkit.event.Listener { *; }"
+    keepclassmembers "class * extends com.github.retrooper.packetevents.event.PacketListenerAbstract { *; }"
+    allowaccessmodification
+    dontoptimize
+    ignorewarnings
+    dontwarn
+
+    doLast {
+        inputJar.delete()
+        tempJar.renameTo(inputJar)
+    }
+}
+
+tasks.build.dependsOn("obfuscate")
 
 allprojects {
     repositories {
@@ -42,7 +74,6 @@ dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "com.github.retrooper:packetevents-spigot:2.11.2"
     compileOnly "me.clip:placeholderapi:2.12.2"
-    paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
 }
 
 java {
