@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 
-public class DisplayNameManager {
+public class NametagCloneManager {
 
     private static final Map<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
 
@@ -25,14 +25,11 @@ public class DisplayNameManager {
         boolean nameNotVisible = !VisibilityUtils.isNameVisible(viewer, entity);
         boolean isInvisible = entity.isInvisible();
         boolean isSneaking = (entity instanceof Player player && player.isSneaking());
-
         return isSelf || nameNotVisible || isInvisible || isSneaking;
     }
 
     public static void applyDisplay(Player viewer, Entity entity) {
-        boolean shouldHide = shouldHide(viewer, entity);
-
-        if (shouldHide) {
+        if (shouldHide(viewer, entity)) {
             removeDisplay(viewer, entity);
             return;
         }
@@ -61,50 +58,45 @@ public class DisplayNameManager {
     public static void removeDisplay(Player viewer, Entity entity) {
         Map<UUID, NametagCloneUtils> inner = clones.get(viewer.getUniqueId());
         if (inner == null) return;
-        NametagCloneUtils c = inner.remove(entity.getUniqueId());
-        if (c != null) {
-            try {
-                c.despawn();
-            } catch (Throwable ignored) {}
-        }
+        NametagCloneUtils clone = inner.remove(entity.getUniqueId());
+        if (clone == null) return;
+        despawnClone(clone);
     }
 
     public static void removeDisplay(Player viewer) {
         Map<UUID, NametagCloneUtils> inner = clones.remove(viewer.getUniqueId());
         if (inner == null) return;
-        for (NametagCloneUtils c : inner.values()) {
-            if (c != null) {
-                try {
-                    c.despawn();
-                } catch (Throwable ignored) {}
-            }
+        for (NametagCloneUtils clone : inner.values()) {
+            if (clone == null) continue;
+            despawnClone(clone);
         }
     }
 
     public static void removeDisplayForEntity(Entity entity) {
         for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
             if (inner == null) continue;
-            NametagCloneUtils c = inner.remove(entity.getUniqueId());
-            if (c != null) {
-                try {
-                    c.despawn();
-                } catch (Throwable ignored) {}
-            }
+            NametagCloneUtils clone = inner.remove(entity.getUniqueId());
+            if (clone == null) continue;
+            despawnClone(clone);
         }
     }
 
     public static void removeAllDisplays() {
         for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
             if (inner == null) continue;
-            for (NametagCloneUtils c : inner.values()) {
-                if (c != null) {
-                    try {
-                        c.despawn();
-                    } catch (Throwable ignored) {}
-                }
+            for (NametagCloneUtils clone : inner.values()) {
+                if (clone == null) continue;
+                despawnClone(clone);
             }
         }
         clones.clear();
+    }
+
+    private static void despawnClone(NametagCloneUtils clone) {
+        if (clone == null) return;
+        try {
+            clone.despawn();
+        } catch (Throwable ignored) {}
     }
 
     public static Component getName(Entity entity) {

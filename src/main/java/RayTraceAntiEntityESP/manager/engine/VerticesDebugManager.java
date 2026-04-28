@@ -1,7 +1,87 @@
 package RayTraceAntiEntityESP.manager.engine;
 
+import RayTraceAntiEntityESP.utils.VerticesDebugUtils;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class VerticesDebugManager {
 
+    private static final Map<UUID, Map<UUID, List<VerticesDebugUtils>>> markers = new ConcurrentHashMap<>();
 
+    public static void applyDisplay(Player viewer, Entity entity, List<Vector> vertices, List<Boolean> visibilities) {
+        if (viewer.getUniqueId().equals(entity.getUniqueId())) return;
 
+        Map<UUID, List<VerticesDebugUtils>> inner = markers.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
+
+        List<VerticesDebugUtils> existing = inner.get(entity.getUniqueId());
+
+        if (existing != null && existing.size() == vertices.size()) {
+            for (int i = 0; i < vertices.size(); i++) {
+                Vector v = vertices.get(i);
+                existing.get(i).teleport(v.getX(), v.getY(), v.getZ());
+                existing.get(i).updateMeta(visibilities.get(i));
+            }
+        } else {
+            despawnList(existing);
+            List<VerticesDebugUtils> fresh = new ArrayList<>(vertices.size());
+            for (int i = 0; i < vertices.size(); i++) {
+                Vector v = vertices.get(i);
+                VerticesDebugUtils marker = new VerticesDebugUtils(viewer);
+                marker.setPos(v.getX(), v.getY(), v.getZ());
+                marker.spawn(visibilities.get(i));
+                fresh.add(marker);
+            }
+            inner.put(entity.getUniqueId(), fresh);
+        }
+    }
+
+    public static void removeDisplay(Player viewer, Entity entity) {
+        Map<UUID, List<VerticesDebugUtils>> inner = markers.get(viewer.getUniqueId());
+        if (inner == null) return;
+        List<VerticesDebugUtils> list = inner.remove(entity.getUniqueId());
+        if (list == null) return;
+        despawnList(list);
+    }
+
+    public static void removeDisplay(Player viewer) {
+        Map<UUID, List<VerticesDebugUtils>> inner = markers.remove(viewer.getUniqueId());
+        if (inner == null) return;
+        for (List<VerticesDebugUtils> list : inner.values()) {
+            if (list == null) continue;
+            despawnList(list);
+        }
+    }
+
+    public static void removeDisplayForEntity(Entity entity) {
+        for (Map<UUID, List<VerticesDebugUtils>> inner : markers.values()) {
+            if (inner == null) continue;
+            List<VerticesDebugUtils> list = inner.remove(entity.getUniqueId());
+            if (list == null) continue;
+            despawnList(list);
+        }
+    }
+
+    public static void removeAllDisplays() {
+        for (Map<UUID, List<VerticesDebugUtils>> inner : markers.values()) {
+            if (inner == null) continue;
+            for (List<VerticesDebugUtils> list : inner.values()) {
+                if (list == null) continue;
+                despawnList(list);
+            }
+        }
+        markers.clear();
+    }
+
+    private static void despawnList(List<VerticesDebugUtils> list) {
+        if (list == null) return;
+        for (VerticesDebugUtils marker : list) {
+            try {
+                marker.despawn();
+            } catch (Throwable ignored) {}
+        }
+    }
 }
