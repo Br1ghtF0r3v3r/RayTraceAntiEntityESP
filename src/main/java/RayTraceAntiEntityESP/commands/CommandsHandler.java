@@ -38,20 +38,21 @@ public class CommandsHandler implements CommandExecutor {
                     default -> sender.sendMessage(formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
+            case "display_name" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(formatToString(sender, "&cMissing option and value."));
+                    return true;
+                }
+                switch (args[1].toLowerCase()) {
+                    case "enabled" -> set(sender, "display_name.enabled", args, 2, Boolean::parseBoolean);
+                    case "offset_y" -> set(sender, "display_name.offset_y", args, 2, Double::parseDouble);
+                    default -> sender.sendMessage(formatToString(sender, "&cUnknown: " + args[1]));
+                }
+            }
             case "debug" -> {
                 if (args.length < 3) { sender.sendMessage(formatToString(sender, "&cMissing option and value.")); return true; }
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "debug.enabled", args, 2, Boolean::parseBoolean);
-                    case "period_ticks" -> setWithMin(sender, "debug.period_ticks", args, 2, Long::parseLong, 1L);
-                    default -> sender.sendMessage(formatToString(sender, "&cUnknown: " + args[1]));
-                }
-            }
-            case "fake_name_display" -> {
-                if (args.length < 3) { sender.sendMessage(formatToString(sender, "&cMissing option and value.")); return true; }
-                switch (args[1].toLowerCase()) {
-                    case "enabled" -> set(sender, "fake_name_display.enabled", args, 2, Boolean::parseBoolean);
-                    case "period_ticks" -> setWithMin(sender, "fake_name_display.period_ticks", args, 2, Long::parseLong, 1L);
-                    case "offset_y" -> set(sender, "fake_name_display.offset_y", args, 2, Double::parseDouble);
                     default -> sender.sendMessage(formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }

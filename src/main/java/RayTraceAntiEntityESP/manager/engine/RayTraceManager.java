@@ -1,18 +1,16 @@
 package RayTraceAntiEntityESP.manager.engine;
 
 import RayTraceAntiEntityESP.misc.Maths;
-import RayTraceAntiEntityESP.utils.DebugsUtils;
-import RayTraceAntiEntityESP.utils.FakeNameDisplay;
 import RayTraceAntiEntityESP.utils.VisibilityUtils;
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.BoundingBox;
-import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.Main.plugin;
 import static RayTraceAntiEntityESP.config.Config.*;
@@ -20,6 +18,12 @@ import static RayTraceAntiEntityESP.config.Config.*;
 public class RayTraceManager {
 
     private static BukkitTask task;
+
+    private static final ConcurrentHashMap<Long, Boolean> blockCache = new ConcurrentHashMap<>();
+
+    private static long blockKey(int x, int y, int z) {
+        return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
+    }
 
     public static boolean isVisible(Player viewer, Vector endpoint) {
         World world = viewer.getWorld();
@@ -31,47 +35,96 @@ public class RayTraceManager {
                 || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
     }
 
+    private static int[] initBlockPos(Vector origin, Vector direction) {
+        return new int[]{
+                (int) Math.floor(origin.getX()),
+                (int) Math.floor(origin.getY()),
+                (int) Math.floor(origin.getZ()),
+                direction.getX() > 0 ? 1 : -1,
+                direction.getY() > 0 ? 1 : -1,
+                direction.getZ() > 0 ? 1 : -1
+        };
+    }
+
+    private static double[] initTValues(Vector origin, Vector direction, int[] pos) {
+        double tDeltaX = direction.getX() == 0 ? Double.MAX_VALUE : Math.abs(1.0 / direction.getX());
+        double tDeltaY = direction.getY() == 0 ? Double.MAX_VALUE : Math.abs(1.0 / direction.getY());
+        double tDeltaZ = direction.getZ() == 0 ? Double.MAX_VALUE : Math.abs(1.0 / direction.getZ());
+        double tMaxX = direction.getX() == 0 ? Double.MAX_VALUE : Math.abs((pos[3] > 0 ? (pos[0] + 1 - origin.getX()) : (origin.getX() - pos[0])) / direction.getX());
+        double tMaxY = direction.getY() == 0 ? Double.MAX_VALUE : Math.abs((pos[4] > 0 ? (pos[1] + 1 - origin.getY()) : (origin.getY() - pos[1])) / direction.getY());
+        double tMaxZ = direction.getZ() == 0 ? Double.MAX_VALUE : Math.abs((pos[5] > 0 ? (pos[2] + 1 - origin.getZ()) : (origin.getZ() - pos[2])) / direction.getZ());
+        return new double[]{tDeltaX, tDeltaY, tDeltaZ, tMaxX, tMaxY, tMaxZ};
+    }
+
+    private static double stepDDA(int[] pos, double[] t) {
+        if (t[3] < t[4] && t[3] < t[5]) {
+            double cur = t[3];
+            pos[0] += pos[3];
+            t[3] += t[0];
+            return cur;
+        } else if (t[4] < t[5]) {
+            double cur = t[4];
+            pos[1] += pos[4];
+            t[4] += t[1];
+            return cur;
+        } else {
+            double cur = t[5];
+            pos[2] += pos[5];
+            t[5] += t[2];
+            return cur;
+        }
+    }
+
+    private static boolean isOccluding(World world, int x, int y, int z) {
+        long key = blockKey(x, y, z);
+        Boolean cached = blockCache.get(key);
+        if (cached != null) return cached;
+        boolean result = world.getBlockAt(x, y, z).getType().isOccluding();
+        blockCache.put(key, result);
+        return result;
+    }
+
     public static boolean hitsBlock(World world, Vector origin, Vector endpoint) {
         Vector direction = endpoint.clone().subtract(origin);
         double distance = direction.length();
         if (distance == 0) return false;
+        direction = direction.normalize();
 
-        Vector rayStart = origin.clone();
-        double distanceLeft = distance;
+        int[] pos = initBlockPos(origin, direction);
+        double[] t = initTValues(origin, direction, pos);
+        int endX = (int) Math.floor(endpoint.getX());
+        int endY = (int) Math.floor(endpoint.getY());
+        int endZ = (int) Math.floor(endpoint.getZ());
+        int maxSteps = (int) (distance + 2) * 3;
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
 
-        while (distanceLeft > 0) {
-            RayTraceResult result = rayTrace(world, rayStart, direction, distanceLeft);
-
-            if (result == null || result.getHitBlock() == null) return false;
-
-            Material blockType = result.getHitBlock().getType();
-
-            if (blockType.isOccluding()) return true;
-
-            Vector pastTheBlock = result.getHitPosition().add(direction.clone().normalize().multiply(0.05));
-            distanceLeft -= rayStart.distance(pastTheBlock);
-            rayStart = pastTheBlock;
+        for (int step = 0; step < maxSteps; step++) {
+            if (pos[0] == endX && pos[1] == endY && pos[2] == endZ) return false;
+            if (pos[1] >= minY && pos[1] <= maxY && isOccluding(world, pos[0], pos[1], pos[2])) return true;
+            stepDDA(pos, t);
         }
-
         return false;
     }
 
     public static Vector getThirdPersonPos(World world, Vector eyePos, Vector direction, double maxDistance) {
-        direction = direction.normalize();
-        RayTraceResult result = rayTrace(world, eyePos, direction, maxDistance);
-        return result != null && result.getHitBlock() != null
-                ? result.getHitPosition().subtract(direction.multiply(0.1))
-                : eyePos.clone().add(direction.multiply(maxDistance));
-    }
+        direction = direction.clone().normalize();
 
-    public static RayTraceResult rayTrace(World world, Vector origin, Vector direction, double distance) {
-        return world.rayTraceBlocks(
-                new Location(world, origin.getX(), origin.getY(), origin.getZ()),
-                direction,
-                distance,
-                FluidCollisionMode.NEVER,
-                true
-        );
+        int[] pos = initBlockPos(eyePos, direction);
+        double[] t = initTValues(eyePos, direction, pos);
+        int maxSteps = (int) (maxDistance + 2) * 3;
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
+        double curT = 0;
+
+        for (int step = 0; step < maxSteps; step++) {
+            if (curT >= maxDistance) break;
+            if (pos[1] >= minY && pos[1] <= maxY && isOccluding(world, pos[0], pos[1], pos[2])) {
+                return eyePos.clone().add(direction.clone().multiply(Math.max(0, curT - 0.1)));
+            }
+            curT = stepDDA(pos, t);
+        }
+        return eyePos.clone().add(direction.multiply(maxDistance));
     }
 
     public static boolean isEntityGlowing(Player player, Entity entity) {
@@ -88,30 +141,16 @@ public class RayTraceManager {
                 || isEntityGlowing(viewer, entity)
                 || distSq > range * range
                 || (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride)) {
-            DebugsUtils.removeDisplay(viewer, entity);
             return true;
         }
 
         List<Vector> vertices = getEntityVertices(viewer, entity, range);
         boolean visible = false;
 
-        if (isDebugEnabled) {
-            Set<Integer> visibleVertices = new HashSet<>();
-            int i = 0;
-            for (Vector vertex : vertices) {
-                if (isVisible(viewer, vertex)) {
-                    visibleVertices.add(i);
-                    visible = true;
-                }
-                i++;
-            }
-            DebugsUtils.applyDisplay(viewer, entity, vertices, visibleVertices);
-        } else {
-            for (Vector vertex : vertices) {
-                if (isVisible(viewer, vertex)) {
-                    visible = true;
-                    break;
-                }
+        for (Vector vertex : vertices) {
+            if (isVisible(viewer, vertex)) {
+                visible = true;
+                break;
             }
         }
         return visible;
@@ -132,7 +171,7 @@ public class RayTraceManager {
 
     public static List<Vector> getEntityVertices(Player viewer, Entity entity, double checkingRange) {
 
-        if (checkingSampleLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
+        if (checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
 
         ArrayList<Vector> vertices = new ArrayList<>();
         BoundingBox boundingBox = entity.getBoundingBox();
@@ -148,7 +187,7 @@ public class RayTraceManager {
         double distance = viewer.getLocation().distance(entity.getLocation());
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-        int scaledSampleLayers = Math.max(2, (int) Math.round(checkingSampleLayers * (1.0 - ratio)));
+        int scaledSampleLayers = Math.max(2, (int) Math.round(checkingVerticesLayers * (1.0 - ratio)));
 
         boolean includeCorners = ratio < 0.5;
 
@@ -192,14 +231,33 @@ public class RayTraceManager {
     //  | visible      | visible      | nothing        |
     //  | visible      | not visible  | destroy packet |
     //  | not visible  | visible      | spawn packet   |
-    //  | not visible  | not visible  | nothing        |
+    //  | not visible  | not visible  | update         |
 
     public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer) {
         boolean visibleClient = viewer.canSee(entity);
+
         if (visibleServer && !visibleClient) {
+
             VisibilityUtils.setNotHidden(viewer, entity);
+
+            if (isDisplayNameEnabled) {
+                DisplayNameManager.removeDisplay(viewer, entity);
+            }
+
         } else if (!visibleServer && visibleClient) {
+
             VisibilityUtils.setHidden(viewer, entity);
+
+            if (isDisplayNameEnabled) {
+                DisplayNameManager.applyDisplay(viewer, entity);
+            }
+
+        } else if (!visibleServer) {
+
+             if (isDisplayNameEnabled) {
+                 DisplayNameManager.applyDisplay(viewer, entity);
+             }
+
         }
     }
 
@@ -212,14 +270,15 @@ public class RayTraceManager {
             for (Entity entity : viewer.getWorld().getEntities()) {
                 if (!viewer.canSee(entity)) VisibilityUtils.setNotHidden(viewer, entity);
             }
-            FakeNameDisplay.removeDisplay(viewer);
         }
+        DisplayNameManager.removeAllDisplays();
         PacketManager.bypassPacketSet.clear();
     }
 
     public static void startTask() {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            blockCache.clear();
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 for (Entity entity : viewer.getWorld().getEntities()) {
                     if (entity != viewer) {

@@ -2,24 +2,22 @@ checking:
   enabled: true
   period_ticks: 1
   distance_override: 5
-  bounding_box_extra_value: 0.5
+  bounding_box_extra_value: 0
   vertices_layers: 5
 
 perspective_checking:
   enabled: true
   distances_from_head: 4
 
+display_name:
+  enabled: true
+  offset_y: 0
+
 debug:
   enabled: false
-  period_ticks: 1
-
-fake_name_display:
-  enabled: true
-  period_ticks: 1
-  offset_y: 0.25
 
 anti_entities:
-- player
+  - player
 anti_mode: whitelist
 
-bypass_tag: "raytrace_anti_esp_bypass"
+bypass_tag: raytrace_anti_esp_bypass
