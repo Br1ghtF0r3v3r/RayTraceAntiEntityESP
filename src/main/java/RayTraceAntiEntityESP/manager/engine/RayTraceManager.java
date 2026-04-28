@@ -141,19 +141,28 @@ public class RayTraceManager {
                 || isEntityGlowing(viewer, entity)
                 || distSq > range * range
                 || (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride)) {
+            if (isDebugEnabled) VerticesDebugManager.removeDisplay(viewer, entity);
             return true;
         }
 
         List<Vector> vertices = getEntityVertices(viewer, entity, range);
-        boolean visible = false;
+
+        if (isDebugEnabled) {
+            List<Boolean> visibilities = new ArrayList<>(vertices.size());
+            boolean visible = false;
+            for (Vector vertex : vertices) {
+                boolean v = isVisible(viewer, vertex);
+                visibilities.add(v);
+                if (v) visible = true;
+            }
+            VerticesDebugManager.applyDisplay(viewer, entity, vertices, visibilities);
+            return visible;
+        }
 
         for (Vector vertex : vertices) {
-            if (isVisible(viewer, vertex)) {
-                visible = true;
-                break;
-            }
+            if (isVisible(viewer, vertex)) return true;
         }
-        return visible;
+        return false;
     }
 
     public static boolean isAntiEntity(Entity entity) {
@@ -241,7 +250,7 @@ public class RayTraceManager {
             VisibilityUtils.setNotHidden(viewer, entity);
 
             if (isDisplayNameEnabled) {
-                DisplayNameManager.removeDisplay(viewer, entity);
+                NametagCloneManager.removeDisplay(viewer, entity);
             }
 
         } else if (!visibleServer && visibleClient) {
@@ -249,13 +258,13 @@ public class RayTraceManager {
             VisibilityUtils.setHidden(viewer, entity);
 
             if (isDisplayNameEnabled) {
-                DisplayNameManager.applyDisplay(viewer, entity);
+                NametagCloneManager.applyDisplay(viewer, entity);
             }
 
         } else if (!visibleServer) {
 
              if (isDisplayNameEnabled) {
-                 DisplayNameManager.applyDisplay(viewer, entity);
+                 NametagCloneManager.applyDisplay(viewer, entity);
              }
 
         }
@@ -271,7 +280,8 @@ public class RayTraceManager {
                 if (!viewer.canSee(entity)) VisibilityUtils.setNotHidden(viewer, entity);
             }
         }
-        DisplayNameManager.removeAllDisplays();
+        NametagCloneManager.removeAllDisplays();
+        VerticesDebugManager.removeAllDisplays();
         PacketManager.bypassPacketSet.clear();
     }
 
