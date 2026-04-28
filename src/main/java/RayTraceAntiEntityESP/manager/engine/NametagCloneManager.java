@@ -4,7 +4,6 @@ import RayTraceAntiEntityESP.config.Config;
 import RayTraceAntiEntityESP.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.utils.TeamUtils;
 import RayTraceAntiEntityESP.utils.VisibilityUtils;
-import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Entity;
@@ -41,7 +40,7 @@ public class NametagCloneManager {
         } else {
             try {
                 NametagCloneUtils clone = new NametagCloneUtils(viewer);
-                clone.setName(PaperAdventure.asVanilla(getName(entity)));
+                clone.setName(getName(entity));
                 clone.setPos(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
                 clone.spawn();
                 inner.put(entity.getUniqueId(), clone);
