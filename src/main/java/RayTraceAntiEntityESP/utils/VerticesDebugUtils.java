@@ -85,8 +85,7 @@ public class VerticesDebugUtils {
         int blockState = vertexVisible ? BLOCK_STATE_VISIBLE : BLOCK_STATE_NOT_VISIBLE;
         float scale = SCALE;
 
-        if (blockState == currentBlockState) return;
-        if (scale == currentScale) return;
+        if (blockState == currentBlockState && scale == currentScale) return;
         currentBlockState = blockState;
         currentScale = scale;
 

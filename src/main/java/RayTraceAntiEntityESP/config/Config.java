@@ -94,8 +94,8 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + config.getBoolean("perspective_checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + config.getDouble("perspective_checking.distances_from_head", 4)));
 
-        sender.sendMessage(formatToString(sender, "&display_name.enabled: &f" + config.getBoolean("display_name.enabled", true)));
-        sender.sendMessage(formatToString(sender, "&display_name.offset_y: &f" + config.getDouble("display_name.offset_y", 0.25)));
+        sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + config.getBoolean("display_name.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + config.getDouble("display_name.offset_y", 0.25)));
 
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + config.getBoolean("debug.enabled", false)));
 
