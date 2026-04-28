@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.misc;
+package RayTraceAntiEntityESP.bukkit.misc;
 
 public class Maths {
 

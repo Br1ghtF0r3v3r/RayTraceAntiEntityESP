@@ -5,7 +5,8 @@ name: ${name}
 version: ${version}
 author: ${author}
 
-softdepend: [packetevents, PlaceholderAPI]
+softdepend: [PlaceholderAPI]
+depend: [packetevents]
 
 permissions:
   raytrace_anti_entity_esp.command:

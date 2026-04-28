@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.utils;
+package RayTraceAntiEntityESP.bukkit.utils;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

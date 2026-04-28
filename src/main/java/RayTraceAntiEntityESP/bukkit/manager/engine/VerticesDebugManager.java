@@ -1,6 +1,6 @@
-package RayTraceAntiEntityESP.manager.engine;
+package RayTraceAntiEntityESP.bukkit.manager.engine;
 
-import RayTraceAntiEntityESP.utils.VerticesDebugUtils;
+import RayTraceAntiEntityESP.bukkit.utils.VerticesDebugUtils;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
