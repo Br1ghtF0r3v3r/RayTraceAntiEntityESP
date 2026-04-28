@@ -4,13 +4,13 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
 import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
 import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
+import com.github.retrooper.packetevents.protocol.world.states.type.StateTypes;
 import com.github.retrooper.packetevents.util.Vector3d;
+import com.github.retrooper.packetevents.util.Vector3f;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
-import io.papermc.paper.adventure.PaperAdventure;
-import net.minecraft.network.chat.Component;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -19,10 +19,14 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class NametagCloneUtils {
+public class VerticesDebugUtils {
 
-    private static final int ID_MIN = 2_000_000;
-    private static final int ID_MAX = 3_000_000;
+    private static final int ID_MIN = 4_000_000;
+    private static final int ID_MAX = 5_000_000;
+
+    public static final int BLOCK_STATE_VISIBLE = StateTypes.LIME_WOOL.createBlockState().getGlobalId();
+    public static final int BLOCK_STATE_NOT_VISIBLE = StateTypes.RED_WOOL.createBlockState().getGlobalId();
+    public static float SCALE = 0.05f;
 
     private final Player viewer;
     private final int entityId;
@@ -30,17 +34,13 @@ public class NametagCloneUtils {
     private double x, y, z;
     private boolean spawned;
 
-    private Component customName;
+    private int currentBlockState = -1;
+    private float currentScale = -1;
 
-    public NametagCloneUtils(Player viewer) {
+    public VerticesDebugUtils(Player viewer) {
         this.viewer = viewer;
         this.entityId = ThreadLocalRandom.current().nextInt(ID_MIN, ID_MAX);
         this.entityUuid = UUID.randomUUID();
-    }
-
-    public void setName(Component name) {
-        this.customName = name;
-        if (spawned) sendFullMeta();
     }
 
     public void setPos(double x, double y, double z) {
@@ -49,35 +49,51 @@ public class NametagCloneUtils {
         this.z = z;
     }
 
-    public void spawn() {
+    public void spawn(boolean vertexVisible) {
         if (spawned) return;
 
         WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(
                 entityId,
                 Optional.of(entityUuid),
-                EntityTypes.ARMOR_STAND,
+                EntityTypes.BLOCK_DISPLAY,
                 new Vector3d(x, y, z),
                 0f, 0f, 0f, 0,
                 Optional.of(new Vector3d(0, 0, 0))
         );
 
         PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, spawnPacket);
-        sendFullMeta();
+        sendFullMeta(vertexVisible);
         spawned = true;
     }
 
-    public void sendFullMeta() {
+    public void sendFullMeta(boolean vertexVisible) {
+        int blockState = vertexVisible ? BLOCK_STATE_VISIBLE : BLOCK_STATE_NOT_VISIBLE;
+        currentBlockState = blockState;
+        currentScale = SCALE;
+
         List<EntityData<?>> metadata = new ArrayList<>();
 
-        metadata.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) 0x20));
+        metadata.add(new EntityData<>(12, EntityDataTypes.VECTOR3F, new Vector3f(SCALE, SCALE, SCALE)));
+        metadata.add(new EntityData<>(23, EntityDataTypes.BLOCK_STATE, blockState));
 
-        if (customName != null) {
-            metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_ADV_COMPONENT, Optional.of(PaperAdventure.asAdventure(customName))));
-            metadata.add(new EntityData<>(3, EntityDataTypes.BOOLEAN, true));
-        }
+        WrapperPlayServerEntityMetadata metaPacket = new WrapperPlayServerEntityMetadata(entityId, metadata);
+        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, metaPacket);
+    }
 
-        metadata.add(new EntityData<>(5, EntityDataTypes.BOOLEAN, true));
-        metadata.add(new EntityData<>(15, EntityDataTypes.BYTE, (byte) 0x19));
+    public void updateMeta(boolean vertexVisible) {
+        if (!spawned) return;
+        int blockState = vertexVisible ? BLOCK_STATE_VISIBLE : BLOCK_STATE_NOT_VISIBLE;
+        float scale = SCALE;
+
+        if (blockState == currentBlockState) return;
+        if (scale == currentScale) return;
+        currentBlockState = blockState;
+        currentScale = scale;
+
+        List<EntityData<?>> metadata = new ArrayList<>();
+
+        metadata.add(new EntityData<>(12, EntityDataTypes.VECTOR3F, new Vector3f(SCALE, SCALE, SCALE)));
+        metadata.add(new EntityData<>(23, EntityDataTypes.BLOCK_STATE, blockState));
 
         WrapperPlayServerEntityMetadata metaPacket = new WrapperPlayServerEntityMetadata(entityId, metadata);
         PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, metaPacket);
