@@ -1,9 +1,9 @@
-package RayTraceAntiEntityESP.manager.engine;
+package RayTraceAntiEntityESP.bukkit.manager.engine;
 
-import RayTraceAntiEntityESP.config.Config;
-import RayTraceAntiEntityESP.utils.NametagCloneUtils;
-import RayTraceAntiEntityESP.utils.TeamUtils;
-import RayTraceAntiEntityESP.utils.VisibilityUtils;
+import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
+import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
+import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Entity;
@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static RayTraceAntiEntityESP.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class NametagCloneManager {
 

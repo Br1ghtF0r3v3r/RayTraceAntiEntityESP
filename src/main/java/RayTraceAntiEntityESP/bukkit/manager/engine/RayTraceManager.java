@@ -1,7 +1,7 @@
-package RayTraceAntiEntityESP.manager.engine;
+package RayTraceAntiEntityESP.bukkit.manager.engine;
 
-import RayTraceAntiEntityESP.misc.Maths;
-import RayTraceAntiEntityESP.utils.VisibilityUtils;
+import RayTraceAntiEntityESP.bukkit.misc.Maths;
+import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -12,8 +12,8 @@ import org.bukkit.util.Vector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.config.Config.*;
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.config.Config.*;
 
 public class RayTraceManager {
 

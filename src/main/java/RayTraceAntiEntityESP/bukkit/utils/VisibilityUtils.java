@@ -1,13 +1,13 @@
-package RayTraceAntiEntityESP.utils;
+package RayTraceAntiEntityESP.bukkit.utils;
 
-import RayTraceAntiEntityESP.manager.engine.PacketManager;
+import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 
-import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.utils.TeamUtils.getTeam;
-import static RayTraceAntiEntityESP.utils.TeamUtils.getTeamVisibility;
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getTeam;
+import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getTeamVisibility;
 
 public class VisibilityUtils {
 

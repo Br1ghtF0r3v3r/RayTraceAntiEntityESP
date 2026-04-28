@@ -1,7 +1,7 @@
-package RayTraceAntiEntityESP.manager.engine;
+package RayTraceAntiEntityESP.bukkit.manager.engine;
 
-import RayTraceAntiEntityESP.utils.TeamUtils;
-import RayTraceAntiEntityESP.utils.VisibilityUtils;
+import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
+import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static RayTraceAntiEntityESP.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class PacketManager extends PacketListenerAbstract {
 

@@ -1,31 +1,34 @@
-package RayTraceAntiEntityESP;
+package RayTraceAntiEntityESP.bukkit;
 
-import RayTraceAntiEntityESP.commands.CommandsHandler;
-import RayTraceAntiEntityESP.listener.EventListener;
-import RayTraceAntiEntityESP.commands.TabCompletion;
+import RayTraceAntiEntityESP.bukkit.commands.CommandsHandler;
+import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.listener.EventListener;
+import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
+import RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager;
 import com.github.retrooper.packetevents.PacketEvents;
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import static RayTraceAntiEntityESP.config.Config.setConfig;
-
 public final class Main extends JavaPlugin {
 
-    public static RayTraceAntiEntityESP.Main plugin;
+    public static Main plugin;
 
     @Override
     public void onEnable() {
-
         plugin = this;
+        reloadConfigAll();
+
+        if (!LicenseManager.verifyLicense(Config.licenseKey, this)) {
+            getLogger().severe("License verification failed! Disabling plugin.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
 
         PacketEvents.getAPI().init();
-
         getServer().getPluginManager().registerEvents(new EventListener(), this);
         PacketEvents.getAPI().getEventManager().registerListener(new EventListener());
         registerCommands();
-
-        reloadConfigAll();
-
         getLogger().info("RayTraceEntityESP enabled successfully!");
     }
 
@@ -37,10 +40,18 @@ public final class Main extends JavaPlugin {
 
     }
 
+    @Override
+    public void onLoad() {
+
+        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+        PacketEvents.getAPI().load();
+
+    }
+
     public void reloadConfigAll() {
         saveDefaultConfig();
         reloadConfig();
-        setConfig();
+        Config.setConfig();
     }
 
     public void registerCommands() {
