@@ -67,6 +67,7 @@ allprojects {
         maven{url "https://repo.codemc.io/repository/maven-releases/"}
         maven{url "https://repo.codemc.io/repository/maven-snapshots/"}
         maven{url "https://repo.extendedclip.com/releases/"}
+        maven{url "https://maven.respark.dev/releases"}
     }
 }
 
@@ -74,6 +75,7 @@ dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "com.github.retrooper:packetevents-spigot:2.11.2"
     compileOnly "me.clip:placeholderapi:2.12.2"
+    implementation "dev.respark.licensegate:license-gate:1.0.4"
 }
 
 java {

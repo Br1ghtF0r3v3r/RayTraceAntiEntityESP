@@ -1,9 +1,9 @@
-package RayTraceAntiEntityESP.manager.events;
+package RayTraceAntiEntityESP.bukkit.manager.events;
 
-import RayTraceAntiEntityESP.config.Config;
-import RayTraceAntiEntityESP.manager.engine.PacketManager;
-import RayTraceAntiEntityESP.manager.engine.NametagCloneManager;
-import RayTraceAntiEntityESP.manager.engine.VerticesDebugManager;
+import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
+import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
+import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.entity.Entity;
