@@ -39,6 +39,7 @@ public class PacketManager extends PacketListenerAbstract {
 
         if (packetType == PacketType.Play.Server.SPAWN_ENTITY) {
             WrapperPlayServerSpawnEntity packet = new WrapperPlayServerSpawnEntity(event);
+            if (packet.getEntityId() >= 2000000 && packet.getEntityId() < 3000000) return;
             if (packet.getUUID().isEmpty()) return;
             UUID entityUUID = packet.getUUID().get();
             if (viewer.getUniqueId().equals(entityUUID)) return;
@@ -80,6 +81,7 @@ public class PacketManager extends PacketListenerAbstract {
         }
         if (packetType == PacketType.Play.Server.ENTITY_METADATA) {
             WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(event);
+            if (packet.getEntityId() >= 2000000 && packet.getEntityId() < 3000000) return;
             Player player = event.getPlayer();
             UUID playerUUID = player.getUniqueId();
             Set<Integer> playerSet = glowingEntities.computeIfAbsent(playerUUID, k -> new HashSet<>());
