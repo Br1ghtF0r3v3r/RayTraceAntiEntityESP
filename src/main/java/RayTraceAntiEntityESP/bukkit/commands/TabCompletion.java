@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.commands;
+package RayTraceAntiEntityESP.bukkit.commands;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;

@@ -1,10 +1,10 @@
-package RayTraceAntiEntityESP.misc;
+package RayTraceAntiEntityESP.bukkit.misc;
 
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
 
-import static RayTraceAntiEntityESP.misc.StringFormat.formatToComponent;
+import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToComponent;
 import static net.kyori.adventure.title.Title.Times.times;
 import static net.kyori.adventure.title.Title.title;
 

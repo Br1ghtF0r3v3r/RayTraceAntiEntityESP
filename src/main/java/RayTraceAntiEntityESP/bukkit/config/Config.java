@@ -1,6 +1,6 @@
-package RayTraceAntiEntityESP.config;
+package RayTraceAntiEntityESP.bukkit.config;
 
-import RayTraceAntiEntityESP.manager.engine.RayTraceManager;
+import RayTraceAntiEntityESP.bukkit.manager.engine.RayTraceManager;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -8,10 +8,12 @@ import org.bukkit.entity.*;
 import java.io.File;
 import java.util.List;
 
-import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.misc.StringFormat.formatToString;
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
+
+    public static String licenseKey;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -35,6 +37,8 @@ public class Config {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
 
         loadSpigotConfig();
+
+        licenseKey = plugin.getConfig().getString("license-key", "");
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
@@ -78,7 +82,7 @@ public class Config {
             case Monster ignored         -> spigotConfig.getDouble(base + "monsters", 96);
             case AbstractVillager ignored -> spigotConfig.getDouble(base + "misc", 96);
             default                      -> spigotConfig.getDouble(base + "other", 64);
-        } + 32;
+        } + 64;
     }
 
     public static void printConfig(CommandSender sender) {
