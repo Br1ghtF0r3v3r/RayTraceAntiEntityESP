@@ -2,10 +2,10 @@ package RayTraceAntiEntityESP.manager.events;
 
 import RayTraceAntiEntityESP.config.Config;
 import RayTraceAntiEntityESP.manager.engine.PacketManager;
-import RayTraceAntiEntityESP.manager.engine.DisplayNameManager;
+import RayTraceAntiEntityESP.manager.engine.NametagCloneManager;
+import RayTraceAntiEntityESP.manager.engine.VerticesDebugManager;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
@@ -82,8 +82,10 @@ public class EventManager {
         Player player = event.getPlayer();
 
         if (Config.isDisplayNameEnabled) {
-            DisplayNameManager.removeDisplay(player);
-            DisplayNameManager.removeDisplayForEntity(player);
+            NametagCloneManager.removeDisplay(player);
+            VerticesDebugManager.removeDisplay(player);
+            NametagCloneManager.removeDisplayForEntity(player);
+            VerticesDebugManager.removeDisplayForEntity(player);
         }
     }
 
@@ -96,7 +98,8 @@ public class EventManager {
         Entity entity = event.getEntity();
 
         if (Config.isDisplayNameEnabled) {
-            DisplayNameManager.removeDisplayForEntity(entity);
+            NametagCloneManager.removeDisplayForEntity(entity);
+            VerticesDebugManager.removeDisplayForEntity(entity);
         }
     }
 
