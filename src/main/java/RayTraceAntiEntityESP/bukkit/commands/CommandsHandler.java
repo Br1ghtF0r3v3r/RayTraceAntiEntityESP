@@ -1,6 +1,6 @@
-package RayTraceAntiEntityESP.commands;
+package RayTraceAntiEntityESP.bukkit.commands;
 
-import RayTraceAntiEntityESP.config.Config;
+import RayTraceAntiEntityESP.bukkit.config.Config;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -8,9 +8,9 @@ import org.bukkit.entity.EntityType;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
-import static RayTraceAntiEntityESP.Main.plugin;
-import static RayTraceAntiEntityESP.config.Config.*;
-import static RayTraceAntiEntityESP.misc.StringFormat.formatToString;
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.config.Config.*;
+import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class CommandsHandler implements CommandExecutor {
 

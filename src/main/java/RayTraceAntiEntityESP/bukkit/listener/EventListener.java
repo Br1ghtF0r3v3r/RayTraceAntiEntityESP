@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.listener;
+package RayTraceAntiEntityESP.bukkit.listener;
 
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -10,7 +10,7 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 import org.jspecify.annotations.NonNull;
 
-import static RayTraceAntiEntityESP.manager.events.EventManager.*;
+import static RayTraceAntiEntityESP.bukkit.manager.events.EventManager.*;
 
 public class EventListener extends PacketListenerAbstract implements Listener {
 

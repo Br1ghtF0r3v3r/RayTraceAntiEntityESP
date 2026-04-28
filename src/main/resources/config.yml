@@ -1,3 +1,6 @@
+# Restart required after changing this
+license-key: "YOUR-LICENSE-KEY-HERE"
+
 checking:
   enabled: true
   period_ticks: 1
