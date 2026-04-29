@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.commands;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -90,6 +91,7 @@ public class CommandsHandler implements CommandExecutor {
                     default -> sender.sendMessage(formatToString(sender, "&cUnknown action: " + args[1]));
                 }
             }
+            case "get_build_id" -> sender.sendMessage(formatToString(sender, LicenseManager.getBuildId(plugin)));
             default -> sendHelp(sender);
         }
         return true;
