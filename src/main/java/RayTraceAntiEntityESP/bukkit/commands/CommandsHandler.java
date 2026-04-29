@@ -136,5 +136,6 @@ public class CommandsHandler implements CommandExecutor {
         sender.sendMessage(formatToString(sender, "&e/rtaee fake_name_display <enabled|period_ticks|offset_y> <value>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee anti_mode <whitelist|blacklist>"));
         sender.sendMessage(formatToString(sender, "&e/rtaee anti_entities <add|remove> <type>"));
+        sender.sendMessage(formatToString(sender, "&e/rtaee help"));
     }
 }
