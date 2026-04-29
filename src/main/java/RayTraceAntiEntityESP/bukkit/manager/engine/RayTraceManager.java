@@ -21,16 +21,13 @@ public class RayTraceManager {
 
     private static BukkitTask task;
 
-    private static final ConcurrentHashMap<Long, Boolean> blockCache = new ConcurrentHashMap<>();
+    private static volatile ConcurrentHashMap<Long, Boolean> blockCache = new ConcurrentHashMap<>();
 
     private static long blockKey(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
     }
 
-    public static boolean isVisible(Player viewer, Vector endpoint) {
-        World world = viewer.getWorld();
-        Vector eyePos = viewer.getEyeLocation().toVector();
-        Vector lookDir = viewer.getLocation().getDirection();
+    public static boolean isVisible(World world, Vector eyePos, Vector lookDir, Vector endpoint) {
         if (!isPerspectiveCheckingEnabled) return !hitsBlock(world, eyePos, endpoint);
         return !hitsBlock(world, eyePos, endpoint)
                 || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
@@ -135,9 +132,9 @@ public class RayTraceManager {
         return entity.isGlowing() || playerSet.contains(entity.getEntityId());
     }
 
-    public static boolean isEntityInSight(Player viewer, Entity entity) {
+    public static boolean isEntityInSight(Player viewer, Entity entity, Vector eyePos, Vector lookDir, Location viewerLoc, World world) {
         double range = getSpigotTrackingRange(entity);
-        double distSq = viewer.getLocation().distanceSquared(entity.getLocation());
+        double distSq = viewerLoc.distanceSquared(entity.getLocation());
 
         if (!isAntiEntity(entity)
                 || isEntityGlowing(viewer, entity)
@@ -147,13 +144,14 @@ public class RayTraceManager {
             return true;
         }
 
-        List<Vector> vertices = getEntityVertices(viewer, entity, range);
+        double distance = Math.sqrt(distSq);
+        List<Vector> vertices = getEntityVertices(distance, entity, range);
 
         if (isDebugEnabled) {
             List<Boolean> visibilities = new ArrayList<>(vertices.size());
             boolean visible = false;
             for (Vector vertex : vertices) {
-                boolean v = isVisible(viewer, vertex);
+                boolean v = isVisible(world, eyePos, lookDir, vertex);
                 visibilities.add(v);
                 if (v) visible = true;
             }
@@ -162,25 +160,18 @@ public class RayTraceManager {
         }
 
         for (Vector vertex : vertices) {
-            if (isVisible(viewer, vertex)) return true;
+            if (isVisible(world, eyePos, lookDir, vertex)) return true;
         }
         return false;
     }
 
     public static boolean isAntiEntity(Entity entity) {
         if (!bypassTag.isEmpty() && entity.getScoreboardTags().contains(bypassTag)) return false;
-
-        String typeName = entity.getType().name().toLowerCase();
-        boolean whiteListed = antiEntities.contains(typeName);
-        if (antiMode.equalsIgnoreCase("blacklist")) {
-            return !whiteListed;
-        } else if (antiMode.equalsIgnoreCase("whitelist")) {
-            return whiteListed;
-        }
-        return whiteListed;
+        boolean listed = antiEntities.contains(entity.getType().name().toLowerCase());
+        return isBlacklist != listed;
     }
 
-    public static List<Vector> getEntityVertices(Player viewer, Entity entity, double checkingRange) {
+    public static List<Vector> getEntityVertices(double distance, Entity entity, double checkingRange) {
 
         if (checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
 
@@ -195,7 +186,6 @@ public class RayTraceManager {
         double minY = boundingBox.getMinY();
         double minZ = boundingBox.getMinZ();
 
-        double distance = viewer.getLocation().distance(entity.getLocation());
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
         int scaledSampleLayers = Math.max(2, (int) Math.round(checkingVerticesLayers * (1.0 - ratio)));
@@ -290,16 +280,20 @@ public class RayTraceManager {
     public static void startTask() {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            blockCache.clear();
-
+            blockCache = new ConcurrentHashMap<>();
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 List<Entity> entities = new ArrayList<>(viewer.getWorld().getEntities());
                 entities.remove(viewer);
 
+                Vector eyePos = viewer.getEyeLocation().toVector();
+                Vector lookDir = viewer.getLocation().getDirection();
+                Location viewerLoc = viewer.getLocation().clone();
+                World world = viewer.getWorld();
+
                 CompletableFuture.runAsync(() -> {
                     Map<Entity, Boolean> results = new HashMap<>();
                     for (Entity entity : entities) {
-                        results.put(entity, isEntityInSight(viewer, entity));
+                        results.put(entity, isEntityInSight(viewer, entity, eyePos, lookDir, viewerLoc, world));
                     }
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         for (Map.Entry<Entity, Boolean> entry : results.entrySet()) {
@@ -308,7 +302,6 @@ public class RayTraceManager {
                     });
                 }, Main.executor);
             }
-
         }, 0L, checkingPeriodTicks);
     }
 
