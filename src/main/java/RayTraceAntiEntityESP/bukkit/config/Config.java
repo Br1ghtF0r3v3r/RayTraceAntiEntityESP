@@ -7,6 +7,8 @@ import org.bukkit.entity.*;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
@@ -33,6 +35,7 @@ public class Config {
 
     public static List<String> antiEntities;
     public static String antiMode;
+    public static boolean isBlacklist;
     public static String bypassTag;
 
     public static void setConfig() {
@@ -60,6 +63,7 @@ public class Config {
 
         antiEntities = config.getStringList("anti_entities");
         antiMode = config.getString("anti_mode", "whitelist");
+        isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
         bypassTag = config.getString("bypass_tag", "raytrace_anti_esp_bypass");
 
         if (isCheckingEnabled) {
@@ -75,9 +79,21 @@ public class Config {
     public static void loadSpigotConfig() {
         File spigotFile = new File("spigot.yml");
         spigotConfig = YamlConfiguration.loadConfiguration(spigotFile);
+        clearTrackingRangeCache();
+    }
+
+    private static final Map<String, Double> trackingRangeCache = new ConcurrentHashMap<>();
+
+    public static void clearTrackingRangeCache() {
+        trackingRangeCache.clear();
     }
 
     public static double getSpigotTrackingRange(Entity entity) {
+        String key = entity.getWorld().getName() + ":" + entity.getClass().getSimpleName();
+        return trackingRangeCache.computeIfAbsent(key, k -> computeTrackingRange(entity));
+    }
+
+    public static double computeTrackingRange(Entity entity) {
         String worldName = entity.getWorld().getName();
         String base = spigotConfig.contains("world-settings." + worldName + ".entity-tracking-range") ? "world-settings." + worldName + ".entity-tracking-range." : "world-settings.default.entity-tracking-range.";
         return switch (entity) {
