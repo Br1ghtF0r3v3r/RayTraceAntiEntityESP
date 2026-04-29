@@ -24,9 +24,9 @@ public class VerticesDebugUtils {
     private static final int ID_MIN = 4_000_000;
     private static final int ID_MAX = 5_000_000;
 
-    public static final int BLOCK_STATE_VISIBLE = StateTypes.LIME_WOOL.createBlockState().getGlobalId();
-    public static final int BLOCK_STATE_NOT_VISIBLE = StateTypes.RED_WOOL.createBlockState().getGlobalId();
-    public static float SCALE = 0.05f;
+    private static final int BLOCK_STATE_VISIBLE = StateTypes.LIME_WOOL.createBlockState().getGlobalId();
+    private static final int BLOCK_STATE_NOT_VISIBLE = StateTypes.RED_WOOL.createBlockState().getGlobalId();
+    private static final float SCALE = 0.05f;
 
     private final Player viewer;
     private final int entityId;
@@ -47,6 +47,10 @@ public class VerticesDebugUtils {
         this.x = x;
         this.y = y;
         this.z = z;
+    }
+
+    public boolean isSpawned() {
+        return spawned;
     }
 
     public void spawn(boolean vertexVisible) {
@@ -86,8 +90,8 @@ public class VerticesDebugUtils {
         float scale = SCALE;
 
         if (blockState == currentBlockState && scale == currentScale) return;
-        currentBlockState = blockState;
-        currentScale = scale;
+        if (blockState != currentBlockState) currentBlockState = blockState;
+        if (scale != currentScale) currentScale = scale;
 
         List<EntityData<?>> metadata = new ArrayList<>();
 
