@@ -6,12 +6,16 @@ import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
+
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
+import static RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled;
 
 public class EventManager {
 
@@ -76,12 +80,24 @@ public class EventManager {
     }
 
     public static void playerJoinManager(PlayerJoinEvent event) {
+
+        Player player = event.getPlayer();
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (Entity entity : player.getWorld().getEntities()) {
+                if (entity == player) continue;
+                if (!player.canSee(entity) && isDisplayNameEnabled) {
+                    NametagCloneManager.applyDisplay(player, entity);
+                }
+            }
+        }, 20L);
+
     }
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
         Player player = event.getPlayer();
 
-        if (Config.isDisplayNameEnabled) {
+        if (isDisplayNameEnabled) {
             NametagCloneManager.removeDisplay(player);
             VerticesDebugManager.removeDisplay(player);
             NametagCloneManager.removeDisplayForEntity(player);
@@ -97,7 +113,7 @@ public class EventManager {
     public static void entityDeathManager(EntityDeathEvent event) {
         Entity entity = event.getEntity();
 
-        if (Config.isDisplayNameEnabled) {
+        if (isDisplayNameEnabled) {
             NametagCloneManager.removeDisplayForEntity(entity);
             VerticesDebugManager.removeDisplayForEntity(entity);
         }
