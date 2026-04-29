@@ -102,7 +102,7 @@ public class Config {
             case Monster ignored         -> spigotConfig.getDouble(base + "monsters", 96);
             case AbstractVillager ignored -> spigotConfig.getDouble(base + "misc", 96);
             default                      -> spigotConfig.getDouble(base + "other", 64);
-        } + 64;
+        } + 16;
     }
 
     public static void printConfig(CommandSender sender) {

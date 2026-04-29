@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.manager.engine;
 
+import RayTraceAntiEntityESP.bukkit.Main;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -12,11 +13,8 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,15 +59,7 @@ public class PacketManager extends PacketListenerAbstract {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     Entity entity = Bukkit.getEntity(entityUUID);
                     if (entity == null) return;
-                    Vector eyePos = viewer.getEyeLocation().toVector();
-                    Vector lookDir = viewer.getLocation().getDirection();
-                    Location viewerLoc = viewer.getLocation().clone();
-                    World world = viewer.getWorld();
-                    if (RayTraceManager.isEntityInSight(viewer, entity, eyePos, lookDir, viewerLoc, world)) {
-                        VisibilityUtils.setNotHidden(viewer, entity);
-                    } else {
-                        VisibilityUtils.setHidden(viewer, entity);
-                    }
+                    VisibilityUtils.setHidden(viewer, entity);
                 });
             }
             case PacketType.Play.Server.PLAYER_INFO_REMOVE -> {
