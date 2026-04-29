@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.manager.engine;
 
+import RayTraceAntiEntityESP.bukkit.Main;
 import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import org.bukkit.*;
@@ -10,6 +11,7 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
@@ -147,24 +149,22 @@ public class RayTraceManager {
 
         List<Vector> vertices = getEntityVertices(viewer, entity, range);
 
-        boolean visible = false;
-
         if (isDebugEnabled) {
             List<Boolean> visibilities = new ArrayList<>(vertices.size());
+            boolean visible = false;
             for (Vector vertex : vertices) {
                 boolean v = isVisible(viewer, vertex);
-                if (v) visible = true;
                 visibilities.add(v);
+                if (v) visible = true;
             }
             VerticesDebugManager.applyDisplay(viewer, entity, vertices, visibilities);
-        } else {
-            for (Vector vertex : vertices) {
-                boolean v = isVisible(viewer, vertex);
-                if (v) visible = true;
-                break;
-            }
+            return visible;
         }
-        return visible;
+
+        for (Vector vertex : vertices) {
+            if (isVisible(viewer, vertex)) return true;
+        }
+        return false;
     }
 
     public static boolean isAntiEntity(Entity entity) {
@@ -291,13 +291,24 @@ public class RayTraceManager {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             blockCache.clear();
+
             for (Player viewer : Bukkit.getOnlinePlayers()) {
-                for (Entity entity : viewer.getWorld().getEntities()) {
-                    if (entity != viewer) {
-                        RayTraceManager.updateRayTraceChecking(viewer, entity, RayTraceManager.isEntityInSight(viewer, entity));
+                List<Entity> entities = new ArrayList<>(viewer.getWorld().getEntities());
+                entities.remove(viewer);
+
+                CompletableFuture.runAsync(() -> {
+                    Map<Entity, Boolean> results = new HashMap<>();
+                    for (Entity entity : entities) {
+                        results.put(entity, isEntityInSight(viewer, entity));
                     }
-                }
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        for (Map.Entry<Entity, Boolean> entry : results.entrySet()) {
+                            updateRayTraceChecking(viewer, entry.getKey(), entry.getValue());
+                        }
+                    });
+                }, Main.executor);
             }
+
         }, 0L, checkingPeriodTicks);
     }
 

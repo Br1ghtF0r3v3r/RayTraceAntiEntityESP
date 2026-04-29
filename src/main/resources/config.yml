@@ -7,14 +7,22 @@
 # RayTrace Anti Entity ESP - Configuration File
 # -----------------------------------------------
 # Plugin by: BrightForever & Lycopod
-# Support: discord.gg/yourserver
 
 # -----------------------------------------------
 # LICENSE
 # -----------------------------------------------
 # Your license key from app.licensegate.io
 # Restart required after changing this
-license-key: "YOUR-LICENSE-KEY-HERE"
+license-key: YOUR-LICENSE-KEY-HERE
+
+# -----------------------------------------------
+# PERFORMANCE
+# -----------------------------------------------
+performance:
+  # Number of threads used for async raytrace calculations
+  # Recommended: 1-4, set to number of CPU cores for best performance
+  # Higher values use more CPU but check more entities simultaneously
+  async_threads: 2
 
 # -----------------------------------------------
 # CHECKING
@@ -90,5 +98,6 @@ anti_mode: whitelist
 # -----------------------------------------------
 # Entities with this scoreboard tag will always be shown regardless of walls
 # Use /tag <entity> add <tag> to apply
+# EX: /tag @e[type=player,limit=1,sort=nearest] add raytrace_anti_esp_bypass
 # Leave empty to disable
 bypass_tag: raytrace_anti_esp_bypass

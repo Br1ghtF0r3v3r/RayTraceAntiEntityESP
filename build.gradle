@@ -46,6 +46,13 @@ tasks.register("obfuscate", ProGuardTask) {
     keepclassmembers "class * implements org.bukkit.command.CommandExecutor { *; }"
     keepclassmembers "class * implements org.bukkit.event.Listener { *; }"
     keepclassmembers "class * extends com.github.retrooper.packetevents.event.PacketListenerAbstract { *; }"
+
+    keep "class dev.respark.licensegate.** { *; }"
+
+    keep "class RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager { *; }"
+
+    keepattributes "SourceFile"
+
     allowaccessmodification
     dontoptimize
     ignorewarnings
@@ -73,7 +80,7 @@ allprojects {
 
 dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
-    compileOnly "com.github.retrooper:packetevents-spigot:2.11.2"
+    compileOnly "com.github.retrooper:packetevents-spigot:2.12.1"
     compileOnly "me.clip:placeholderapi:2.12.2"
     implementation "dev.respark.licensegate:license-gate:1.0.4"
 }
@@ -97,18 +104,19 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
+def buildId = UUID.randomUUID().toString()
+
 processResources {
     def props = [
-            name: project.name,
-            version: project.version,
-            main: main,
+            name      : project.name,
+            version   : project.version,
+            main      : main,
             apiVersion: apiVersion,
-            author: author
+            author    : author,
+            buildId   : buildId
     ]
-
     inputs.properties props
-    filesMatching('plugin.yml') {
-        expand props
-    }
+    filesMatching('plugin.yml') { expand props }
+    filesMatching('build.properties') { expand props }
     filteringCharset 'UTF-8'
 }

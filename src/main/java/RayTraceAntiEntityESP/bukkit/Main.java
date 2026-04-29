@@ -5,35 +5,61 @@ import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
 import RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager;
+import RayTraceAntiEntityESP.bukkit.manager.licenses.SessionManager;
 import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
+import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public final class Main extends JavaPlugin {
 
     public static Main plugin;
+    public static ExecutorService executor;
 
     @Override
     public void onEnable() {
         plugin = this;
+
         reloadConfigAll();
+
+        if (!SessionManager.startSession(LicenseManager.getBuildId(plugin), this)) {
+            plugin.getLogger().severe("This build is already running on another server! Shutting down.");
+            Bukkit.getPluginManager().disablePlugin(this);
+            return;
+        }
 
         if (!LicenseManager.verifyLicense(Config.licenseKey, this)) {
             getLogger().severe("License verification failed! Disabling plugin.");
-            getServer().getPluginManager().disablePlugin(this);
+            Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
         PacketEvents.getAPI().init();
-        getServer().getPluginManager().registerEvents(new EventListener(), this);
+        Bukkit.getPluginManager().registerEvents(new EventListener(), this);
         PacketEvents.getAPI().getEventManager().registerListener(new EventListener());
         registerCommands();
         getLogger().info("RayTraceEntityESP enabled successfully!");
+
+        executor = Executors.newFixedThreadPool(Config.asyncThreads, r -> {
+            Thread t = new Thread(r, "RTAEE-Worker");
+            t.setDaemon(true);
+            return t;
+        });
+
     }
 
     @Override
     public void onDisable() {
+
+        SessionManager.endSession();
+
+        if (executor != null) {
+            executor.shutdownNow();
+        }
 
         PacketEvents.getAPI().terminate();
         getLogger().info("RayTraceEntityESP disabled.");

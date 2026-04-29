@@ -19,16 +19,19 @@ public class NametagCloneManager {
 
     private static final Map<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
 
-    public static boolean shouldHide(Player viewer, Entity entity) {
-        boolean isSelf = viewer.equals(entity);
-        boolean nameNotVisible = !VisibilityUtils.isNameVisible(viewer, entity);
-        boolean isInvisible = entity.isInvisible();
-        boolean isSneaking = (entity instanceof Player player && player.isSneaking());
-        return isSelf || nameNotVisible || isInvisible || isSneaking;
+    public static boolean shouldShow(Player viewer, Entity entity) {
+        if (viewer.equals(entity)) return false;
+        if (viewer.canSee(entity)) return false;
+        if (entity.isInvisible()) return false;
+        if (entity instanceof Player player && player.isSneaking()) return false;
+
+        if (entity instanceof Player) return true;
+
+        return entity.customName() != null && entity.isCustomNameVisible();
     }
 
     public static void applyDisplay(Player viewer, Entity entity) {
-        if (shouldHide(viewer, entity)) {
+        if (!shouldShow(viewer, entity)) {
             removeDisplay(viewer, entity);
             return;
         }

@@ -15,6 +15,8 @@ public class Config {
 
     public static String licenseKey;
 
+    public static int asyncThreads;
+
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
@@ -39,6 +41,8 @@ public class Config {
         loadSpigotConfig();
 
         licenseKey = plugin.getConfig().getString("license-key", "");
+
+        asyncThreads = config.getInt("performance.async_threads", 2);
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
