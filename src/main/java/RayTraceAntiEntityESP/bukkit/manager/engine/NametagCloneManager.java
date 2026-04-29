@@ -106,17 +106,12 @@ public class NametagCloneManager {
 
     public static Component getName(Entity entity) {
         Component name;
-        if (entity instanceof Player) {
-            name = Component.text(entity.getName());
-        } else if (entity.customName() != null) {
-            name = entity.customName();
-        } else {
-            name = Component.text(entity.getName());
-        }
+        Component custom = entity.customName();
+        name = (!(entity instanceof Player) && custom != null) ? custom : Component.text(entity.getName());
         NamedTextColor teamColor = TeamUtils.getTeamColor(entity);
-        if (teamColor != null && name != null) name = name.color(teamColor);
+        if (teamColor != null) name = name.color(teamColor);
         Component teamPrefix = TeamUtils.getTeamPrefix(entity);
-        if (teamPrefix != null && name != null) name = teamPrefix.append(name);
+        if (teamPrefix != null) name = teamPrefix.append(name);
         return name;
     }
 }
