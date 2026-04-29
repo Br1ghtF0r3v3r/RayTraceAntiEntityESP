@@ -134,17 +134,22 @@ public class RayTraceManager {
 
     public static boolean isEntityInSight(Player viewer, Entity entity, Vector eyePos, Vector lookDir, Location viewerLoc, World world) {
         double range = getSpigotTrackingRange(entity);
-        double distSq = viewerLoc.distanceSquared(entity.getLocation());
+
+        double dx = viewerLoc.getX() - entity.getLocation().getX();
+        double dz = viewerLoc.getZ() - entity.getLocation().getZ();
+        double horizDistSq = dx * dx + dz * dz;
+
+        double distSq = horizDistSq + Math.pow(viewerLoc.getY() - entity.getLocation().getY(), 2);
+        double distance = Math.sqrt(distSq);
 
         if (!isAntiEntity(entity)
                 || isEntityGlowing(viewer, entity)
-                || distSq > range * range
+                || horizDistSq > range * range
                 || (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride)) {
             if (isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
 
-        double distance = Math.sqrt(distSq);
         List<Vector> vertices = getEntityVertices(distance, entity, range);
 
         if (isDebugEnabled) {
