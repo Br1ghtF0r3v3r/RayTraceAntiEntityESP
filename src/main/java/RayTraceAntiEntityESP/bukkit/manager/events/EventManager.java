@@ -4,6 +4,7 @@ import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
+import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
@@ -13,6 +14,8 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
+
+import java.util.UUID;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 import static RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled;
@@ -80,29 +83,22 @@ public class EventManager {
     }
 
     public static void playerJoinManager(PlayerJoinEvent event) {
+    }
 
-        Player player = event.getPlayer();
+    public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
+        UUID playerUUID = event.getPlayerUniqueId();
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (Entity entity : player.getWorld().getEntities()) {
-                if (entity == player) continue;
-                if (!player.canSee(entity) && isDisplayNameEnabled) {
-                    NametagCloneManager.applyDisplay(player, entity);
-                }
-            }
-        }, 20L);
-
+        if (isDisplayNameEnabled) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                NametagCloneManager.removeDisplay(playerUUID);
+                VerticesDebugManager.removeDisplay(playerUUID);
+                NametagCloneManager.removeDisplayForEntity(playerUUID);
+                VerticesDebugManager.removeDisplayForEntity(playerUUID);
+            }, 20L);
+        }
     }
 
     public static void playerLeaveManager(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
-
-        if (isDisplayNameEnabled) {
-            NametagCloneManager.removeDisplay(player);
-            VerticesDebugManager.removeDisplay(player);
-            NametagCloneManager.removeDisplayForEntity(player);
-            VerticesDebugManager.removeDisplayForEntity(player);
-        }
     }
 
     public static void packetSendManager(PacketSendEvent event) {
@@ -112,10 +108,11 @@ public class EventManager {
 
     public static void entityDeathManager(EntityDeathEvent event) {
         Entity entity = event.getEntity();
+        UUID entityUUID = entity.getUniqueId();
 
         if (isDisplayNameEnabled) {
-            NametagCloneManager.removeDisplayForEntity(entity);
-            VerticesDebugManager.removeDisplayForEntity(entity);
+            NametagCloneManager.removeDisplayForEntity(entityUUID);
+            VerticesDebugManager.removeDisplayForEntity(entityUUID);
         }
     }
 
