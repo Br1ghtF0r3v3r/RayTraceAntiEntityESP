@@ -1,8 +1,12 @@
 import proguard.gradle.ProGuardTask
 
 buildscript {
-    repositories { mavenCentral() }
-    dependencies { classpath "com.guardsquare:proguard-gradle:7.6.1" }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.guardsquare:proguard-gradle:7.9.1"
+    }
 }
 
 plugins {
@@ -48,7 +52,6 @@ tasks.register("obfuscate", ProGuardTask) {
     keepclassmembers "class * extends com.github.retrooper.packetevents.event.PacketListenerAbstract { *; }"
 
     keep "class dev.respark.licensegate.** { *; }"
-
     keep "class RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager { *; }"
 
     keepattributes "SourceFile"
