@@ -16,7 +16,7 @@ public class TabCompletion implements TabCompleter {
         if (args.length == 1) {
             return filter(args[0], List.of("config_value", "reload", "enabled", "checking_period_ticks",
                     "checking_distance_override", "bounding_box_extra_value", "vertices_layers",
-                    "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities"));
+                    "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "help"));
         }
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
