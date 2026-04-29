@@ -39,16 +39,16 @@ public class VerticesDebugManager {
         }
     }
 
-    public static void removeDisplay(Player viewer, Entity entity) {
-        Map<UUID, List<VerticesDebugUtils>> inner = markers.get(viewer.getUniqueId());
+    public static void removeDisplay(UUID viewerUUID, UUID entityUUID) {
+        Map<UUID, List<VerticesDebugUtils>> inner = markers.get(viewerUUID);
         if (inner == null) return;
-        List<VerticesDebugUtils> list = inner.remove(entity.getUniqueId());
+        List<VerticesDebugUtils> list = inner.remove(entityUUID);
         if (list == null) return;
         despawnList(list);
     }
 
-    public static void removeDisplay(Player viewer) {
-        Map<UUID, List<VerticesDebugUtils>> inner = markers.remove(viewer.getUniqueId());
+    public static void removeDisplay(UUID viewerUUID) {
+        Map<UUID, List<VerticesDebugUtils>> inner = markers.remove(viewerUUID);
         if (inner == null) return;
         for (List<VerticesDebugUtils> list : inner.values()) {
             if (list == null) continue;
@@ -56,10 +56,10 @@ public class VerticesDebugManager {
         }
     }
 
-    public static void removeDisplayForEntity(Entity entity) {
+    public static void removeDisplayForEntity(UUID entityUUID) {
         for (Map<UUID, List<VerticesDebugUtils>> inner : markers.values()) {
             if (inner == null) continue;
-            List<VerticesDebugUtils> list = inner.remove(entity.getUniqueId());
+            List<VerticesDebugUtils> list = inner.remove(entityUUID);
             if (list == null) continue;
             despawnList(list);
         }

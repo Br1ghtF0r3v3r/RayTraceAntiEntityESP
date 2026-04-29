@@ -3,7 +3,6 @@ package RayTraceAntiEntityESP.bukkit.manager.engine;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
-import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Entity;
@@ -32,24 +31,28 @@ public class NametagCloneManager {
 
     public static void applyDisplay(Player viewer, Entity entity) {
         if (!shouldShow(viewer, entity)) {
-            removeDisplay(viewer, entity);
+            removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return;
         }
-
         Map<UUID, NametagCloneUtils> inner = clones.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
         NametagCloneUtils existing = inner.get(entity.getUniqueId());
         if (existing != null) {
-            updatePosition(existing, entity);
-        } else {
-            try {
-                NametagCloneUtils clone = new NametagCloneUtils(viewer);
-                clone.setName(getName(entity));
-                clone.setPos(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
-                clone.spawn();
-                inner.put(entity.getUniqueId(), clone);
-            } catch (Throwable t) {
-                plugin.getLogger().warning("Failed to spawn display for " + viewer.getName() + " -> " + entity.getName() + ": " + t);
+            if (!existing.isSpawned()) {
+                inner.remove(entity.getUniqueId());
+                despawnClone(existing);
+            } else {
+                updatePosition(existing, entity);
+                return;
             }
+        }
+        try {
+            NametagCloneUtils clone = new NametagCloneUtils(viewer);
+            clone.setName(getName(entity));
+            clone.setPos(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
+            clone.spawn();
+            inner.put(entity.getUniqueId(), clone);
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Failed to spawn display for " + viewer.getName() + " -> " + entity.getName() + ": " + t);
         }
     }
 
@@ -57,16 +60,16 @@ public class NametagCloneManager {
         clone.teleport(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
     }
 
-    public static void removeDisplay(Player viewer, Entity entity) {
-        Map<UUID, NametagCloneUtils> inner = clones.get(viewer.getUniqueId());
+    public static void removeDisplay(UUID viewerUUID, UUID entityUUID) {
+        Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
-        NametagCloneUtils clone = inner.remove(entity.getUniqueId());
+        NametagCloneUtils clone = inner.remove(entityUUID);
         if (clone == null) return;
         despawnClone(clone);
     }
 
-    public static void removeDisplay(Player viewer) {
-        Map<UUID, NametagCloneUtils> inner = clones.remove(viewer.getUniqueId());
+    public static void removeDisplay(UUID viewerUUID) {
+        Map<UUID, NametagCloneUtils> inner = clones.remove(viewerUUID);
         if (inner == null) return;
         for (NametagCloneUtils clone : inner.values()) {
             if (clone == null) continue;
@@ -74,10 +77,10 @@ public class NametagCloneManager {
         }
     }
 
-    public static void removeDisplayForEntity(Entity entity) {
+    public static void removeDisplayForEntity(UUID entityUUID) {
         for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
             if (inner == null) continue;
-            NametagCloneUtils clone = inner.remove(entity.getUniqueId());
+            NametagCloneUtils clone = inner.remove(entityUUID);
             if (clone == null) continue;
             despawnClone(clone);
         }
