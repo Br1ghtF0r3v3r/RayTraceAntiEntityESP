@@ -48,6 +48,10 @@ public class NametagCloneUtils {
         this.z = z;
     }
 
+    public boolean isSpawned() {
+        return spawned;
+    }
+
     public void spawn() {
         if (spawned) return;
 
