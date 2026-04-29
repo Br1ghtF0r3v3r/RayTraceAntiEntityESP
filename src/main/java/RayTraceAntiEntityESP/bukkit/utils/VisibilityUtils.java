@@ -19,11 +19,9 @@ public class VisibilityUtils {
 
     public static void setNotHidden(Player player, Entity entity) {
         PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(player, entity.getUniqueId()));
-        player.hideEntity(plugin, entity);
-
         PacketManager.bypassPacketSet.add(PacketManager.bypassShowKey(player, entity.getUniqueId()));
+        player.hideEntity(plugin, entity);
         player.showEntity(plugin, entity);
-
     }
 
     public static boolean isNameVisible(Player viewer, Entity entity) {

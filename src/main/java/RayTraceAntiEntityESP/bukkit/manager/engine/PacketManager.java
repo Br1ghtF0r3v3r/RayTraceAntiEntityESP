@@ -69,10 +69,8 @@ public class PacketManager extends PacketListenerAbstract {
                 List<UUID> filtered = new ArrayList<>();
 
                 for (UUID entityUUID : original) {
-
                     if (viewer.getUniqueId().equals(entityUUID)) continue;
-                    if (bypassPacketSet.contains(bypassHiddenKey(viewer, entityUUID))) continue;
-
+                    if (bypassPacketSet.remove(bypassHiddenKey(viewer, entityUUID))) continue;
                     filtered.add(entityUUID);
                 }
 

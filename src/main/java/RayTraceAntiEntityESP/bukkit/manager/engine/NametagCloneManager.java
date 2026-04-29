@@ -3,6 +3,7 @@ package RayTraceAntiEntityESP.bukkit.manager.engine;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
+import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Entity;
@@ -19,14 +20,11 @@ public class NametagCloneManager {
     private static final Map<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
 
     public static boolean shouldShow(Player viewer, Entity entity) {
-        if (viewer.equals(entity)) return false;
         if (viewer.canSee(entity)) return false;
         if (entity.isInvisible()) return false;
         if (entity instanceof Player player && player.isSneaking()) return false;
 
-        if (entity instanceof Player) return true;
-
-        return entity.customName() != null && entity.isCustomNameVisible();
+        return VisibilityUtils.isNameVisible(viewer, entity);
     }
 
     public static void applyDisplay(Player viewer, Entity entity) {
