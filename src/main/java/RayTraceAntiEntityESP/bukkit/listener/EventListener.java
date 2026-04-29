@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.listener;
 
+import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import io.papermc.paper.event.player.*;
@@ -132,5 +133,10 @@ public class EventListener extends PacketListenerAbstract implements Listener {
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         entityDeathManager(event);
+    }
+
+    @EventHandler
+    public void onConnectionClose(PlayerConnectionCloseEvent event) {
+        connectionCloseManager(event);
     }
 }

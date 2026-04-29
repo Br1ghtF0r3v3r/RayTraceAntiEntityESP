@@ -143,7 +143,7 @@ public class RayTraceManager {
                 || isEntityGlowing(viewer, entity)
                 || distSq > range * range
                 || (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride)) {
-            if (isDebugEnabled) VerticesDebugManager.removeDisplay(viewer, entity);
+            if (isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
 
@@ -252,7 +252,7 @@ public class RayTraceManager {
             VisibilityUtils.setNotHidden(viewer, entity);
 
             if (isDisplayNameEnabled) {
-                NametagCloneManager.removeDisplay(viewer, entity);
+                NametagCloneManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             }
 
         } else if (!visibleServer && visibleClient) {
