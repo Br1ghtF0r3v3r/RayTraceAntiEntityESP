@@ -17,7 +17,6 @@ public class LicenseManager {
             try {
                 LicenseGate licenseGate = new LicenseGate(USER_ID);
                 LicenseGate.ValidationType result = licenseGate.verify(licenseKey);
-
                 if (result == LicenseGate.ValidationType.VALID) {
                     licensed = true;
                     plugin.getLogger().info("License verified!");
