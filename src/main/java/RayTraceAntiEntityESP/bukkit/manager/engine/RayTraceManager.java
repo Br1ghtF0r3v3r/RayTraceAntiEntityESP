@@ -147,22 +147,24 @@ public class RayTraceManager {
 
         List<Vector> vertices = getEntityVertices(viewer, entity, range);
 
+        boolean visible = false;
+
         if (isDebugEnabled) {
             List<Boolean> visibilities = new ArrayList<>(vertices.size());
-            boolean visible = false;
             for (Vector vertex : vertices) {
                 boolean v = isVisible(viewer, vertex);
-                visibilities.add(v);
                 if (v) visible = true;
+                visibilities.add(v);
             }
             VerticesDebugManager.applyDisplay(viewer, entity, vertices, visibilities);
-            return visible;
+        } else {
+            for (Vector vertex : vertices) {
+                boolean v = isVisible(viewer, vertex);
+                if (v) visible = true;
+                break;
+            }
         }
-
-        for (Vector vertex : vertices) {
-            if (isVisible(viewer, vertex)) return true;
-        }
-        return false;
+        return visible;
     }
 
     public static boolean isAntiEntity(Entity entity) {

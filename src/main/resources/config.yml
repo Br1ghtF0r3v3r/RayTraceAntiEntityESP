@@ -1,26 +1,94 @@
+# ██████╗ ████████╗ █████╗ ███████╗███████╗
+# ██╔══██╗╚══██╔══╝██╔══██╗██╔════╝██╔════╝
+# ██████╔╝   ██║   ███████║█████╗  █████╗
+# ██╔══██╗   ██║   ██╔══██║██╔══╝  ██╔══╝
+# ██║  ██║   ██║   ██║  ██║███████╗███████╗
+# ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
+# RayTrace Anti Entity ESP - Configuration File
+# -----------------------------------------------
+# Plugin by: BrightForever & Lycopod
+# Support: discord.gg/yourserver
+
+# -----------------------------------------------
+# LICENSE
+# -----------------------------------------------
+# Your license key from app.licensegate.io
 # Restart required after changing this
 license-key: "YOUR-LICENSE-KEY-HERE"
 
+# -----------------------------------------------
+# CHECKING
+# -----------------------------------------------
 checking:
+  # Enable or disable the raytrace ESP checking entirely
   enabled: true
+
+  # How often to check entity visibility (in ticks, 1 tick = 50ms)
+  # Lower = more accurate but more CPU usage
+  # Recommended: 1-5
   period_ticks: 1
+
+  # Entities within this distance (in blocks) are always shown regardless of walls
+  # Set to 0 to disable
   distance_override: 5
+
+  # Expands the entity bounding box by this value for more lenient detection
+  # Set to 0 to disable
   bounding_box_extra_value: 0
+
+  # Number of vertex layers to check per entity (minimum 2)
+  # Higher = more accurate but more CPU usage
+  # Recommended: 3-7
   vertices_layers: 5
 
+# -----------------------------------------------
+# PERSPECTIVE CHECKING
+# -----------------------------------------------
 perspective_checking:
+  # Also check from third-person camera positions
+  # Prevents entities showing when player is in third-person view
   enabled: true
+
+  # Distance from head to simulate third-person camera (in blocks)
   distances_from_head: 4
 
+# -----------------------------------------------
+# DISPLAY NAME
+# -----------------------------------------------
 display_name:
+  # Show a fake name tag above hidden entities so players can still identify them
   enabled: true
+
+  # Vertical offset of the name tag above the entity's head (in blocks)
+  # Set to 0 for default height, negative to lower, positive to raise
   offset_y: 0
 
+# -----------------------------------------------
+# DEBUG
+# -----------------------------------------------
 debug:
+  # Show debug block displays at entity vertices and raytrace lines
+  # Only use this for testing, disable in production
+  # Can cause significant visual clutter and FPS drops if too many entities are around and performance is not good
   enabled: false
 
+# -----------------------------------------------
+# ANTI ENTITIES
+# -----------------------------------------------
+# List of entity types to apply ESP checking to
+# Use entity type names from: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
 anti_entities:
   - player
+
+# Whether anti_entities list acts as a whitelist or blacklist
+# whitelist: only check entities in the list
+# blacklist: check all entities EXCEPT those in the list
 anti_mode: whitelist
 
+# -----------------------------------------------
+# BYPASS
+# -----------------------------------------------
+# Entities with this scoreboard tag will always be shown regardless of walls
+# Use /tag <entity> add <tag> to apply
+# Leave empty to disable
 bypass_tag: raytrace_anti_esp_bypass
