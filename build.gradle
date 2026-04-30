@@ -13,6 +13,7 @@ plugins {
     id "java"
     id "com.gradleup.shadow" version "9.3.0"
     id "xyz.jpenilla.run-paper" version "3.0.2"
+    id "io.papermc.paperweight.userdev" version "2.0.0-beta.21"
 }
 
 tasks {
@@ -83,6 +84,7 @@ dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "me.clip:placeholderapi:2.12.2"
     implementation "dev.respark.licensegate:license-gate:1.0.4"
+    paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
 }
 
 java {

@@ -1,19 +1,23 @@
 package RayTraceAntiEntityESP.bukkit.listener;
 
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
-import com.github.retrooper.packetevents.event.PacketListenerAbstract;
-import com.github.retrooper.packetevents.event.PacketSendEvent;
+import io.netty.channel.*;
+import net.minecraft.server.level.ServerPlayer;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.event.*;
-import org.bukkit.event.entity.*;
-import org.jspecify.annotations.NonNull;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.entity.Player;
 
 import static RayTraceAntiEntityESP.bukkit.manager.events.EventManager.*;
 
-public class EventListener extends PacketListenerAbstract implements Listener {
+public class EventListener implements Listener {
 
-    @Override
-    public void onPacketSend(@NonNull PacketSendEvent event) {
-        packetSendManager(event);
+    private static final String HANDLER_NAME = "anti_esp_handler";
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        injectPlayer(event.getPlayer());
     }
 
     @EventHandler
@@ -24,5 +28,21 @@ public class EventListener extends PacketListenerAbstract implements Listener {
     @EventHandler
     public void onConnectionClose(PlayerConnectionCloseEvent event) {
         connectionCloseManager(event);
+    }
+
+    public static void injectPlayer(Player player) {
+        Channel channel = getChannel(player);
+        if (channel.pipeline().get(HANDLER_NAME) != null) return;
+        channel.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
+            @Override
+            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                packetSendManager(player, msg, ctx, promise);
+            }
+        });
+    }
+
+    private static Channel getChannel(Player player) {
+        ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
+        return nmsPlayer.connection.connection.channel;
     }
 }
