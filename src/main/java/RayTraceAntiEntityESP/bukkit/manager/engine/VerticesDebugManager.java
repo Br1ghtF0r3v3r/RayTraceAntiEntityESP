@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.manager.engine;
 
 import RayTraceAntiEntityESP.bukkit.utils.VerticesDebugUtils;
+import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -12,13 +13,19 @@ public class VerticesDebugManager {
 
     private static final Map<UUID, Map<UUID, List<VerticesDebugUtils>>> markers = new ConcurrentHashMap<>();
 
+
+    private static boolean shouldShow(Entity entity) {
+        if (entity.isDead()) return false;
+        return entity.isValid();
+    }
+
     public static void applyDisplay(Player viewer, Entity entity, List<Vector> vertices, List<Boolean> visibilities) {
-        if (viewer.getUniqueId().equals(entity.getUniqueId())) return;
-
+        if (!shouldShow(entity)) {
+            removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
+            return;
+        }
         Map<UUID, List<VerticesDebugUtils>> inner = markers.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
-
         List<VerticesDebugUtils> existing = inner.get(entity.getUniqueId());
-
         if (existing != null && existing.size() == vertices.size()) {
             for (int i = 0; i < vertices.size(); i++) {
                 Vector v = vertices.get(i);
