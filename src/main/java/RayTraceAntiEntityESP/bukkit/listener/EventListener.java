@@ -35,7 +35,7 @@ public class EventListener implements Listener {
         if (channel.pipeline().get(HANDLER_NAME) != null) return;
         channel.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
             @Override
-            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
                 packetSendManager(player, msg, ctx, promise);
             }
         });

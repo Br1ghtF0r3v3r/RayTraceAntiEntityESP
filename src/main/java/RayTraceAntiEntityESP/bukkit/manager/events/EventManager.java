@@ -3,6 +3,7 @@ package RayTraceAntiEntityESP.bukkit.manager.events;
 import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
+import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -25,23 +26,20 @@ public class EventManager {
 
     public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
         UUID playerUUID = event.getPlayerUniqueId();
-        if (isDisplayNameEnabled) {
-            NametagCloneManager.removeDisplayForEntity(playerUUID);
-        }
-        if (isDebugEnabled) {
-            VerticesDebugManager.removeDisplayForEntity(playerUUID);
-        }
+        Player player = Bukkit.getPlayer(playerUUID);
+        int viewerEntityId = player != null ? player.getEntityId() : -1;
+
+        if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(playerUUID);
+        if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(playerUUID);
+
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (isDisplayNameEnabled) {
-                NametagCloneManager.removeDisplay(playerUUID);
-            }
-            if (isDebugEnabled) {
-                VerticesDebugManager.removeDisplay(playerUUID);
-            }
+            if (isDisplayNameEnabled) NametagCloneManager.removeDisplay(playerUUID);
+            if (isDebugEnabled) VerticesDebugManager.removeDisplay(playerUUID);
+            if (viewerEntityId != -1) VisibilityUtils.clearViewer(viewerEntityId);
         }, 20L);
     }
 
-    public static void packetSendManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+    public static void packetSendManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         PacketManager.packetManager(viewer, msg, ctx, promise);
     }
 
@@ -49,12 +47,10 @@ public class EventManager {
         Entity entity = event.getEntity();
         UUID entityUUID = entity.getUniqueId();
 
-        if (isDisplayNameEnabled) {
-            NametagCloneManager.removeDisplayForEntity(entityUUID);
-        }
-        if (isDebugEnabled) {
-            VerticesDebugManager.removeDisplayForEntity(entityUUID);
-        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(entityUUID);
+            if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(entityUUID);
+        }, 20L);
     }
 
 }
