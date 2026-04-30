@@ -11,20 +11,10 @@ blocks are concealed at the packet level, meaning clients never receive data for
 <summary>View</summary>
 
 ### Without RayTrace Anti Entity ESP
-<details>
-<summary>View</summary>
-
 https://github.com/user-attachments/assets/68cc56f7-f8e2-4c7c-95db-995082286535
 
-</details>
-
 ### With RayTrace Anti Entity ESP
-<details>
-<summary>View</summary>
-
 https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
-
-</details>
 
 </details>
 
