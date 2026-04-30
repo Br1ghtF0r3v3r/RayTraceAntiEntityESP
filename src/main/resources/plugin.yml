@@ -4,6 +4,7 @@ api-version: ${apiVersion}
 name: ${name}
 version: ${version}
 author: ${author}
+description: ${description}
 
 softdepend: [PlaceholderAPI]
 
