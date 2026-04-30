@@ -108,8 +108,7 @@ public class NametagCloneUtils {
         if (dx < -32768 || dx > 32767 || dy < -32768 || dy > 32767 || dz < -32768 || dz > 32767) {
             send(new ClientboundBundlePacket(List.of(
                     new ClientboundRemoveEntitiesPacket(entityId),
-                    new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f,
-                            EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
+                    new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
                     new ClientboundSetEntityDataPacket(entityId, buildMetadata())
             )));
             lastX = newX;

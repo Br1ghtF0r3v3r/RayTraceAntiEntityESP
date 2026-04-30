@@ -129,8 +129,7 @@ public class PacketManager {
             });
 
             // CREATE (teamAction=ADD) or ADD_PLAYERS (playerAction=ADD)
-            if (teamAction == ClientboundSetPlayerTeamPacket.Action.ADD
-                    || playerAction == ClientboundSetPlayerTeamPacket.Action.ADD) {
+            if (teamAction == ClientboundSetPlayerTeamPacket.Action.ADD || playerAction == ClientboundSetPlayerTeamPacket.Action.ADD) {
                 for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.put(entry, teamName);
             }
 

@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.commands;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
-import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
 import RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager;
 import RayTraceAntiEntityESP.bukkit.misc.StringFormat;
 import org.bukkit.command.Command;
@@ -52,9 +51,10 @@ public class CommandsHandler implements CommandExecutor {
             }
             case "debug" -> {
                 if (args.length < 3) { sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value.")); return true; }
-                switch (args[1].toLowerCase()) {
-                    case "enabled" -> set(sender, "debug.enabled", args, 2, Boolean::parseBoolean);
-                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                if (args[1].equalsIgnoreCase("enabled")) {
+                    set(sender, "debug.enabled", args, 2, Boolean::parseBoolean);
+                } else {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
             case "anti_mode" -> {

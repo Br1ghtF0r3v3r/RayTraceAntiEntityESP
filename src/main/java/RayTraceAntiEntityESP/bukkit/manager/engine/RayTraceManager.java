@@ -4,7 +4,10 @@ import RayTraceAntiEntityESP.bukkit.Main;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
+import net.minecraft.server.level.ServerLevel;
 import org.bukkit.*;
+import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -21,7 +24,7 @@ public class RayTraceManager {
 
     private static BukkitTask task;
 
-    private static volatile ConcurrentHashMap<Long, Boolean> blockCache = new ConcurrentHashMap<>();
+    private static volatile Map<Long, Boolean> blockCache = new ConcurrentHashMap<>();
 
     private static long blockKey(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
@@ -239,31 +242,19 @@ public class RayTraceManager {
     //  | not visible  | visible      | spawn packet   |
     //  | not visible  | not visible  | update         |
 
-    public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer) {
-        boolean visibleClient = viewer.canSee(entity);
+    public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer, int viewerEntityId, int targetEntityId) {
+        boolean visibleClient = !VisibilityUtils.isHidden(viewerEntityId, targetEntityId);
 
         if (visibleServer && !visibleClient) {
-
             VisibilityUtils.setNotHidden(viewer, entity);
-
-            if (Config.isDisplayNameEnabled) {
-                NametagCloneManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
-            }
+            if (Config.isDisplayNameEnabled) NametagCloneManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
 
         } else if (!visibleServer && visibleClient) {
-
             VisibilityUtils.setHidden(viewer, entity);
-
-            if (Config.isDisplayNameEnabled) {
-                NametagCloneManager.applyDisplay(viewer, entity);
-            }
+            if (Config.isDisplayNameEnabled) NametagCloneManager.applyDisplay(viewer, entity);
 
         } else if (!visibleServer) {
-
-             if (Config.isDisplayNameEnabled) {
-                 NametagCloneManager.applyDisplay(viewer, entity);
-             }
-
+            if (Config.isDisplayNameEnabled) NametagCloneManager.applyDisplay(viewer, entity);
         }
     }
 
@@ -272,11 +263,22 @@ public class RayTraceManager {
             task.cancel();
             task = null;
         }
+
         for (Player viewer : Bukkit.getOnlinePlayers()) {
-            for (Entity entity : viewer.getWorld().getEntities()) {
-                if (!viewer.canSee(entity)) VisibilityUtils.setNotHidden(viewer, entity);
+            int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
+            ServerLevel nmsWorld = ((CraftWorld) viewer.getWorld()).getHandle();
+
+            for (net.minecraft.world.entity.Entity nmsEntity : nmsWorld.getAllEntities()) {
+                int targetId = nmsEntity.getId();
+                if (targetId == viewerEntityId) continue;
+                if (VisibilityUtils.isHidden(viewerEntityId, targetId)) {
+                    Entity entity = nmsEntity.getBukkitEntity();
+                    VisibilityUtils.setNotHidden(viewer, entity);
+                }
             }
+            VisibilityUtils.clearViewer(viewerEntityId);
         }
+
         NametagCloneManager.removeAllDisplays();
         VerticesDebugManager.removeAllDisplays();
         PacketManager.bypassPacketSet.clear();
@@ -286,9 +288,31 @@ public class RayTraceManager {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             blockCache = new ConcurrentHashMap<>();
+
             for (Player viewer : Bukkit.getOnlinePlayers()) {
-                List<Entity> entities = new ArrayList<>(viewer.getWorld().getEntities());
-                entities.remove(viewer);
+                ServerLevel nmsWorld = ((CraftWorld) viewer.getWorld()).getHandle();
+
+                final int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
+
+                Entity[] snapshot = new Entity[256];
+                int[] entityIds = new int[256];
+                int count = 0;
+
+                for (net.minecraft.world.entity.Entity nmsEntity : nmsWorld.getAllEntities()) {
+                    if (nmsEntity.getId() == viewerEntityId) continue;
+                    Entity e = nmsEntity.getBukkitEntity();
+                    if (count == snapshot.length) {
+                        snapshot = Arrays.copyOf(snapshot, count * 2);
+                        entityIds = Arrays.copyOf(entityIds, count * 2);
+                    }
+                    snapshot[count] = e;
+                    entityIds[count] = nmsEntity.getId();
+                    count++;
+                }
+
+                final int entityCount = count;
+                final Entity[] entitySnapshot = snapshot;
+                final int[] entityIdSnapshot = entityIds;
 
                 Vector eyePos = viewer.getEyeLocation().toVector();
                 Vector lookDir = viewer.getLocation().getDirection();
@@ -296,13 +320,13 @@ public class RayTraceManager {
                 World world = viewer.getWorld();
 
                 CompletableFuture.runAsync(() -> {
-                    Map<Entity, Boolean> results = new HashMap<>();
-                    for (Entity entity : entities) {
-                        results.put(entity, isEntityInSight(viewer, entity, eyePos, lookDir, viewerLoc, world));
+                    boolean[] results = new boolean[entityCount];
+                    for (int i = 0; i < entityCount; i++) {
+                        results[i] = isEntityInSight(viewer, entitySnapshot[i], eyePos, lookDir, viewerLoc, world);
                     }
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        for (Map.Entry<Entity, Boolean> entry : results.entrySet()) {
-                            updateRayTraceChecking(viewer, entry.getKey(), entry.getValue());
+                        for (int i = 0; i < entityCount; i++) {
+                            updateRayTraceChecking(viewer, entitySnapshot[i], results[i], viewerEntityId, entityIdSnapshot[i]);
                         }
                     });
                 }, Main.executor);
