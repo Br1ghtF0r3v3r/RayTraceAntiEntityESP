@@ -8,6 +8,7 @@ import org.bukkit.event.*;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerRespawnEvent;
 
 import static RayTraceAntiEntityESP.bukkit.manager.events.EventManager.*;
 
@@ -28,6 +29,11 @@ public class EventListener implements Listener {
     @EventHandler
     public void onConnectionClose(PlayerConnectionCloseEvent event) {
         connectionCloseManager(event);
+    }
+
+    @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent event) {
+        playerRespawnManager(event);
     }
 
     public static void injectPlayer(Player player) {
