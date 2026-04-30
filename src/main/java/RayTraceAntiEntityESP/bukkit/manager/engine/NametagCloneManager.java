@@ -19,7 +19,9 @@ public class NametagCloneManager {
 
     private static final Map<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
 
-    public static boolean shouldShow(Player viewer, Entity entity) {
+    private static boolean shouldShow(Player viewer, Entity entity) {
+        if (entity.isDead()) return false;
+        if (!entity.isValid()) return false;
         if (viewer.canSee(entity)) return false;
         if (entity.isInvisible()) return false;
         if (entity instanceof Player player && player.isSneaking()) return false;
@@ -54,7 +56,7 @@ public class NametagCloneManager {
         }
     }
 
-    public static void updatePosition(NametagCloneUtils clone, Entity entity) {
+    private static void updatePosition(NametagCloneUtils clone, Entity entity) {
         clone.teleport(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
     }
 
@@ -102,7 +104,7 @@ public class NametagCloneManager {
         } catch (Throwable ignored) {}
     }
 
-    public static Component getName(Entity entity) {
+    private static Component getName(Entity entity) {
         Component name;
         Component custom = entity.customName();
         name = (!(entity instanceof Player) && custom != null) ? custom : Component.text(entity.getName());
