@@ -1,18 +1,20 @@
 package RayTraceAntiEntityESP.bukkit.manager.engine;
 
-import RayTraceAntiEntityESP.bukkit.Main;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.event.PacketListenerAbstract;
-import com.github.retrooper.packetevents.event.PacketSendEvent;
-import com.github.retrooper.packetevents.protocol.packettype.PacketType;
-import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfoRemove;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.papermc.paper.adventure.PaperAdventure;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -21,9 +23,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
-public class PacketManager extends PacketListenerAbstract {
+public class PacketManager {
 
-    public record BypassKey(UUID viewer, UUID entity, boolean show) {}
+    public record BypassKey(UUID viewer, UUID entity, boolean show) {
+    }
 
     public static final Set<BypassKey> bypassPacketSet = ConcurrentHashMap.newKeySet();
     public static final Map<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
@@ -36,111 +39,122 @@ public class PacketManager extends PacketListenerAbstract {
         return new BypassKey(viewer.getUniqueId(), entityUUID, false);
     }
 
-    public static void packetManager(PacketSendEvent event) {
-        PacketTypeCommon packetType = event.getPacketType();
-        Player viewer = event.getPlayer();
+    public static void packetManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
 
-        switch (packetType) {
-            case PacketType.Play.Server.SPAWN_ENTITY -> {
-                WrapperPlayServerSpawnEntity packet = new WrapperPlayServerSpawnEntity(event);
+        // SPAWN_ENTITY
+        if (msg instanceof ClientboundAddEntityPacket packet) {
+            int entityId = packet.getId();
 
-                boolean isNametagClone = packet.getEntityId() >= 2000000 && packet.getEntityId() < 3000000;
-                boolean isVerticesDebug = packet.getEntityId() >= 4000000 && packet.getEntityId() < 5000000;
+            if (entityId >= 2000000 && entityId < 3000000) {
+                ctx.write(msg, promise);
+                return;
+            } // nametag clone
+            if (entityId >= 4000000 && entityId < 5000000) {
+                ctx.write(msg, promise);
+                return;
+            } // vertices debug
 
-                if (isNametagClone) return;
-                if (isVerticesDebug) return;
-                if (packet.getUUID().isEmpty()) return;
-                UUID entityUUID = packet.getUUID().get();
-                if (viewer.getUniqueId().equals(entityUUID)) return;
-                if (bypassPacketSet.remove(bypassShowKey(viewer, entityUUID))) return;
-
-                event.setCancelled(true);
-
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    Entity entity = Bukkit.getEntity(entityUUID);
-                    if (entity == null) return;
-                    VisibilityUtils.setHidden(viewer, entity);
-                });
+            UUID entityUUID = packet.getUUID();
+            if (viewer.getUniqueId().equals(entityUUID)) {
+                ctx.write(msg, promise);
+                return;
             }
-            case PacketType.Play.Server.PLAYER_INFO_REMOVE -> {
-                WrapperPlayServerPlayerInfoRemove packet = new WrapperPlayServerPlayerInfoRemove(event);
-
-                List<UUID> original = packet.getProfileIds();
-                List<UUID> filtered = new ArrayList<>();
-
-                for (UUID entityUUID : original) {
-
-                    if (viewer.getUniqueId().equals(entityUUID)) continue;
-                    if (bypassPacketSet.contains(bypassHiddenKey(viewer, entityUUID))) continue;
-
-                    filtered.add(entityUUID);
-                }
-
-                if (filtered.size() == original.size()) return;
-
-                event.setCancelled(true);
-
-                if (!filtered.isEmpty()) {
-                    PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, new WrapperPlayServerPlayerInfoRemove(filtered));
-                }
+            if (bypassPacketSet.remove(bypassShowKey(viewer, entityUUID))) {
+                ctx.write(msg, promise);
+                return;
             }
-            case PacketType.Play.Server.ENTITY_METADATA -> {
-                WrapperPlayServerEntityMetadata packet = new WrapperPlayServerEntityMetadata(event);
 
-                boolean isNametagClone = packet.getEntityId() >= 2000000 && packet.getEntityId() < 3000000;
-                boolean isVerticesDebug = packet.getEntityId() >= 4000000 && packet.getEntityId() < 5000000;
-
-                if (isNametagClone) return;
-                if (isVerticesDebug) return;
-                Player player = event.getPlayer();
-                UUID playerUUID = player.getUniqueId();
-                Set<Integer> playerSet = glowingEntities.computeIfAbsent(playerUUID, k -> new HashSet<>());
-                for (var data : packet.getEntityMetadata()) {
-                    if (data.getIndex() == 0) {
-                        Object value = data.getValue();
-                        if (value instanceof Byte flags) {
-                            boolean isGlowing = (flags & 0x40) != 0;
-                            if (isGlowing) {
-                                playerSet.add(packet.getEntityId());
-                            } else {
-                                playerSet.remove(packet.getEntityId());
-                            }
-                        }
-                    }
-                }
-            }
-            case PacketType.Play.Server.TEAMS -> {
-                WrapperPlayServerTeams packet = new WrapperPlayServerTeams(event);
-                String teamName = packet.getTeamName();
-                WrapperPlayServerTeams.TeamMode mode = packet.getTeamMode();
-
-                if (mode == WrapperPlayServerTeams.TeamMode.CREATE || mode == WrapperPlayServerTeams.TeamMode.UPDATE) {
-                    if (packet.getTeamInfo().isPresent()) {
-                        WrapperPlayServerTeams.ScoreBoardTeamInfo info = packet.getTeamInfo().get();
-                        TeamUtils.teamColors.put(teamName, info.getColor());
-                        TeamUtils.teamPrefixes.put(teamName, info.getPrefix());
-                    }
-                }
-
-                if (mode == WrapperPlayServerTeams.TeamMode.CREATE || mode == WrapperPlayServerTeams.TeamMode.ADD_ENTITIES) {
-                    for (String entry : packet.getPlayers()) {
-                        TeamUtils.entryToTeam.put(entry, teamName);
-                    }
-                }
-
-                if (mode == WrapperPlayServerTeams.TeamMode.REMOVE_ENTITIES) {
-                    for (String entry : packet.getPlayers()) {
-                        TeamUtils.entryToTeam.remove(entry);
-                    }
-                }
-
-                if (mode == WrapperPlayServerTeams.TeamMode.REMOVE) {
-                    TeamUtils.teamColors.remove(teamName);
-                    TeamUtils.teamPrefixes.remove(teamName);
-                    TeamUtils.entryToTeam.values().removeIf(teamName::equals);
-                }
-            }
-            default -> {}
+            // Cancel — hide immediately, RayTraceManager shows if in sight next tick
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Entity entity = Bukkit.getEntity(entityUUID);
+                if (entity == null) return;
+                VisibilityUtils.setHidden(viewer, entity);
+            });
+            return;
         }
+
+        // PLAYER_INFO_REMOVE
+        if (msg instanceof ClientboundPlayerInfoRemovePacket(List<UUID> original)) {
+            List<UUID> filtered = new ArrayList<>();
+
+            for (UUID entityUUID : original) {
+                if (viewer.getUniqueId().equals(entityUUID)) continue;
+                if (bypassPacketSet.contains(bypassHiddenKey(viewer, entityUUID))) continue;
+                filtered.add(entityUUID);
+            }
+
+            if (filtered.size() == original.size()) {
+                ctx.write(msg, promise);
+                return;
+            }
+
+            if (!filtered.isEmpty()) {
+                ServerPlayer nmsPlayer = ((CraftPlayer) viewer).getHandle();
+                nmsPlayer.connection.send(new ClientboundPlayerInfoRemovePacket(filtered));
+            }
+            return;
+        }
+
+        // ENTITY_METADATA
+        if (msg instanceof ClientboundSetEntityDataPacket(int entityId, List<SynchedEntityData.DataValue<?>> packedItems)) {
+
+            if (entityId < 2000000 || entityId >= 3000000 && entityId < 4000000 || entityId >= 5000000) {
+                Set<Integer> playerSet = glowingEntities.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+
+                for (SynchedEntityData.DataValue<?> data : packedItems) {
+                    if (data.id() == 0 && data.value() instanceof Byte flags) {
+                        if ((flags & 0x40) != 0) playerSet.add(entityId);
+                        else playerSet.remove(entityId);
+                    }
+                }
+            }
+
+            ctx.write(msg, promise);
+            return;
+        }
+
+        // TEAMS
+        if (msg instanceof ClientboundSetPlayerTeamPacket packet) {
+            String teamName = packet.getName();
+
+            ClientboundSetPlayerTeamPacket.Action teamAction = packet.getTeamAction();
+            ClientboundSetPlayerTeamPacket.Action playerAction = packet.getPlayerAction();
+
+            // CREATE or UPDATE — both have parameters, teamAction=ADD
+            packet.getParameters().ifPresent(params -> {
+                NamedTextColor color = chatFormattingToNamedTextColor(params.getColor());
+                net.kyori.adventure.text.Component prefix = PaperAdventure.asAdventure(params.getPlayerPrefix());
+                if (color != null) TeamUtils.teamColors.put(teamName, color);
+                TeamUtils.teamPrefixes.put(teamName, prefix);
+            });
+
+            // CREATE (teamAction=ADD) or ADD_PLAYERS (playerAction=ADD)
+            if (teamAction == ClientboundSetPlayerTeamPacket.Action.ADD
+                    || playerAction == ClientboundSetPlayerTeamPacket.Action.ADD) {
+                for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.put(entry, teamName);
+            }
+
+            // REMOVE_PLAYERS (playerAction=REMOVE)
+            if (playerAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
+                for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.remove(entry);
+            }
+
+            // REMOVE team (teamAction=REMOVE)
+            if (teamAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
+                TeamUtils.teamColors.remove(teamName);
+                TeamUtils.teamPrefixes.remove(teamName);
+                TeamUtils.entryToTeam.values().removeIf(teamName::equals);
+            }
+
+            ctx.write(msg, promise);
+            return;
+        }
+
+        ctx.write(msg, promise);
+    }
+
+    private static NamedTextColor chatFormattingToNamedTextColor(ChatFormatting formatting) {
+        if (formatting.getColor() == null) return null;
+        return NamedTextColor.namedColor(formatting.getColor());
     }
 }
