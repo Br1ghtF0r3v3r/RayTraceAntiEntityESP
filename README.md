@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 * Note that you should restart your server after each of these steps. Don't enable, disable or reload this plugin on a
   running server under any circumstances (e.g. using `/reload`, plugin managers, etc.). It won't work properly and will
   cause issues.
-> ⚠️ **Requirements:** Paper **1.21.x** only.
+> ⚠️ **Requirements:** Paper **1.21.x**.
 
 ---
 ## Configuration
