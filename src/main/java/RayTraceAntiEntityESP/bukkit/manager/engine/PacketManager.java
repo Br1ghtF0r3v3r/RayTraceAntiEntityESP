@@ -7,10 +7,7 @@ import io.netty.channel.ChannelPromise;
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
-import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
+import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Bukkit;
@@ -25,11 +22,13 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class PacketManager {
 
-    public record BypassKey(UUID viewer, UUID entity, boolean show) {
-    }
+    public record BypassKey(UUID viewer, UUID entity, boolean show) {}
 
     public static final Set<BypassKey> bypassPacketSet = ConcurrentHashMap.newKeySet();
     public static final Map<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
+
+    public static final Map<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
+    public static final Map<String, Map<String, Integer>> objectiveScores = new ConcurrentHashMap<>();
 
     public static BypassKey bypassShowKey(Player viewer, UUID entityUUID) {
         return new BypassKey(viewer.getUniqueId(), entityUUID, true);
@@ -145,6 +144,43 @@ public class PacketManager {
                 TeamUtils.entryToTeam.values().removeIf(teamName::equals);
             }
 
+            ctx.write(msg, promise);
+            return;
+        }
+
+        // DISPLAY_OBJECTIVE — track which objective is in the below_name slot
+        if (msg instanceof ClientboundSetDisplayObjectivePacket packet) {
+            if (packet.getSlot() == net.minecraft.world.scores.DisplaySlot.BELOW_NAME) {
+                String objName = packet.getObjectiveName();
+                if (objName == null || objName.isEmpty()) {
+                    belowNameObjective.remove(viewer.getUniqueId());
+                } else {
+                    belowNameObjective.put(viewer.getUniqueId(), objName);
+                }
+            }
+            ctx.write(msg, promise);
+            return;
+        }
+
+        // SET_SCORE — track scores per objective per entry
+        if (msg instanceof ClientboundSetScorePacket packet) {
+            objectiveScores
+                    .computeIfAbsent(packet.objectiveName(), k -> new ConcurrentHashMap<>())
+                    .put(packet.owner(), packet.score());
+            ctx.write(msg, promise);
+            return;
+        }
+
+        // RESET_SCORE — remove score entry
+        if (msg instanceof ClientboundResetScorePacket(String owner, String objective)) {
+            if (objective != null) {
+                Map<String, Integer> scores = objectiveScores.get(objective);
+                if (scores != null) scores.remove(owner);
+            } else {
+                for (Map<String, Integer> scores : objectiveScores.values()) {
+                    scores.remove(owner);
+                }
+            }
             ctx.write(msg, promise);
             return;
         }

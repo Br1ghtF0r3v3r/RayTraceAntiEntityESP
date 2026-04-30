@@ -153,6 +153,11 @@ public class RayTraceManager {
             return true;
         }
 
+        if (hasBelowNameScore(viewer, entity) && distSq <= 10 * 10) {
+            if (Config.isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
+            return true;
+        }
+
         List<Vector> vertices = getEntityVertices(distance, entity, range);
 
         if (Config.isDebugEnabled) {
@@ -171,6 +176,15 @@ public class RayTraceManager {
             if (isVisible(world, eyePos, lookDir, vertex)) return true;
         }
         return false;
+    }
+
+    private static boolean hasBelowNameScore(Player viewer, Entity entity) {
+        String objective = PacketManager.belowNameObjective.get(viewer.getUniqueId());
+        if (objective == null) return false;
+        Map<String, Integer> scores = PacketManager.objectiveScores.get(objective);
+        if (scores == null) return false;
+        String entry = entity instanceof Player p ? p.getName() : entity.getUniqueId().toString();
+        return scores.containsKey(entry);
     }
 
     public static boolean isAntiEntity(Entity entity) {
