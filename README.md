@@ -8,10 +8,10 @@ blocks are concealed at the packet level, meaning clients never receive data for
 ## Demo
 
 ### Without RayTrace Anti Entity ESP
-![RayTraceAntiEntityESP(with plugin).gif](bin/RayTraceAntiEntityESP%28with%20plugin%29.gif)
+https://github.com/user-attachments/assets/d3adf141-d0bc-43ed-81a3-8d84a1e91857
 
 ### With RayTrace Anti Entity ESP
-![RayTraceAntiEntityESP(without plugin).gif](bin/RayTraceAntiEntityESP%28without%20plugin%29.gif)
+https://github.com/user-attachments/assets/5f619fe5-fcc2-469c-ba08-cdae0c8ad267
 
 ---
 ## Installation
