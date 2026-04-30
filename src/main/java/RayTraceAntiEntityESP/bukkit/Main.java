@@ -6,8 +6,6 @@ import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
 import RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager;
 import RayTraceAntiEntityESP.bukkit.manager.licenses.SessionManager;
-import com.github.retrooper.packetevents.PacketEvents;
-import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -38,9 +36,7 @@ public final class Main extends JavaPlugin {
             return;
         }
 
-        PacketEvents.getAPI().init();
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
-        PacketEvents.getAPI().getEventManager().registerListener(new EventListener());
         registerCommands();
         getLogger().info("RayTraceEntityESP enabled successfully!");
 
@@ -61,16 +57,7 @@ public final class Main extends JavaPlugin {
             executor.shutdownNow();
         }
 
-        PacketEvents.getAPI().terminate();
         getLogger().info("RayTraceEntityESP disabled.");
-
-    }
-
-    @Override
-    public void onLoad() {
-
-        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
-        PacketEvents.getAPI().load();
 
     }
 

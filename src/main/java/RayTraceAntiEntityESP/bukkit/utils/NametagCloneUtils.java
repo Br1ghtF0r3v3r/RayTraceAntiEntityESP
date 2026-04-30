@@ -1,15 +1,16 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
-import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.protocol.entity.data.EntityData;
-import com.github.retrooper.packetevents.protocol.entity.data.EntityDataTypes;
-import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
-import com.github.retrooper.packetevents.util.Vector3d;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityTeleport;
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
+import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
+import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.phys.Vec3;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -30,6 +31,27 @@ public class NametagCloneUtils {
     private boolean spawned;
 
     private Component customName;
+
+    private void send(net.minecraft.network.protocol.Packet<?> packet) {
+        ((CraftPlayer) viewer).getHandle().connection.send(packet);
+    }
+
+    private List<SynchedEntityData.DataValue<?>> buildMetadata() {
+        List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
+
+        metadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
+
+        if (customName != null) {
+            metadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT,
+                    Optional.of(PaperAdventure.asVanilla(customName))));
+            metadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
+        }
+
+        metadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
+        metadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
+
+        return metadata;
+    }
 
     public NametagCloneUtils(Player viewer) {
         this.viewer = viewer;
@@ -55,35 +77,24 @@ public class NametagCloneUtils {
     public void spawn() {
         if (spawned) return;
 
-        WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(
-                entityId,
-                Optional.of(entityUuid),
-                EntityTypes.ARMOR_STAND,
-                new Vector3d(x, y, z),
-                0f, 0f, 0f, 0,
-                Optional.of(new Vector3d(0, 0, 0))
+        ClientboundAddEntityPacket spawnPacket = new ClientboundAddEntityPacket(
+                entityId, entityUuid,
+                x, y, z,
+                0f, 0f,
+                EntityType.ARMOR_STAND,
+                0,
+                Vec3.ZERO,
+                0.0
         );
 
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, spawnPacket);
-        sendFullMeta();
+        ClientboundSetEntityDataPacket metaPacket = new ClientboundSetEntityDataPacket(entityId, buildMetadata());
+
+        send(new ClientboundBundlePacket(List.of(spawnPacket, metaPacket)));
         spawned = true;
     }
 
     public void sendFullMeta() {
-        List<EntityData<?>> metadata = new ArrayList<>();
-
-        metadata.add(new EntityData<>(0, EntityDataTypes.BYTE, (byte) 0x20));
-
-        if (customName != null) {
-            metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_ADV_COMPONENT, Optional.of(customName)));
-            metadata.add(new EntityData<>(3, EntityDataTypes.BOOLEAN, true));
-        }
-
-        metadata.add(new EntityData<>(5, EntityDataTypes.BOOLEAN, true));
-        metadata.add(new EntityData<>(15, EntityDataTypes.BYTE, (byte) 0x19));
-
-        WrapperPlayServerEntityMetadata metaPacket = new WrapperPlayServerEntityMetadata(entityId, metadata);
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, metaPacket);
+        send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
     }
 
     public void teleport(double x, double y, double z) {
@@ -92,20 +103,24 @@ public class NametagCloneUtils {
         this.y = y;
         this.z = z;
 
-        WrapperPlayServerEntityTeleport tpPacket = new WrapperPlayServerEntityTeleport(
-                entityId,
-                new Vector3d(x, y, z),
-                0f, // yaw
-                0f, // pitch
-                false // onGround
-        );
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, tpPacket);
+        send(new ClientboundBundlePacket(List.of(
+                new ClientboundRemoveEntitiesPacket(entityId),
+                new ClientboundAddEntityPacket(
+                        entityId, entityUuid,
+                        x, y, z,
+                        0f, 0f,
+                        EntityType.ARMOR_STAND,
+                        0,
+                        Vec3.ZERO,
+                        0.0
+                ),
+                new ClientboundSetEntityDataPacket(entityId, buildMetadata())
+        )));
     }
 
     public void despawn() {
         if (!spawned) return;
-        WrapperPlayServerDestroyEntities destroyPacket = new WrapperPlayServerDestroyEntities(entityId);
-        PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, destroyPacket);
+        send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
     }
 }
