@@ -25,14 +25,18 @@ public class EventManager {
 
     public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
         UUID playerUUID = event.getPlayerUniqueId();
+        if (isDisplayNameEnabled) {
+            NametagCloneManager.removeDisplayForEntity(playerUUID);
+        }
+        if (isDebugEnabled) {
+            VerticesDebugManager.removeDisplayForEntity(playerUUID);
+        }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (isDisplayNameEnabled) {
                 NametagCloneManager.removeDisplay(playerUUID);
-                NametagCloneManager.removeDisplayForEntity(playerUUID);
             }
             if (isDebugEnabled) {
                 VerticesDebugManager.removeDisplay(playerUUID);
-                VerticesDebugManager.removeDisplayForEntity(playerUUID);
             }
         }, 20L);
     }
