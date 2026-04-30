@@ -9,6 +9,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
@@ -36,7 +37,7 @@ public class EventManager {
             if (isDisplayNameEnabled) NametagCloneManager.removeDisplay(playerUUID);
             if (isDebugEnabled) VerticesDebugManager.removeDisplay(playerUUID);
             if (viewerEntityId != -1) VisibilityUtils.clearViewer(viewerEntityId);
-        }, 20L);
+        }, 0L);
     }
 
     public static void packetSendManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
@@ -47,10 +48,15 @@ public class EventManager {
         Entity entity = event.getEntity();
         UUID entityUUID = entity.getUniqueId();
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(entityUUID);
-            if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(entityUUID);
-        }, 20L);
+        if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(entityUUID);
+        if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(entityUUID);
+    }
+
+    public static void playerRespawnManager(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        int entityId = ((CraftPlayer) player).getHandle().getId();
+
+        VisibilityUtils.clearViewer(entityId);
     }
 
 }
