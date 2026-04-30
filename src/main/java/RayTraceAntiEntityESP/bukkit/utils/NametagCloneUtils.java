@@ -2,10 +2,7 @@ package RayTraceAntiEntityESP.bukkit.utils;
 
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundBundlePacket;
-import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
-import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
+import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.EntityType;
@@ -28,6 +25,7 @@ public class NametagCloneUtils {
     private final int entityId;
     private final UUID entityUuid;
     private double x, y, z;
+    private long lastX, lastY, lastZ;
     private boolean spawned;
 
     private Component customName;
@@ -61,7 +59,7 @@ public class NametagCloneUtils {
 
     public void setName(Component name) {
         this.customName = name;
-        if (spawned) sendFullMeta();
+        if (spawned) send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
     }
 
     public void setPos(double x, double y, double z) {
@@ -77,45 +75,50 @@ public class NametagCloneUtils {
     public void spawn() {
         if (spawned) return;
 
-        ClientboundAddEntityPacket spawnPacket = new ClientboundAddEntityPacket(
-                entityId, entityUuid,
-                x, y, z,
-                0f, 0f,
-                EntityType.ARMOR_STAND,
-                0,
-                Vec3.ZERO,
-                0.0
-        );
+        lastX = (long) (x * 4096);
+        lastY = (long) (y * 4096);
+        lastZ = (long) (z * 4096);
 
-        ClientboundSetEntityDataPacket metaPacket = new ClientboundSetEntityDataPacket(entityId, buildMetadata());
-
-        send(new ClientboundBundlePacket(List.of(spawnPacket, metaPacket)));
+        send(new ClientboundBundlePacket(List.of(
+                new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f,
+                        EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
+                new ClientboundSetEntityDataPacket(entityId, buildMetadata())
+        )));
         spawned = true;
-    }
-
-    public void sendFullMeta() {
-        send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
     }
 
     public void teleport(double x, double y, double z) {
         if (!spawned) return;
+
+        long newX = (long) (x * 4096);
+        long newY = (long) (y * 4096);
+        long newZ = (long) (z * 4096);
+
+        long dx = newX - lastX;
+        long dy = newY - lastY;
+        long dz = newZ - lastZ;
+
         this.x = x;
         this.y = y;
         this.z = z;
+        this.lastX = newX;
+        this.lastY = newY;
+        this.lastZ = newZ;
 
-        send(new ClientboundBundlePacket(List.of(
-                new ClientboundRemoveEntitiesPacket(entityId),
-                new ClientboundAddEntityPacket(
-                        entityId, entityUuid,
-                        x, y, z,
-                        0f, 0f,
-                        EntityType.ARMOR_STAND,
-                        0,
-                        Vec3.ZERO,
-                        0.0
-                ),
-                new ClientboundSetEntityDataPacket(entityId, buildMetadata())
-        )));
+        if (dx < -32768 || dx > 32767 || dy < -32768 || dy > 32767 || dz < -32768 || dz > 32767) {
+            send(new ClientboundBundlePacket(List.of(
+                    new ClientboundRemoveEntitiesPacket(entityId),
+                    new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f,
+                            EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
+                    new ClientboundSetEntityDataPacket(entityId, buildMetadata())
+            )));
+            lastX = newX;
+            lastY = newY;
+            lastZ = newZ;
+            return;
+        }
+
+        send(new ClientboundMoveEntityPacket.Pos(entityId, (short) dx, (short) dy, (short) dz, true));
     }
 
     public void despawn() {
