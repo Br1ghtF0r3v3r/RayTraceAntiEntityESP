@@ -7,16 +7,32 @@ blocks are concealed at the packet level, meaning clients never receive data for
 ---
 ## Demo
 
+<details>
+<summary>View</summary>
+
 ### Without RayTrace Anti Entity ESP
+<details>
+<summary>View</summary>
+
 https://github.com/user-attachments/assets/68cc56f7-f8e2-4c7c-95db-995082286535
 
+</details>
 
 ### With RayTrace Anti Entity ESP
+<details>
+<summary>View</summary>
+
 https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 
+</details>
+
+</details>
 
 ---
 ## Installation
+<details>
+<summary>View</summary>
+
 1. **Download** the latest `.jar` from [Download]().
 2. **Drop** the `.jar` into your server's `/plugins` folder.
 3. **Restart** your server (do not use `/reload`).
@@ -26,6 +42,8 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
   running server under any circumstances (e.g. using `/reload`, plugin managers, etc.). It won't work properly and will
   cause issues.
 > ⚠️ **Requirements:** Paper **1.21.x**.
+
+</details>
 
 ---
 ## Configuration
@@ -55,10 +73,14 @@ anti_entities:
 anti_mode: whitelist       # whitelist = only listed types | blacklist = all except listed
 bypass_tag: raytrace_anti_esp_bypass  # Tag this to an entity to always show it
 ```
+
 </details>
 
 ---
 ## Commands
+<details>
+<summary>View</summary>
+
 All commands require OP or the `raytrace_anti_entity_esp.command` permission. Alias: `/rtaee`
 
 | Command | Description |
@@ -76,8 +98,15 @@ All commands require OP or the `raytrace_anti_entity_esp.command` permission. Al
 | `anti_mode <whitelist\|blacklist>` | Switch filter mode |
 | `anti_entities <add\|remove> <type>` | Edit entity list |
 
+</details>
+
 ---
 ## License
+<details>
+<summary>View</summary>
+
 Copyright (c) 2026 [Br1ghtF0r3v3r](https://github.com/Br1ghtF0r3v3r)
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE.txt) file for details.
+
+</details>
