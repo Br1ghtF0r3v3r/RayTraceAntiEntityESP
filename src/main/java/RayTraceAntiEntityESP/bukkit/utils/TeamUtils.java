@@ -36,4 +36,7 @@ public class TeamUtils {
         return teamPrefixes.get(teamName);
     }
 
+    public static String getTeamName(Entity entity) {
+        return entryToTeam.get(entity.getScoreboardEntryName());
+    }
 }
