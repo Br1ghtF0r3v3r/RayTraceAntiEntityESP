@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.manager.engine;
 
 import RayTraceAntiEntityESP.bukkit.Main;
+import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import org.bukkit.*;
@@ -15,7 +16,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
-import static RayTraceAntiEntityESP.bukkit.config.Config.*;
 
 public class RayTraceManager {
 
@@ -28,10 +28,10 @@ public class RayTraceManager {
     }
 
     public static boolean isVisible(World world, Vector eyePos, Vector lookDir, Vector endpoint) {
-        if (!isPerspectiveCheckingEnabled) return !hitsBlock(world, eyePos, endpoint);
+        if (!Config.isPerspectiveCheckingEnabled) return !hitsBlock(world, eyePos, endpoint);
         return !hitsBlock(world, eyePos, endpoint)
-                || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), perspectiveCheckingDistance), endpoint)
-                || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, perspectiveCheckingDistance), endpoint);
+                || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir.clone().multiply(-1), Config.perspectiveCheckingDistance), endpoint)
+                || !hitsBlock(world, getThirdPersonPos(world, eyePos, lookDir, Config.perspectiveCheckingDistance), endpoint);
     }
 
     private static int[] initBlockPos(Vector origin, Vector direction) {
@@ -133,7 +133,7 @@ public class RayTraceManager {
     }
 
     public static boolean isEntityInSight(Player viewer, Entity entity, Vector eyePos, Vector lookDir, Location viewerLoc, World world) {
-        double range = getSpigotTrackingRange(entity);
+        double range = Config.getSpigotTrackingRange(entity);
 
         double dx = viewerLoc.getX() - entity.getLocation().getX();
         double dz = viewerLoc.getZ() - entity.getLocation().getZ();
@@ -145,14 +145,14 @@ public class RayTraceManager {
         if (!isAntiEntity(entity)
                 || isEntityGlowing(viewer, entity)
                 || horizDistSq > range * range
-                || (checkingDistanceOverride > 0 && distSq < checkingDistanceOverride * checkingDistanceOverride)) {
-            if (isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
+                || (Config.checkingDistanceOverride > 0 && distSq < Config.checkingDistanceOverride * Config.checkingDistanceOverride)) {
+            if (Config.isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
 
         List<Vector> vertices = getEntityVertices(distance, entity, range);
 
-        if (isDebugEnabled) {
+        if (Config.isDebugEnabled) {
             List<Boolean> visibilities = new ArrayList<>(vertices.size());
             boolean visible = false;
             for (Vector vertex : vertices) {
@@ -171,14 +171,14 @@ public class RayTraceManager {
     }
 
     public static boolean isAntiEntity(Entity entity) {
-        if (!bypassTag.isEmpty() && entity.getScoreboardTags().contains(bypassTag)) return false;
-        boolean listed = antiEntities.contains(entity.getType().name().toLowerCase());
-        return isBlacklist != listed;
+        if (!Config.bypassTag.isEmpty() && entity.getScoreboardTags().contains(Config.bypassTag)) return false;
+        boolean listed = Config.antiEntities.contains(entity.getType().name().toLowerCase());
+        return Config.isBlacklist != listed;
     }
 
     public static List<Vector> getEntityVertices(double distance, Entity entity, double checkingRange) {
 
-        if (checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
+        if (Config.checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
 
         ArrayList<Vector> vertices = new ArrayList<>();
         BoundingBox boundingBox = entity.getBoundingBox();
@@ -193,7 +193,7 @@ public class RayTraceManager {
 
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
 
-        int scaledSampleLayers = Math.max(2, (int) Math.round(checkingVerticesLayers * (1.0 - ratio)));
+        int scaledSampleLayers = Math.max(2, (int) Math.round(Config.checkingVerticesLayers * (1.0 - ratio)));
 
         boolean includeCorners = ratio < 0.5;
 
@@ -202,11 +202,11 @@ public class RayTraceManager {
             vertices.add(new Vector(midX, y, midZ));
 
             if (includeCorners) {
-                if (checkingBoundingBoxExtraValue > 0) {
-                    double eMinX = minX - checkingBoundingBoxExtraValue;
-                    double eMaxX = maxX + checkingBoundingBoxExtraValue;
-                    double eMinZ = minZ - checkingBoundingBoxExtraValue;
-                    double eMaxZ = maxZ + checkingBoundingBoxExtraValue;
+                if (Config.checkingBoundingBoxExtraValue > 0) {
+                    double eMinX = minX - Config.checkingBoundingBoxExtraValue;
+                    double eMaxX = maxX + Config.checkingBoundingBoxExtraValue;
+                    double eMinZ = minZ - Config.checkingBoundingBoxExtraValue;
+                    double eMaxZ = maxZ + Config.checkingBoundingBoxExtraValue;
 
                     vertices.add(new Vector(eMinX, y, eMinZ));
                     vertices.add(new Vector(eMinX, y, eMaxZ));
@@ -246,7 +246,7 @@ public class RayTraceManager {
 
             VisibilityUtils.setNotHidden(viewer, entity);
 
-            if (isDisplayNameEnabled) {
+            if (Config.isDisplayNameEnabled) {
                 NametagCloneManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             }
 
@@ -254,13 +254,13 @@ public class RayTraceManager {
 
             VisibilityUtils.setHidden(viewer, entity);
 
-            if (isDisplayNameEnabled) {
+            if (Config.isDisplayNameEnabled) {
                 NametagCloneManager.applyDisplay(viewer, entity);
             }
 
         } else if (!visibleServer) {
 
-             if (isDisplayNameEnabled) {
+             if (Config.isDisplayNameEnabled) {
                  NametagCloneManager.applyDisplay(viewer, entity);
              }
 
@@ -307,7 +307,7 @@ public class RayTraceManager {
                     });
                 }, Main.executor);
             }
-        }, 0L, checkingPeriodTicks);
+        }, 0L, Config.checkingPeriodTicks);
     }
 
 }

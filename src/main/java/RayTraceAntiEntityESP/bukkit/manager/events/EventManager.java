@@ -4,10 +4,12 @@ import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
-import com.github.retrooper.packetevents.event.PacketSendEvent;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.papermc.paper.event.player.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
@@ -35,8 +37,8 @@ public class EventManager {
         }, 20L);
     }
 
-    public static void packetSendManager(PacketSendEvent event) {
-        PacketManager.packetManager(event);
+    public static void packetSendManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
+        PacketManager.packetManager(viewer, msg, ctx, promise);
     }
 
     public static void entityDeathManager(EntityDeathEvent event) {
