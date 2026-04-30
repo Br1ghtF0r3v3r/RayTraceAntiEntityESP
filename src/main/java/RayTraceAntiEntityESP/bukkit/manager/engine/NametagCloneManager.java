@@ -6,6 +6,7 @@ import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -25,7 +26,7 @@ public class NametagCloneManager {
         if (viewer.canSee(entity)) return false;
         if (entity.isInvisible()) return false;
         if (entity instanceof Player player && player.isSneaking()) return false;
-
+        if (entity instanceof Player player && ((CraftPlayer) player).getHandle().hasDisconnected()) return false;
         return VisibilityUtils.isNameVisible(viewer, entity);
     }
 
