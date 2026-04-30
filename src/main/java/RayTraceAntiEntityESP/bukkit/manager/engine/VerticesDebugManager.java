@@ -2,6 +2,7 @@ package RayTraceAntiEntityESP.bukkit.manager.engine;
 
 import RayTraceAntiEntityESP.bukkit.utils.VerticesDebugUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -13,9 +14,9 @@ public class VerticesDebugManager {
 
     private static final Map<UUID, Map<UUID, List<VerticesDebugUtils>>> markers = new ConcurrentHashMap<>();
 
-
     private static boolean shouldShow(Entity entity) {
         if (entity.isDead()) return false;
+        if (entity instanceof Player player && ((CraftPlayer) player).getHandle().hasDisconnected()) return false;
         return entity.isValid();
     }
 
