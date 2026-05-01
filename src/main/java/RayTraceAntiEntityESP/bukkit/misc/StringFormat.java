@@ -69,17 +69,6 @@ public class StringFormat {
         return LEGACY_SERIALIZER.serialize(MINI_MESSAGE.deserialize(text));
     }
 
-    public static Component formatToComponent(CommandSender sender, String text) {
-        PluginManager pluginManager = Bukkit.getPluginManager();
-        Plugin plugin = pluginManager.getPlugin("PlaceholderAPI");
-        if (plugin != null && pluginManager.isPluginEnabled("PlaceholderAPI")) {
-            if (PlaceholderAPI.containsPlaceholders(text))
-                text = PlaceholderAPI.setPlaceholders(sender instanceof Player p ? p : null, text);
-        }
-        text = applyColorCodes(text);
-        return MINI_MESSAGE.deserialize(text);
-    }
-
     public static void debug(String text) {Bukkit.broadcast(Component.text(text));}
 
 }
