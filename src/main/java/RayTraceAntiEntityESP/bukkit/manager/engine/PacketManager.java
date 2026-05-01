@@ -28,7 +28,6 @@ public class PacketManager {
     public static final Map<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
 
     public static final Map<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
-    public static final Map<String, Map<String, Integer>> objectiveScores = new ConcurrentHashMap<>();
 
     public static BypassKey bypassShowKey(Player viewer, UUID entityUUID) {
         return new BypassKey(viewer.getUniqueId(), entityUUID, true);
@@ -162,24 +161,11 @@ public class PacketManager {
             return;
         }
 
-        // SET_SCORE — track scores per objective per entry
-        if (msg instanceof ClientboundSetScorePacket packet) {
-            objectiveScores
-                    .computeIfAbsent(packet.objectiveName(), k -> new ConcurrentHashMap<>())
-                    .put(packet.owner(), packet.score());
-            ctx.write(msg, promise);
-            return;
-        }
-
-        // RESET_SCORE — remove score entry
-        if (msg instanceof ClientboundResetScorePacket(String owner, String objective)) {
-            if (objective != null) {
-                Map<String, Integer> scores = objectiveScores.get(objective);
-                if (scores != null) scores.remove(owner);
-            } else {
-                for (Map<String, Integer> scores : objectiveScores.values()) {
-                    scores.remove(owner);
-                }
+        // OBJECTIVE — when objective is removed entirely, clear it from tracking
+        if (msg instanceof ClientboundSetObjectivePacket packet) {
+            if (packet.getMethod() == 1) {
+                String removedName = packet.getObjectiveName();
+                belowNameObjective.values().removeIf(removedName::equals);
             }
             ctx.write(msg, promise);
             return;

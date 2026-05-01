@@ -20,9 +20,7 @@ import org.bukkit.event.entity.*;
 import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 import static RayTraceAntiEntityESP.bukkit.config.Config.isDebugEnabled;
@@ -32,24 +30,30 @@ public class EventManager {
 
     private static final String HANDLER_NAME = "anti_esp_handler";
 
-    public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
-        UUID playerUUID = event.getPlayerUniqueId();
-        Player player = Bukkit.getPlayer(playerUUID);
-        int viewerEntityId = player != null ? player.getEntityId() : -1;
+    public static void playerQuitManager(PlayerQuitEvent event) {
+        UUID playerUUID = event.getPlayer().getUniqueId();
+        int viewerEntityId = event.getPlayer().getEntityId();
+
+        for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
+            PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(sp.getBukkitEntity(), playerUUID));
+        }
 
         if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(playerUUID);
+        VisibilityUtils.clearViewer(viewerEntityId);
+    }
+
+    public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
+        UUID playerUUID = event.getPlayerUniqueId();
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (isDisplayNameEnabled) NametagCloneManager.removeDisplay(playerUUID);
             if (isDebugEnabled) VerticesDebugManager.removeDisplay(playerUUID);
-            if (viewerEntityId != -1) VisibilityUtils.clearViewer(viewerEntityId);
         }, 0L);
     }
 
     public static void playerJoinManager(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-
         injectPlayer(player);
 
         org.bukkit.scoreboard.Objective obj =
@@ -57,16 +61,6 @@ public class EventManager {
                         .getObjective(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
         if (obj != null) {
             PacketManager.belowNameObjective.put(player.getUniqueId(), obj.getName());
-
-            Map<String, Integer> scores = PacketManager.objectiveScores
-                    .computeIfAbsent(obj.getName(), k -> new ConcurrentHashMap<>());
-
-            for (String entry : Bukkit.getScoreboardManager().getMainScoreboard().getEntries()) {
-                org.bukkit.scoreboard.Score score = obj.getScore(entry);
-                if (score.isScoreSet()) {
-                    scores.put(entry, score.getScore());
-                }
-            }
         }
     }
 
