@@ -106,8 +106,6 @@ tasks.withType(JavaCompile).configureEach {
     }
 }
 
-def buildId = UUID.randomUUID().toString()
-
 processResources {
     def props = [
             name : project.name,
@@ -116,7 +114,6 @@ processResources {
             apiVersion : apiVersion,
             author : author,
             description : project.description,
-            buildId : buildId
     ]
     inputs.properties props
     filesMatching('plugin.yml') { expand props }

@@ -24,7 +24,7 @@ public final class Main extends JavaPlugin {
 
         reloadConfigAll();
 
-        if (!SessionManager.startSession(LicenseManager.getBuildId(plugin), this)) {
+        if (!SessionManager.startSession(Config.licenseKey, this)) {
             plugin.getLogger().severe("This build is already running on another server! Shutting down.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
