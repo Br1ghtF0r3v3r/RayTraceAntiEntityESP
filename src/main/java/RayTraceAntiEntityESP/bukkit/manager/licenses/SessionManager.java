@@ -18,9 +18,9 @@ public class SessionManager {
 
     private static final HttpClient http = HttpClient.newHttpClient();
     private static BukkitTask heartbeatTask;
-    private static String activeBuildId;
+    private static String activeLicense;
 
-    public static boolean startSession(String buildId, JavaPlugin plugin) {
+    public static boolean startSession(String license, JavaPlugin plugin) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(SUPABASE_URL))
@@ -29,7 +29,7 @@ public class SessionManager {
                     .header("Content-Type", "application/json")
                     .header("Prefer", "resolution=ignore-duplicates")
                     .POST(HttpRequest.BodyPublishers.ofString(
-                            "{\"build_id\":\"" + buildId + "\"}"
+                            "{\"build_id\":\"" + license + "\"}"
                     ))
                     .build();
 
@@ -41,9 +41,9 @@ public class SessionManager {
                 return false;
             }
 
-            activeBuildId = buildId;
+            activeLicense = license;
             startHeartbeat(plugin);
-            plugin.getLogger().info("Session claimed for build: " + buildId);
+            plugin.getLogger().info("Session claimed for license: " + license);
             return true;
 
         } catch (Exception e) {
@@ -54,16 +54,16 @@ public class SessionManager {
 
     public static void endSession() {
         stopHeartbeat();
-        if (activeBuildId == null) return;
+        if (activeLicense == null) return;
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SUPABASE_URL + "?build_id=eq." + activeBuildId))
+                    .uri(URI.create(SUPABASE_URL + "?build_id=eq." + activeLicense))
                     .header("apikey", SUPABASE_KEY)
                     .header("Authorization", "Bearer " + SUPABASE_KEY)
                     .DELETE()
                     .build();
             http.send(request, HttpResponse.BodyHandlers.ofString());
-            activeBuildId = null;
+            activeLicense = null;
         } catch (Exception e) {
             plugin.getLogger().warning("Could not release session: " + e.getMessage());
         }
@@ -72,10 +72,10 @@ public class SessionManager {
     private static void startHeartbeat(JavaPlugin plugin) {
         long ticks = HEARTBEAT_SECS * 20L;
         heartbeatTask = org.bukkit.Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            if (activeBuildId == null) return;
+            if (activeLicense == null) return;
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(SUPABASE_URL + "?build_id=eq." + activeBuildId))
+                        .uri(URI.create(SUPABASE_URL + "?build_id=eq." + activeLicense))
                         .header("apikey", SUPABASE_KEY)
                         .header("Authorization", "Bearer " + SUPABASE_KEY)
                         .header("Content-Type", "application/json")
