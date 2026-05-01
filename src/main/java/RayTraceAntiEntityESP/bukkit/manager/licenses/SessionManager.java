@@ -29,7 +29,7 @@ public class SessionManager {
                     .header("Content-Type", "application/json")
                     .header("Prefer", "resolution=ignore-duplicates")
                     .POST(HttpRequest.BodyPublishers.ofString(
-                            "{\"build_id\":\"" + license + "\"}"
+                            "{\"license\":\"" + license + "\"}"
                     ))
                     .build();
 
@@ -57,7 +57,7 @@ public class SessionManager {
         if (activeLicense == null) return;
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SUPABASE_URL + "?build_id=eq." + activeLicense))
+                    .uri(URI.create(SUPABASE_URL + "?license=eq." + activeLicense))
                     .header("apikey", SUPABASE_KEY)
                     .header("Authorization", "Bearer " + SUPABASE_KEY)
                     .DELETE()
@@ -75,7 +75,7 @@ public class SessionManager {
             if (activeLicense == null) return;
             try {
                 HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(SUPABASE_URL + "?build_id=eq." + activeLicense))
+                        .uri(URI.create(SUPABASE_URL + "?license=eq." + activeLicense))
                         .header("apikey", SUPABASE_KEY)
                         .header("Authorization", "Bearer " + SUPABASE_KEY)
                         .header("Content-Type", "application/json")
