@@ -194,7 +194,7 @@ public class RayTraceManager {
     }
 
     public static boolean isAntiEntity(Entity entity) {
-        if (!Config.bypassTag.isEmpty() && entity.getScoreboardTags().contains(Config.bypassTag)) return false;
+        if (!Config.excludeEntityTag.isEmpty() && entity.getScoreboardTags().contains(Config.excludeEntityTag)) return false;
         boolean listed = Config.antiEntities.contains(entity.getType().name().toLowerCase());
         return Config.isBlacklist != listed;
     }
