@@ -100,4 +100,4 @@ anti_mode: whitelist
 # Use /tag <entity> add <tag> to apply
 # EX: /tag @e[type=player,limit=1,sort=nearest] add raytrace_anti_esp_bypass
 # Leave empty to disable
-bypass_tag: raytrace_anti_esp_bypass
+exclude_entity_tag: raytrace_anti_esp_bypass
