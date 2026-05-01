@@ -9,12 +9,12 @@ description: ${description}
 softdepend: [PlaceholderAPI]
 
 permissions:
-  raytrace_anti_entity_esp.command:
+  raytrace_anti_entity_esp.admin:
     default: op
 
 commands:
   raytrace_anti_entity_esp:
-    permission: raytrace_anti_entity_esp.command
+    permission: raytrace_anti_entity_esp.admin
     aliases: [rtaee, raytraceantientityesp]
     description: Main command for RayTraceAntiEntityESP plugin
     usage: /<command>

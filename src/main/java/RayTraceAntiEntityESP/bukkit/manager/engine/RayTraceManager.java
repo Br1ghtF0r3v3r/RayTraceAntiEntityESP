@@ -309,6 +309,7 @@ public class RayTraceManager {
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             blockCache.clear();
             for (Player viewer : Bukkit.getOnlinePlayers()) {
+                if (viewer.hasPermission("raytrace_anti_entity_esp.admin")) continue;
                 ServerLevel nmsWorld = ((CraftWorld) viewer.getWorld()).getHandle();
                 final int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
                 AABB aabb = AABB.ofSize(
