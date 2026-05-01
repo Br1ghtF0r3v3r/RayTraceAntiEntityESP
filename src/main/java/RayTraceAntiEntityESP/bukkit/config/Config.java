@@ -36,7 +36,7 @@ public class Config {
     public static List<String> antiEntities;
     public static String antiMode;
     public static boolean isBlacklist;
-    public static String bypassTag;
+    public static String excludeEntityTag;
 
     public static void setConfig() {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
@@ -64,7 +64,7 @@ public class Config {
         antiEntities = config.getStringList("anti_entities");
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
-        bypassTag = config.getString("bypass_tag", "raytrace_anti_esp_bypass");
+        excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_bypass");
 
         if (isCheckingEnabled) {
             RayTraceManager.startTask();
