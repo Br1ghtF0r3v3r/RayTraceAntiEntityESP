@@ -5,6 +5,8 @@ import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import org.bukkit.*;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -24,7 +26,7 @@ public class RayTraceManager {
 
     private static BukkitTask task;
 
-    private static volatile Map<Long, Boolean> blockCache = new ConcurrentHashMap<>();
+    private static final Map<Long, Boolean> blockCache = new ConcurrentHashMap<>();
 
     private static long blockKey(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
@@ -148,12 +150,8 @@ public class RayTraceManager {
         if (!isAntiEntity(entity)
                 || isEntityGlowing(viewer, entity)
                 || horizDistSq > range * range
-                || (Config.checkingDistanceOverride > 0 && distSq < Config.checkingDistanceOverride * Config.checkingDistanceOverride)) {
-            if (Config.isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
-            return true;
-        }
-
-        if (hasBelowNameScore(viewer, entity) && distSq <= 10 * 10) {
+                || (Config.checkingDistanceOverride > 0 && distSq < Config.checkingDistanceOverride * Config.checkingDistanceOverride)
+                || (hasBelowNameScore(viewer, entity) && distSq <= 10 * 10)) {
             if (Config.isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
@@ -181,10 +179,18 @@ public class RayTraceManager {
     private static boolean hasBelowNameScore(Player viewer, Entity entity) {
         String objective = PacketManager.belowNameObjective.get(viewer.getUniqueId());
         if (objective == null) return false;
-        Map<String, Integer> scores = PacketManager.objectiveScores.get(objective);
-        if (scores == null) return false;
+
+        net.minecraft.world.scores.Scoreboard nmsScoreboard =
+                net.minecraft.server.MinecraftServer.getServer().getScoreboard();
+        net.minecraft.world.scores.Objective nmsObjective =
+                nmsScoreboard.getObjective(objective);
+        if (nmsObjective == null) return false;
+
         String entry = entity instanceof Player p ? p.getName() : entity.getUniqueId().toString();
-        return scores.containsKey(entry);
+        net.minecraft.world.scores.ScoreHolder holder =
+                net.minecraft.world.scores.ScoreHolder.forNameOnly(entry);
+
+        return nmsScoreboard.getPlayerScoreInfo(holder, nmsObjective) != null;
     }
 
     public static boolean isAntiEntity(Entity entity) {
@@ -301,25 +307,24 @@ public class RayTraceManager {
     public static void startTask() {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            blockCache = new ConcurrentHashMap<>();
-
+            blockCache.clear();
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 ServerLevel nmsWorld = ((CraftWorld) viewer.getWorld()).getHandle();
-
                 final int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
+                AABB aabb = AABB.ofSize(
+                        new Vec3(viewer.getX(), viewer.getY(), viewer.getZ()),
+                        288, 288, 288
+                );
+                List<net.minecraft.world.entity.Entity> nearby = nmsWorld.getEntities(
+                        ((CraftPlayer) viewer).getHandle(), aabb
+                );
+                if (nearby.isEmpty()) continue;
 
-                Entity[] snapshot = new Entity[256];
-                int[] entityIds = new int[256];
                 int count = 0;
-
-                for (net.minecraft.world.entity.Entity nmsEntity : nmsWorld.getAllEntities()) {
-                    if (nmsEntity.getId() == viewerEntityId) continue;
-                    Entity e = nmsEntity.getBukkitEntity();
-                    if (count == snapshot.length) {
-                        snapshot = Arrays.copyOf(snapshot, count * 2);
-                        entityIds = Arrays.copyOf(entityIds, count * 2);
-                    }
-                    snapshot[count] = e;
+                Entity[] snapshot = new Entity[nearby.size()];
+                int[] entityIds = new int[nearby.size()];
+                for (net.minecraft.world.entity.Entity nmsEntity : nearby) {
+                    snapshot[count] = nmsEntity.getBukkitEntity();
                     entityIds[count] = nmsEntity.getId();
                     count++;
                 }
@@ -327,20 +332,20 @@ public class RayTraceManager {
                 final int entityCount = count;
                 final Entity[] entitySnapshot = snapshot;
                 final int[] entityIdSnapshot = entityIds;
-
-                Vector eyePos = viewer.getEyeLocation().toVector();
-                Vector lookDir = viewer.getLocation().getDirection();
-                Location viewerLoc = viewer.getLocation().clone();
-                World world = viewer.getWorld();
+                final Vector eyePos = viewer.getEyeLocation().toVector();
+                final Vector lookDir = viewer.getLocation().getDirection();
+                final Location viewerLoc = viewer.getLocation().clone();
+                final World world = viewer.getWorld();
+                final Player v = viewer;
 
                 CompletableFuture.runAsync(() -> {
                     boolean[] results = new boolean[entityCount];
                     for (int i = 0; i < entityCount; i++) {
-                        results[i] = isEntityInSight(viewer, entitySnapshot[i], eyePos, lookDir, viewerLoc, world);
+                        results[i] = isEntityInSight(v, entitySnapshot[i], eyePos, lookDir, viewerLoc, world);
                     }
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         for (int i = 0; i < entityCount; i++) {
-                            updateRayTraceChecking(viewer, entitySnapshot[i], results[i], viewerEntityId, entityIdSnapshot[i]);
+                            updateRayTraceChecking(v, entitySnapshot[i], results[i], viewerEntityId, entityIdSnapshot[i]);
                         }
                     });
                 }, Main.executor);
