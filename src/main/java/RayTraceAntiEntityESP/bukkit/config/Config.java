@@ -64,7 +64,7 @@ public class Config {
         antiEntities = config.getStringList("anti_entities");
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
-        excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_bypass");
+        excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_excluded");
 
         if (isCheckingEnabled) {
             RayTraceManager.startTask();
