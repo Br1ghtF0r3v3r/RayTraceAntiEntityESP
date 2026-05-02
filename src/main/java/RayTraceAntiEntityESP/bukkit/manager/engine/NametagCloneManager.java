@@ -18,7 +18,7 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class NametagCloneManager {
 
-    private static final Map<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
 
     private static boolean shouldShow(Player viewer, Entity entity) {
         if (entity.isDead()) return false;
@@ -35,7 +35,7 @@ public class NametagCloneManager {
             removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return;
         }
-        Map<UUID, NametagCloneUtils> inner = clones.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
+        ConcurrentHashMap<UUID, NametagCloneUtils> inner = (ConcurrentHashMap<UUID, NametagCloneUtils>) clones.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
         NametagCloneUtils existing = inner.get(entity.getUniqueId());
         if (existing != null) {
             if (!existing.isSpawned()) {
