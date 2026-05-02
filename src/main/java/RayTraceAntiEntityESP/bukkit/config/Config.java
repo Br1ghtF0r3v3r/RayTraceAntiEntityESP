@@ -7,7 +7,6 @@ import org.bukkit.entity.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
@@ -82,7 +81,7 @@ public class Config {
         clearTrackingRangeCache();
     }
 
-    private static final Map<String, Double> trackingRangeCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Double> trackingRangeCache = new ConcurrentHashMap<>();
 
     public static void clearTrackingRangeCache() {
         trackingRangeCache.clear();
