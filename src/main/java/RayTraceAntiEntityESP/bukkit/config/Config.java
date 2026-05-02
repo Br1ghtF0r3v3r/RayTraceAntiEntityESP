@@ -81,6 +81,10 @@ public class Config {
         clearTrackingRangeCache();
     }
 
+    public static double getMaxTrackingRange() {
+        return spigotConfig.getDouble("world-settings.default.entity-tracking-range.players", 128) + 16;
+    }
+
     private static final ConcurrentHashMap<String, Double> trackingRangeCache = new ConcurrentHashMap<>();
 
     public static void clearTrackingRangeCache() {
