@@ -327,19 +327,19 @@ public class RayTraceManager {
 
             int vi = 0;
             for (net.minecraft.server.level.ServerPlayer sp : serverPlayers) {
-                if (PacketManager.bypassPlayers.contains(sp.getUUID())) continue;
+                if (PacketManager.isBypassed(sp.getUUID())) continue;
 
                 Player viewer = sp.getBukkitEntity();
                 ServerLevel nmsWorld = sp.level();
                 int viewerEntityId = sp.getId();
 
-                AABB aabb = AABB.ofSize(
-                        new Vec3(sp.getX(), sp.getY(), sp.getZ()),
-                        288, 288, 288
-                );
+                double r = Config.getMaxTrackingRange();
+                AABB aabb = AABB.ofSize(new Vec3(sp.getX(), sp.getY(), sp.getZ()), r * 2, r * 2, r * 2);
 
-                List<net.minecraft.world.entity.Entity> nearby = new ArrayList<>();
-                nmsWorld.getEntities().get(aabb, nearby::add);
+                List<net.minecraft.world.entity.Entity> nearby = new java.util.ArrayList<>(64);
+                nmsWorld.getEntities().get(aabb, e -> {
+                    if (e.getId() != viewerEntityId) nearby.add(e);
+                });
                 if (nearby.isEmpty()) continue;
 
                 int count = 0;
@@ -366,7 +366,6 @@ public class RayTraceManager {
             if (vi == 0) return;
             final int activeViewers = vi;
 
-            // Single async task for all players — eliminates per-player queue lock contention
             CompletableFuture.runAsync(() -> {
                 boolean[][] allResults = new boolean[activeViewers][];
 
