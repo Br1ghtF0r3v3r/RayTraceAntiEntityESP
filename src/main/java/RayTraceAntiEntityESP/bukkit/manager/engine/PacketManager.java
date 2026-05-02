@@ -25,9 +25,10 @@ public class PacketManager {
     public record BypassKey(UUID viewer, UUID entity, boolean show) {}
 
     public static final Set<BypassKey> bypassPacketSet = ConcurrentHashMap.newKeySet();
-    public static final Map<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
+    public static final Set<UUID> bypassPlayers = ConcurrentHashMap.newKeySet();
+    public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
 
-    public static final Map<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
 
     public static BypassKey bypassShowKey(Player viewer, UUID entityUUID) {
         return new BypassKey(viewer.getUniqueId(), entityUUID, true);
