@@ -14,9 +14,8 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 public class SessionManager {
 
     private static final String BASE_URL = "https://tgixnkhvdhzojjkfjbmg.supabase.co/rest/v1";
-    private static final String SESSIONS = BASE_URL + "/license_sessions";
-    private static final String LIMITS = BASE_URL + "/license_limits";
     private static final String ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaXhua2h2ZGh6b2pqa2ZqYm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTMwNjAsImV4cCI6MjA5MzAyOTA2MH0.RbDQDM7UEHj6oF1rEqNkyHy3pKgl1oFXmFuPCK4IYPE";
+    private static final String SESSIONS = BASE_URL + "/license_sessions";
 
     private static final int STALE_SECS = 90;
     private static final int HEARTBEAT_SECS = 30;
@@ -27,17 +26,16 @@ public class SessionManager {
     private static final String SERVER_ID = UUID.randomUUID().toString();
     private static String activeLicenseKey;
 
-    public static boolean startSession(String licenseKey, JavaPlugin plugin) {
+    public static boolean startSession(String licenseKey, int maxSessions, JavaPlugin plugin) {
         try {
             purgeStale(licenseKey);
 
             int active = countActive(licenseKey);
-            int max = fetchMax(licenseKey);
 
-            if (active >= max) {
+            if (active >= maxSessions) {
                 plugin.getLogger().severe(
                         "Session limit reached for this license! " +
-                                "(" + active + "/" + max + " slots in use). " +
+                                "(" + active + "/" + maxSessions + " slots in use). " +
                                 "Disable another server or purchase additional slots.");
                 return false;
             }
@@ -49,7 +47,7 @@ public class SessionManager {
 
             activeLicenseKey = licenseKey;
             startHeartbeat(plugin);
-            plugin.getLogger().info("Session claimed [" + (active + 1) + "/" + max + "] server=" + SERVER_ID);
+            plugin.getLogger().info("Session claimed [" + (active + 1) + "/" + maxSessions + "] server: " + SERVER_ID);
             return true;
 
         } catch (Exception e) {
@@ -97,29 +95,6 @@ public class SessionManager {
             return Integer.parseInt(total.trim());
         } catch (NumberFormatException e) {
             return 0;
-        }
-    }
-
-    private static int fetchMax(String licenseKey) throws Exception {
-        HttpRequest req = baseRequest(LIMITS + "?license_key=eq." + enc(licenseKey) +
-                "&select=max_sessions")
-                .GET()
-                .build();
-
-        HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
-        String body = resp.body().trim();
-
-        // Response looks like: [{"max_sessions":3}]  or  []
-        if (body.equals("[]") || body.isEmpty()) return 1;
-        int start = body.indexOf("\"max_sessions\":");
-        if (start == -1) return 1;
-        start += "\"max_sessions\":".length();
-        int end = body.indexOf('}', start);
-        if (end == -1) end = body.length();
-        try {
-            return Integer.parseInt(body.substring(start, end).replaceAll("[^0-9]", "").trim());
-        } catch (NumberFormatException e) {
-            return 1;
         }
     }
 
