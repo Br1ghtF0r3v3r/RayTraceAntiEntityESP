@@ -14,8 +14,9 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 public class SessionManager {
 
     private static final String BASE_URL = "https://tgixnkhvdhzojjkfjbmg.supabase.co/rest/v1";
-    private static final String ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaXhua2h2ZGh6b2pqa2ZqYm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTMwNjAsImV4cCI6MjA5MzAyOTA2MH0.RbDQDM7UEHj6oF1rEqNkyHy3pKgl1oFXmFuPCK4IYPE";
     private static final String SESSIONS = BASE_URL + "/license_sessions";
+    private static final String LICENSES = BASE_URL + "/licenses";
+    private static final String ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaXhua2h2ZGh6b2pqa2ZqYm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTMwNjAsImV4cCI6MjA5MzAyOTA2MH0.RbDQDM7UEHj6oF1rEqNkyHy3pKgl1oFXmFuPCK4IYPE";
 
     private static final int STALE_SECS = 90;
     private static final int HEARTBEAT_SECS = 30;
@@ -26,16 +27,44 @@ public class SessionManager {
     private static final String SERVER_ID = UUID.randomUUID().toString();
     private static String activeLicenseKey;
 
-    public static boolean startSession(String licenseKey, int maxSessions, JavaPlugin plugin) {
+    public static int fetchMaxSessions(String licenseKey, JavaPlugin plugin) {
+        try {
+            HttpRequest req = baseRequest(LICENSES
+                    + "?license_key=eq." + enc(licenseKey)
+                    + "&select=max_sessions")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+            String body = resp.body();
+
+            if (body == null || body.trim().equals("[]")) {
+                plugin.getLogger().info("No session limit found for this license — unlimited servers allowed.");
+                return -1;
+            }
+
+            return parseIntField(body, "max_sessions", -1);
+
+        } catch (Exception e) {
+            plugin.getLogger().warning("Could not fetch max sessions, defaulting to unlimited: " + e.getMessage());
+            return -1;
+        }
+    }
+
+    public static boolean startSession(String licenseKey, JavaPlugin plugin) {
         try {
             purgeStale(licenseKey);
-
             int active = countActive(licenseKey);
+            int max = LicenseManager.maxSessions;
 
-            if (active >= maxSessions) {
+            if (max == 0) {
+                plugin.getLogger().severe("This license has been disabled.");
+                return false;
+            }
+
+            if (max > 0 && active >= max) {
                 plugin.getLogger().severe(
-                        "Session limit reached for this license! " +
-                                "(" + active + "/" + maxSessions + " slots in use). " +
+                        "Session limit reached! (" + active + "/" + max + " slots in use). " +
                                 "Disable another server or purchase additional slots.");
                 return false;
             }
@@ -47,12 +76,13 @@ public class SessionManager {
 
             activeLicenseKey = licenseKey;
             startHeartbeat(plugin);
-            plugin.getLogger().info("Session claimed [" + (active + 1) + "/" + maxSessions + "] server: " + SERVER_ID);
+
+            String slotInfo = max < 0 ? (active + 1) + "/∞" : (active + 1) + "/" + max;
+            plugin.getLogger().info("Session claimed [" + slotInfo + "] server: " + SERVER_ID);
             return true;
 
         } catch (Exception e) {
-            plugin.getLogger().warning(
-                    "Could not reach session server — running in grace mode: " + e.getMessage());
+            plugin.getLogger().warning("Could not reach session server — running in grace mode: " + e.getMessage());
             return true;
         }
     }
@@ -74,25 +104,30 @@ public class SessionManager {
     }
 
     private static void purgeStale(String licenseKey) throws Exception {
-        String filter = "?license_key=eq." + enc(licenseKey) +
-                "&last_ping=lt.now()-interval+'" + STALE_SECS + "+seconds'";
-        HttpRequest req = baseRequest(SESSIONS + filter).DELETE().build();
+        String staleThreshold = java.time.Instant.now()
+                .minusSeconds(STALE_SECS)
+                .toString();
+        HttpRequest req = baseRequest(SESSIONS
+                + "?license_key=eq." + enc(licenseKey)
+                + "&last_ping=lt." + staleThreshold)
+                .DELETE()
+                .build();
         http.send(req, HttpResponse.BodyHandlers.discarding());
     }
 
     private static int countActive(String licenseKey) throws Exception {
-        HttpRequest req = baseRequest(SESSIONS + "?license_key=eq." + enc(licenseKey))
+        HttpRequest req = baseRequest(SESSIONS
+                + "?license_key=eq." + enc(licenseKey)
+                + "&select=server_id")
                 .header("Prefer", "count=exact")
-                .header("select", "id")
                 .GET()
                 .build();
 
         HttpResponse<Void> resp = http.send(req, HttpResponse.BodyHandlers.discarding());
-
         String range = resp.headers().firstValue("Content-Range").orElse("0/0");
         try {
             String total = range.contains("/") ? range.split("/")[1] : "0";
-            return Integer.parseInt(total.trim());
+            return "*".equals(total.trim()) ? 0 : Integer.parseInt(total.trim());
         } catch (NumberFormatException e) {
             return 0;
         }
@@ -107,6 +142,7 @@ public class SessionManager {
                 .build();
 
         HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+        plugin.getLogger().info("insertSession status=" + resp.statusCode());
         return resp.statusCode() == 201;
     }
 
@@ -144,6 +180,21 @@ public class SessionManager {
                 .uri(URI.create(url))
                 .header("apikey", ANON_KEY)
                 .header("Authorization", "Bearer " + ANON_KEY);
+    }
+
+    private static int parseIntField(String json, String field, int defaultValue) {
+        String key = "\"" + field + "\":";
+        int idx = json.indexOf(key);
+        if (idx == -1) return defaultValue;
+        int start = idx + key.length();
+        while (start < json.length() && json.charAt(start) == ' ') start++;
+        int end = start;
+        while (end < json.length() && (Character.isDigit(json.charAt(end)) || json.charAt(end) == '-')) end++;
+        try {
+            return Integer.parseInt(json.substring(start, end));
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     private static String enc(String s) {
