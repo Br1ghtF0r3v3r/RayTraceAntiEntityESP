@@ -26,7 +26,7 @@ public class RayTraceManager {
 
     private static BukkitTask task;
 
-    private static final Map<Long, Boolean> blockCache = new ConcurrentHashMap<>();
+    private static volatile ConcurrentHashMap<Long, Boolean> blockCache = new ConcurrentHashMap<>(512);
 
     private static long blockKey(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
@@ -307,18 +307,39 @@ public class RayTraceManager {
     public static void startTask() {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            blockCache.clear();
-            for (Player viewer : Bukkit.getOnlinePlayers()) {
-                if (viewer.hasPermission("raytrace_anti_entity_esp.bypass")) continue;
-                ServerLevel nmsWorld = ((CraftWorld) viewer.getWorld()).getHandle();
-                final int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
+            blockCache = new ConcurrentHashMap<>();
+
+            List<net.minecraft.server.level.ServerPlayer> serverPlayers =
+                    net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers();
+
+            if (serverPlayers.isEmpty()) return;
+
+            int playerCount = serverPlayers.size();
+            Player[] viewers = new Player[playerCount];
+            int[] viewerEntityIds = new int[playerCount];
+            Entity[][] snapshots = new Entity[playerCount][];
+            int[][] entityIdSnapshots = new int[playerCount][];
+            int[] entityCounts = new int[playerCount];
+            Vector[] eyePositions = new Vector[playerCount];
+            Vector[] lookDirs = new Vector[playerCount];
+            Location[] viewerLocs = new Location[playerCount];
+            World[] worlds = new World[playerCount];
+
+            int vi = 0;
+            for (net.minecraft.server.level.ServerPlayer sp : serverPlayers) {
+                if (PacketManager.bypassPlayers.contains(sp.getUUID())) continue;
+
+                Player viewer = sp.getBukkitEntity();
+                ServerLevel nmsWorld = sp.level();
+                int viewerEntityId = sp.getId();
+
                 AABB aabb = AABB.ofSize(
-                        new Vec3(viewer.getX(), viewer.getY(), viewer.getZ()),
+                        new Vec3(sp.getX(), sp.getY(), sp.getZ()),
                         288, 288, 288
                 );
-                List<net.minecraft.world.entity.Entity> nearby = nmsWorld.getEntities(
-                        ((CraftPlayer) viewer).getHandle(), aabb
-                );
+
+                List<net.minecraft.world.entity.Entity> nearby = new ArrayList<>();
+                nmsWorld.getEntities().get(aabb, nearby::add);
                 if (nearby.isEmpty()) continue;
 
                 int count = 0;
@@ -330,27 +351,52 @@ public class RayTraceManager {
                     count++;
                 }
 
-                final int entityCount = count;
-                final Entity[] entitySnapshot = snapshot;
-                final int[] entityIdSnapshot = entityIds;
-                final Vector eyePos = viewer.getEyeLocation().toVector();
-                final Vector lookDir = viewer.getLocation().getDirection();
-                final Location viewerLoc = viewer.getLocation().clone();
-                final World world = viewer.getWorld();
-                final Player v = viewer;
-
-                CompletableFuture.runAsync(() -> {
-                    boolean[] results = new boolean[entityCount];
-                    for (int i = 0; i < entityCount; i++) {
-                        results[i] = isEntityInSight(v, entitySnapshot[i], eyePos, lookDir, viewerLoc, world);
-                    }
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        for (int i = 0; i < entityCount; i++) {
-                            updateRayTraceChecking(v, entitySnapshot[i], results[i], viewerEntityId, entityIdSnapshot[i]);
-                        }
-                    });
-                }, Main.executor);
+                viewers[vi] = viewer;
+                viewerEntityIds[vi] = viewerEntityId;
+                snapshots[vi] = snapshot;
+                entityIdSnapshots[vi] = entityIds;
+                entityCounts[vi] = count;
+                eyePositions[vi] = viewer.getEyeLocation().toVector();
+                lookDirs[vi] = viewer.getLocation().getDirection();
+                viewerLocs[vi] = viewer.getLocation().clone();
+                worlds[vi] = viewer.getWorld();
+                vi++;
             }
+
+            if (vi == 0) return;
+            final int activeViewers = vi;
+
+            // Single async task for all players — eliminates per-player queue lock contention
+            CompletableFuture.runAsync(() -> {
+                boolean[][] allResults = new boolean[activeViewers][];
+
+                for (int i = 0; i < activeViewers; i++) {
+                    int count = entityCounts[i];
+                    boolean[] results = new boolean[count];
+                    for (int j = 0; j < count; j++) {
+                        results[j] = isEntityInSight(
+                                viewers[i], snapshots[i][j],
+                                eyePositions[i], lookDirs[i],
+                                viewerLocs[i], worlds[i]
+                        );
+                    }
+                    allResults[i] = results;
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    for (int i = 0; i < activeViewers; i++) {
+                        int count = entityCounts[i];
+                        for (int j = 0; j < count; j++) {
+                            updateRayTraceChecking(
+                                    viewers[i], snapshots[i][j],
+                                    allResults[i][j],
+                                    viewerEntityIds[i], entityIdSnapshots[i][j]
+                            );
+                        }
+                    }
+                });
+            }, Main.executor);
+
         }, 0L, Config.checkingPeriodTicks);
     }
 
