@@ -1,12 +1,12 @@
 package RayTraceAntiEntityESP.bukkit.manager.engine;
 
+import RayTraceAntiEntityESP.bukkit.misc.StringFormat;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerPlayer;
@@ -25,7 +25,7 @@ public class PacketManager {
     public record BypassKey(UUID viewer, UUID entity, boolean show) {}
 
     public static final Set<BypassKey> bypassPacketSet = ConcurrentHashMap.newKeySet();
-    public static final Set<UUID> bypassPlayers = ConcurrentHashMap.newKeySet();
+    private static volatile Set<UUID> bypassPlayers = new HashSet<>();
     public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
 
     public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
@@ -36,6 +36,22 @@ public class PacketManager {
 
     public static BypassKey bypassHiddenKey(Player viewer, UUID entityUUID) {
         return new BypassKey(viewer.getUniqueId(), entityUUID, false);
+    }
+
+    public static void addBypass(UUID uuid) {
+        Set<UUID> next = new HashSet<>(bypassPlayers);
+        next.add(uuid);
+        bypassPlayers = next;
+    }
+
+    public static void removeBypass(UUID uuid) {
+        Set<UUID> next = new HashSet<>(bypassPlayers);
+        next.remove(uuid);
+        bypassPlayers = next;
+    }
+
+    public static boolean isBypassed(UUID uuid) {
+        return bypassPlayers.contains(uuid);
     }
 
     public static void packetManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
@@ -121,7 +137,7 @@ public class PacketManager {
 
             // CREATE or UPDATE — both have parameters, teamAction=ADD
             packet.getParameters().ifPresent(params -> {
-                NamedTextColor color = chatFormattingToNamedTextColor(params.getColor());
+                NamedTextColor color = StringFormat.chatFormattingToNamedTextColor(params.getColor());
                 net.kyori.adventure.text.Component prefix = PaperAdventure.asAdventure(params.getPlayerPrefix());
                 if (color != null) TeamUtils.teamColors.put(teamName, color);
                 TeamUtils.teamPrefixes.put(teamName, prefix);
@@ -175,8 +191,4 @@ public class PacketManager {
         ctx.write(msg, promise);
     }
 
-    private static NamedTextColor chatFormattingToNamedTextColor(ChatFormatting formatting) {
-        if (formatting.getColor() == null) return null;
-        return NamedTextColor.namedColor(formatting.getColor());
-    }
 }
