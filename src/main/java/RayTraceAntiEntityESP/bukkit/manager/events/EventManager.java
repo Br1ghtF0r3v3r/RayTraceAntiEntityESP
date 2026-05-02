@@ -34,7 +34,7 @@ public class EventManager {
         UUID playerUUID = event.getPlayer().getUniqueId();
         int viewerEntityId = event.getPlayer().getEntityId();
 
-        PacketManager.bypassPlayers.remove(playerUUID);
+        PacketManager.removeBypass(playerUUID);
 
         for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
             PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(sp.getBukkitEntity(), playerUUID));
@@ -59,7 +59,7 @@ public class EventManager {
         UUID playerUUID = player.getUniqueId();
         injectPlayer(player);
         if (player.hasPermission("raytrace_anti_entity_esp.bypass")) {
-            PacketManager.bypassPlayers.add(playerUUID);
+            PacketManager.addBypass(playerUUID);
         }
 
         org.bukkit.scoreboard.Objective obj =
