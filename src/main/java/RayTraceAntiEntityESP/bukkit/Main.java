@@ -24,14 +24,14 @@ public final class Main extends JavaPlugin {
 
         reloadConfigAll();
 
-        if (!SessionManager.startSession(Config.licenseKey, this)) {
-            plugin.getLogger().severe("License session failed! Disabling plugin.");
+        if (!LicenseManager.verifyLicense(Config.licenseKey, this)) {
+            getLogger().severe("License verification failed! Disabling plugin.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
-        if (!LicenseManager.verifyLicense(Config.licenseKey, this)) {
-            getLogger().severe("License verification failed! Disabling plugin.");
+        if (!SessionManager.startSession(Config.licenseKey, LicenseManager.maxSessions, this)) {
+            plugin.getLogger().severe("License session failed! Disabling plugin.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
