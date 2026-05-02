@@ -30,7 +30,7 @@ public final class Main extends JavaPlugin {
             return;
         }
 
-        if (!SessionManager.startSession(Config.licenseKey, LicenseManager.maxSessions, this)) {
+        if (!SessionManager.startSession(Config.licenseKey, this)) {
             plugin.getLogger().severe("License session failed! Disabling plugin.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
