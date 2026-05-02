@@ -34,6 +34,8 @@ public class EventManager {
         UUID playerUUID = event.getPlayer().getUniqueId();
         int viewerEntityId = event.getPlayer().getEntityId();
 
+        PacketManager.bypassPlayers.remove(playerUUID);
+
         for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
             PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(sp.getBukkitEntity(), playerUUID));
         }
@@ -54,13 +56,17 @@ public class EventManager {
 
     public static void playerJoinManager(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        UUID playerUUID = player.getUniqueId();
         injectPlayer(player);
+        if (player.hasPermission("raytrace_anti_entity_esp.bypass")) {
+            PacketManager.bypassPlayers.add(playerUUID);
+        }
 
         org.bukkit.scoreboard.Objective obj =
                 Bukkit.getScoreboardManager().getMainScoreboard()
                         .getObjective(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
         if (obj != null) {
-            PacketManager.belowNameObjective.put(player.getUniqueId(), obj.getName());
+            PacketManager.belowNameObjective.put(playerUUID, obj.getName());
         }
     }
 
