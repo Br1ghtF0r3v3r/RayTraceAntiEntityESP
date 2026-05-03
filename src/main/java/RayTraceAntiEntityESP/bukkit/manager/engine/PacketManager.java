@@ -10,6 +10,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.scores.Team;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
@@ -29,6 +30,16 @@ public class PacketManager {
     public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
 
     public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
+
+    private static org.bukkit.scoreboard.Team.OptionStatus mapVisibility(Team.Visibility v) {
+        if (v == null) return org.bukkit.scoreboard.Team.OptionStatus.ALWAYS;
+        return switch (v) {
+            case ALWAYS -> org.bukkit.scoreboard.Team.OptionStatus.ALWAYS;
+            case NEVER -> org.bukkit.scoreboard.Team.OptionStatus.NEVER;
+            case HIDE_FOR_OTHER_TEAMS -> org.bukkit.scoreboard.Team.OptionStatus.FOR_OWN_TEAM;
+            case HIDE_FOR_OWN_TEAM -> org.bukkit.scoreboard.Team.OptionStatus.FOR_OTHER_TEAMS;
+        };
+    }
 
     public static BypassKey bypassShowKey(Player viewer, UUID entityUUID) {
         return new BypassKey(viewer.getUniqueId(), entityUUID, true);
@@ -141,6 +152,7 @@ public class PacketManager {
                 net.kyori.adventure.text.Component prefix = PaperAdventure.asAdventure(params.getPlayerPrefix());
                 if (color != null) TeamUtils.teamColors.put(teamName, color);
                 TeamUtils.teamPrefixes.put(teamName, prefix);
+                TeamUtils.teamVisibilities.put(teamName, mapVisibility(params.getNametagVisibility()));
             });
 
             // CREATE (teamAction=ADD) or ADD_PLAYERS (playerAction=ADD)
@@ -157,6 +169,7 @@ public class PacketManager {
             if (teamAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
                 TeamUtils.teamColors.remove(teamName);
                 TeamUtils.teamPrefixes.remove(teamName);
+                TeamUtils.teamVisibilities.remove(teamName);
                 TeamUtils.entryToTeam.values().removeIf(teamName::equals);
             }
 

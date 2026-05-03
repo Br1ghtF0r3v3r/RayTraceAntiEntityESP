@@ -6,10 +6,13 @@ import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -19,54 +22,114 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 public class NametagCloneManager {
 
     private static final ConcurrentHashMap<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
+    private static final double CLONE_MOVE_EPSILON_SQ = 0.001 * 0.001;
 
-    private static boolean shouldShow(Player viewer, Entity entity) {
+    private static boolean shouldShowFast(Player viewer, Entity entity) {
         if (entity.isDead()) return false;
         if (!entity.isValid()) return false;
-        if (viewer.canSee(entity)) return false;
+
+        int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
+        int targetEntityId = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getId();
+        if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
+
         if (entity.isInvisible()) return false;
-        if (entity instanceof Player player && player.isSneaking()) return false;
-        if (entity instanceof Player player && ((CraftPlayer) player).getHandle().hasDisconnected()) return false;
+        if (entity instanceof Player player) {
+            if (player.isSneaking()) return false;
+            return !((CraftPlayer) player).getHandle().hasDisconnected();
+        }
+        return true;
+    }
+
+    private static boolean shouldShowFull(Player viewer, Entity entity) {
+        if (!shouldShowFast(viewer, entity)) return false;
         return VisibilityUtils.isNameVisible(viewer, entity);
     }
 
-    public static void applyDisplay(Player viewer, Entity entity) {
-        if (!shouldShow(viewer, entity)) {
-            removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
+    private static double clonePosY(Entity entity) {
+        return entity.getY() + entity.getHeight() + Config.displayNameOffSetY;
+    }
+
+    public static void applyDisplay(Player viewer, Entity entity, List<Packet<? super ClientGamePacketListener>> outbox) {
+        UUID viewerUUID = viewer.getUniqueId();
+        UUID entityUUID = entity.getUniqueId();
+
+        if (!shouldShowFull(viewer, entity)) {
+            removeDisplay(viewerUUID, entityUUID, outbox);
             return;
         }
-        ConcurrentHashMap<UUID, NametagCloneUtils> inner = (ConcurrentHashMap<UUID, NametagCloneUtils>) clones.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
-        NametagCloneUtils existing = inner.get(entity.getUniqueId());
+        ConcurrentHashMap<UUID, NametagCloneUtils> inner = (ConcurrentHashMap<UUID, NametagCloneUtils>) clones.computeIfAbsent(viewerUUID, k -> new ConcurrentHashMap<>());
+        NametagCloneUtils existing = inner.get(entityUUID);
         if (existing != null) {
             if (!existing.isSpawned()) {
-                inner.remove(entity.getUniqueId());
-                despawnClone(existing);
+                inner.remove(entityUUID);
+                despawnClone(existing, outbox);
             } else {
-                updatePosition(existing, entity);
+                existing.setOutbox(outbox);
+                try {
+                    existing.setName(getName(entity));
+                    existing.teleport(entity.getX(), clonePosY(entity), entity.getZ());
+                } finally {
+                    existing.setOutbox(null);
+                }
                 return;
             }
         }
         try {
             NametagCloneUtils clone = new NametagCloneUtils(viewer);
-            clone.setName(getName(entity));
-            clone.setPos(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
-            clone.spawn();
-            inner.put(entity.getUniqueId(), clone);
+            clone.setOutbox(outbox);
+            try {
+                clone.setName(getName(entity));
+                clone.setPos(entity.getX(), clonePosY(entity), entity.getZ());
+                clone.spawn();
+            } finally {
+                clone.setOutbox(null);
+            }
+            inner.put(entityUUID, clone);
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to spawn display for " + viewer.getName() + " -> " + entity.getName() + ": " + t);
         }
     }
 
-    private static void updatePosition(NametagCloneUtils clone, Entity entity) {
-        clone.teleport(entity.getX(), entity.getLocation().add(0, entity.getHeight() + Config.displayNameOffSetY, 0).getY() + Config.displayNameOffSetY, entity.getZ());
+    public static void refreshDisplay(Player viewer, Entity entity, List<Packet<? super ClientGamePacketListener>> outbox) {
+        UUID viewerUUID = viewer.getUniqueId();
+        UUID entityUUID = entity.getUniqueId();
+
+        Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
+        if (inner == null) {
+            applyDisplay(viewer, entity, outbox);
+            return;
+        }
+        NametagCloneUtils existing = inner.get(entityUUID);
+        if (existing == null || !existing.isSpawned()) {
+            applyDisplay(viewer, entity, outbox);
+            return;
+        }
+        if (!shouldShowFast(viewer, entity)) {
+            inner.remove(entityUUID);
+            despawnClone(existing, outbox);
+            return;
+        }
+
+        double nx = entity.getX(), ny = clonePosY(entity), nz = entity.getZ();
+
+        double dx = nx - existing.getX(), dy = ny - existing.getY(), dz = nz - existing.getZ();
+        boolean entityMoved = (dx * dx + dy * dy + dz * dz) > CLONE_MOVE_EPSILON_SQ;
+
+        existing.setOutbox(outbox);
+        try {
+            existing.setName(getName(entity));
+            if (entityMoved) existing.teleport(nx, ny, nz);
+        } finally {
+            existing.setOutbox(null);
+        }
     }
 
-    public static void removeDisplay(UUID viewerUUID, UUID entityUUID) {
+    public static void removeDisplay(UUID viewerUUID, UUID entityUUID, List<Packet<? super ClientGamePacketListener>> outbox) {
         Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
         NametagCloneUtils clone = inner.remove(entityUUID);
         if (clone == null) return;
-        despawnClone(clone);
+        despawnClone(clone, outbox);
     }
 
     public static void removeDisplay(UUID viewerUUID) {
@@ -74,7 +137,7 @@ public class NametagCloneManager {
         if (inner == null) return;
         for (NametagCloneUtils clone : inner.values()) {
             if (clone == null) continue;
-            despawnClone(clone);
+            despawnClone(clone, null);
         }
     }
 
@@ -83,7 +146,7 @@ public class NametagCloneManager {
             if (inner == null) continue;
             NametagCloneUtils clone = inner.remove(entityUUID);
             if (clone == null) continue;
-            despawnClone(clone);
+            despawnClone(clone, null);
         }
     }
 
@@ -92,16 +155,21 @@ public class NametagCloneManager {
             if (inner == null) continue;
             for (NametagCloneUtils clone : inner.values()) {
                 if (clone == null) continue;
-                despawnClone(clone);
+                despawnClone(clone, null);
             }
         }
         clones.clear();
     }
 
-    private static void despawnClone(NametagCloneUtils clone) {
+    private static void despawnClone(NametagCloneUtils clone, List<Packet<? super ClientGamePacketListener>> outbox) {
         if (clone == null) return;
         try {
-            clone.despawn();
+            clone.setOutbox(outbox);
+            try {
+                clone.despawn();
+            } finally {
+                clone.setOutbox(null);
+            }
         } catch (Throwable ignored) {}
     }
 

@@ -98,6 +98,8 @@ public class VerticesDebugUtils {
         long dy = newY - lastY;
         long dz = newZ - lastZ;
 
+        if (dx == 0 && dy == 0 && dz == 0) return;
+
         this.x = x;
         this.y = y;
         this.z = z;

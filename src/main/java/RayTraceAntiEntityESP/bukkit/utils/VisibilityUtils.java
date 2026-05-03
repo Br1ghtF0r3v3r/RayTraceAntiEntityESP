@@ -1,35 +1,38 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
 import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
-import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getTeam;
+import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getEntryTeamName;
 import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getTeamVisibility;
 
 public class VisibilityUtils {
 
-    public static final Set<Long> hiddenEntities = ConcurrentHashMap.newKeySet();
+    public static final ConcurrentHashMap<Integer, IntSet> hiddenByViewer = new ConcurrentHashMap<>();
 
-    private static long hiddenKey(int viewerId, int targetId) {
-        return ((long) viewerId << 32) | (targetId & 0xFFFFFFFFL);
+    private static IntSet getOrCreate(int viewerId) {
+        return hiddenByViewer.computeIfAbsent(viewerId, k -> IntSets.synchronize(new IntOpenHashSet()));
     }
 
     public static void setHidden(Player player, Entity entity) {
-        hiddenEntities.add(hiddenKey(player.getEntityId(), entity.getEntityId()));
+        getOrCreate(player.getEntityId()).add(entity.getEntityId());
         PacketManager.bypassPacketSet.add(PacketManager.bypassHiddenKey(player, entity.getUniqueId()));
         player.hideEntity(plugin, entity);
     }
 
     public static void setNotHidden(Player player, Entity entity) {
-        hiddenEntities.remove(hiddenKey(player.getEntityId(), entity.getEntityId()));
+        IntSet set = hiddenByViewer.get(player.getEntityId());
+        if (set != null) set.remove(entity.getEntityId());
         PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(player, entity.getUniqueId()));
         PacketManager.bypassPacketSet.add(PacketManager.bypassShowKey(player, entity.getUniqueId()));
         player.hideEntity(plugin, entity);
@@ -50,11 +53,12 @@ public class VisibilityUtils {
     }
 
     public static boolean isHidden(int viewerId, int targetId) {
-        return hiddenEntities.contains(hiddenKey(viewerId, targetId));
+        IntSet set = hiddenByViewer.get(viewerId);
+        return set != null && set.contains(targetId);
     }
 
     public static void clearViewer(int viewerEntityId) {
-        hiddenEntities.removeIf(key -> (key >>> 32) == viewerEntityId);
+        hiddenByViewer.remove(viewerEntityId);
     }
 
     public static boolean isNameVisible(Player viewer, Entity entity) {
@@ -62,15 +66,13 @@ public class VisibilityUtils {
         if (!(entity instanceof Player)) {
             if (entity.customName() == null || !entity.isCustomNameVisible()) return false;
         }
-        Team viewerTeam = getTeam(viewer);
-        Team entityTeam = getTeam(entity);
+        Team.OptionStatus visibility = getTeamVisibility(entity);
+        if (visibility == Team.OptionStatus.ALWAYS) return true;
+        if (visibility == Team.OptionStatus.NEVER) return false;
+        String viewerTeam = getEntryTeamName(viewer);
+        String entityTeam = getEntryTeamName(entity);
         boolean onSameTeam = viewerTeam != null && viewerTeam.equals(entityTeam);
-        return switch (getTeamVisibility(entityTeam)) {
-            case ALWAYS -> true;
-            case NEVER -> false;
-            case FOR_OWN_TEAM -> onSameTeam;
-            case FOR_OTHER_TEAMS -> !onSameTeam;
-        };
+        return (visibility == Team.OptionStatus.FOR_OWN_TEAM) == onSameTeam;
     }
 
     private static net.minecraft.world.scores.PlayerTeam getOrBuildNmsTeam(String teamName) {

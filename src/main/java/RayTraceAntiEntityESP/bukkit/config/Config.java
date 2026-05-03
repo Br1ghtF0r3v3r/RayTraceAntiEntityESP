@@ -74,15 +74,17 @@ public class Config {
     }
 
     public static YamlConfiguration spigotConfig;
+    public static volatile double maxTrackingRange = 144.0;
 
     public static void loadSpigotConfig() {
         File spigotFile = new File("spigot.yml");
         spigotConfig = YamlConfiguration.loadConfiguration(spigotFile);
+        maxTrackingRange = spigotConfig.getDouble("world-settings.default.entity-tracking-range.players", 128) + 16;
         clearTrackingRangeCache();
     }
 
     public static double getMaxTrackingRange() {
-        return spigotConfig.getDouble("world-settings.default.entity-tracking-range.players", 128) + 16;
+        return maxTrackingRange;
     }
 
     private static final ConcurrentHashMap<String, Double> trackingRangeCache = new ConcurrentHashMap<>();
