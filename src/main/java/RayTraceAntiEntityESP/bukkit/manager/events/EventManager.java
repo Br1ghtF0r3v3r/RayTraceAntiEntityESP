@@ -2,6 +2,7 @@ package RayTraceAntiEntityESP.bukkit.manager.events;
 
 import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
+import RayTraceAntiEntityESP.bukkit.manager.engine.RayTraceManager;
 import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
@@ -43,6 +44,7 @@ public class EventManager {
         if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
+        RayTraceManager.clearViewerCache(playerUUID);
     }
 
     public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
