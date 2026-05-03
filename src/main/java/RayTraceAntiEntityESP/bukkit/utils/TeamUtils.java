@@ -2,7 +2,6 @@ package RayTraceAntiEntityESP.bukkit.utils;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.scoreboard.Team;
 
@@ -13,14 +12,17 @@ public class TeamUtils {
     public static final ConcurrentHashMap<String, NamedTextColor> teamColors = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamPrefixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, String> entryToTeam = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Team.OptionStatus> teamVisibilities = new ConcurrentHashMap<>();
 
-    public static Team getTeam(Entity entity) {
-        return Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(entity.getScoreboardEntryName());
+    public static Team.OptionStatus getTeamVisibility(Entity entity) {
+        String teamName = entryToTeam.get(entity.getScoreboardEntryName());
+        if (teamName == null) return Team.OptionStatus.ALWAYS;
+        Team.OptionStatus status = teamVisibilities.get(teamName);
+        return status != null ? status : Team.OptionStatus.ALWAYS;
     }
 
-    public static Team.OptionStatus getTeamVisibility(Team team) {
-        if (team == null) return Team.OptionStatus.ALWAYS;
-        return team.getOption(Team.Option.NAME_TAG_VISIBILITY);
+    public static String getEntryTeamName(Entity entity) {
+        return entryToTeam.get(entity.getScoreboardEntryName());
     }
 
     public static NamedTextColor getTeamColor(Entity entity) {

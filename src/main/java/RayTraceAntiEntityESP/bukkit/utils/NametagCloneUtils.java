@@ -30,8 +30,46 @@ public class NametagCloneUtils {
 
     private Component customName;
 
+    private List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox;
+
+    public double getX() {
+        return x;
+    }
+
+    public double getY() {
+        return y;
+    }
+
+    public double getZ() {
+        return z;
+    }
+
+    public void setOutbox(List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox) {
+        this.outbox = outbox;
+    }
+
+    @SuppressWarnings("unchecked")
     private void send(net.minecraft.network.protocol.Packet<?> packet) {
+        if (outbox != null) {
+            outbox.add((net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>) packet);
+            return;
+        }
         ((CraftPlayer) viewer).getHandle().connection.send(packet);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void sendAtomic(net.minecraft.network.protocol.Packet<?>... packets) {
+        if (outbox != null) {
+            for (net.minecraft.network.protocol.Packet<?> p : packets) {
+                outbox.add((net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>) p);
+            }
+            return;
+        }
+        List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> list = new ArrayList<>(packets.length);
+        for (net.minecraft.network.protocol.Packet<?> p : packets) {
+            list.add((net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>) p);
+        }
+        ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(list));
     }
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata() {
@@ -58,6 +96,7 @@ public class NametagCloneUtils {
     }
 
     public void setName(Component name) {
+        if (name != null && name.equals(this.customName)) return;
         this.customName = name;
         if (spawned) send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
     }
@@ -79,11 +118,11 @@ public class NametagCloneUtils {
         lastY = (long) (y * 4096);
         lastZ = (long) (z * 4096);
 
-        send(new ClientboundBundlePacket(List.of(
+        sendAtomic(
                 new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f,
                         EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
                 new ClientboundSetEntityDataPacket(entityId, buildMetadata())
-        )));
+        );
         spawned = true;
     }
 
@@ -98,6 +137,8 @@ public class NametagCloneUtils {
         long dy = newY - lastY;
         long dz = newZ - lastZ;
 
+        if (dx == 0 && dy == 0 && dz == 0) return;
+
         this.x = x;
         this.y = y;
         this.z = z;
@@ -106,14 +147,11 @@ public class NametagCloneUtils {
         this.lastZ = newZ;
 
         if (dx < -32768 || dx > 32767 || dy < -32768 || dy > 32767 || dz < -32768 || dz > 32767) {
-            send(new ClientboundBundlePacket(List.of(
+            sendAtomic(
                     new ClientboundRemoveEntitiesPacket(entityId),
                     new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
                     new ClientboundSetEntityDataPacket(entityId, buildMetadata())
-            )));
-            lastX = newX;
-            lastY = newY;
-            lastZ = newZ;
+            );
             return;
         }
 
