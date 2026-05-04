@@ -24,14 +24,14 @@ public final class Main extends JavaPlugin {
 
         reloadConfigAll();
 
-        if (!LicenseManager.verifyLicense(Config.licenseKey, this)) {
+        if (!LicenseManager.verifyLicense(this)) {
             getLogger().severe("License verification failed! Disabling plugin.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
 
-        if (!SessionManager.startSession(Config.licenseKey, this)) {
-            plugin.getLogger().severe("License session failed! Disabling plugin.");
+        if (!SessionManager.startSession(LicenseManager.MEMBER_ID, this)) {
+            getLogger().severe("License session failed! Disabling plugin.");
             Bukkit.getPluginManager().disablePlugin(this);
             return;
         }
@@ -45,12 +45,10 @@ public final class Main extends JavaPlugin {
             t.setDaemon(true);
             return t;
         });
-
     }
 
     @Override
     public void onDisable() {
-
         SessionManager.endSession();
 
         if (executor != null) {
@@ -58,7 +56,6 @@ public final class Main extends JavaPlugin {
         }
 
         getLogger().info("RayTraceEntityESP disabled.");
-
     }
 
     public void reloadConfigAll() {

@@ -41,8 +41,6 @@ public class RayTraceManager {
         double prevX = Double.NaN, prevY = Double.NaN, prevZ = Double.NaN;
         float prevYaw = Float.NaN, prevPitch = Float.NaN;
 
-        // Accumulated rotation since last moved=true — fixes slow head movement
-        // never crossing the per-tick ROT_EPSILON threshold
         float accumYaw = 0f, accumPitch = 0f;
 
         final it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap entityIndexMap =
@@ -301,6 +299,7 @@ public class RayTraceManager {
 
         for (int i = 0; i < scaledSampleLayers; i++) {
             double y = Maths.lerp(minY, maxY, ((double) i) / (scaledSampleLayers - 1));
+
             vertices.add(new Vector(midX, y, midZ));
 
             if (includeCorners) {
@@ -491,8 +490,6 @@ public class RayTraceManager {
                     double ddx = vx - cache.prevX, ddy = vy - cache.prevY, ddz = vz - cache.prevZ;
                     boolean posMoved = (ddx * ddx + ddy * ddy + ddz * ddz) > VIEWER_POS_EPSILON_SQ;
 
-                    // Accumulate rotation delta each tick — a slow pan of 0.1°/tick
-                    // never crosses ROT_EPSILON per tick but does after 5 ticks accumulated
                     cache.accumYaw += Math.abs(yaw - cache.prevYaw);
                     cache.accumPitch += Math.abs(pitch - cache.prevPitch);
 
@@ -501,7 +498,6 @@ public class RayTraceManager {
                             || cache.accumPitch > ROT_EPSILON;
                 }
 
-                // Reset accumulation when cache invalidates — start fresh next cycle
                 if (moved) {
                     cache.accumYaw = 0f;
                     cache.accumPitch = 0f;
