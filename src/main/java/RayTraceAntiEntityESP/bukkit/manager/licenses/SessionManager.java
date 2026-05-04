@@ -18,6 +18,8 @@ public class SessionManager {
     private static final String LICENSES = BASE_URL + "/licenses";
     private static final String ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRnaXhua2h2ZGh6b2pqa2ZqYm1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NTMwNjAsImV4cCI6MjA5MzAyOTA2MH0.RbDQDM7UEHj6oF1rEqNkyHy3pKgl1oFXmFuPCK4IYPE";
 
+    public static int maxSessions = -1;
+
     private static final int STALE_SECS = 90;
     private static final int HEARTBEAT_SECS = 30;
 
@@ -27,7 +29,7 @@ public class SessionManager {
     private static final String SERVER_ID = UUID.randomUUID().toString();
     private static String activeLicenseKey;
 
-    public static int fetchMaxSessions(String licenseKey, JavaPlugin plugin) {
+    public static void fetchMaxSessions(String licenseKey, JavaPlugin plugin) {
         try {
             HttpRequest req = baseRequest(LICENSES
                     + "?license_key=eq." + enc(licenseKey)
@@ -40,14 +42,16 @@ public class SessionManager {
 
             if (body == null || body.trim().equals("[]")) {
                 plugin.getLogger().info("No session limit found for this license — unlimited servers allowed.");
-                return -1;
+                maxSessions = -1;
+                return;
             }
 
-            return parseIntField(body, "max_sessions", -1);
+            maxSessions = parseIntField(body, "max_sessions", -1); // store the result
+            plugin.getLogger().info("Max sessions for this license: " + (maxSessions < 0 ? "∞" : maxSessions));
 
         } catch (Exception e) {
             plugin.getLogger().warning("Could not fetch max sessions, defaulting to unlimited: " + e.getMessage());
-            return -1;
+            maxSessions = -1;
         }
     }
 
@@ -55,7 +59,7 @@ public class SessionManager {
         try {
             purgeStale(licenseKey);
             int active = countActive(licenseKey);
-            int max = LicenseManager.maxSessions;
+            int max = maxSessions;
 
             if (max == 0) {
                 plugin.getLogger().severe("This license has been disabled.");
