@@ -41,7 +41,6 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 <summary>View</summary>
 
 ```yaml
-license-key: YOUR-LICENSE-KEY-HERE
 performance:
   async_threads: 2         # Worker threads for raytrace calculations
 checking:
@@ -97,6 +96,7 @@ All commands require OP or the `raytrace_anti_entity_esp.command` permission. Al
 
 Copyright (c) 2026 [Br1ghtF0r3v3r](https://github.com/Br1ghtF0r3v3r)
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE.txt) file for details.
+All rights reserved. Redistribution, resale, or decompilation of this plugin is strictly prohibited. One license per
+server instance.
 
 </details>
