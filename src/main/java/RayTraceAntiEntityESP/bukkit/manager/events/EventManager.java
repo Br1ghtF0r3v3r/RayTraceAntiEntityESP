@@ -10,15 +10,12 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.papermc.paper.event.player.*;
 import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.block.*;
 import org.bukkit.event.entity.*;
-import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.*;
 
 import java.util.UUID;
@@ -31,7 +28,7 @@ public class EventManager {
 
     private static final String HANDLER_NAME = "anti_esp_handler";
 
-    public static void playerQuitManager(PlayerQuitEvent event) {
+    public static void playerQuitHandler(PlayerQuitEvent event) {
         UUID playerUUID = event.getPlayer().getUniqueId();
         int viewerEntityId = event.getPlayer().getEntityId();
 
@@ -47,7 +44,7 @@ public class EventManager {
         RayTraceManager.clearViewerCache(playerUUID);
     }
 
-    public static void connectionCloseManager(PlayerConnectionCloseEvent event) {
+    public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
         UUID playerUUID = event.getPlayerUniqueId();
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -56,7 +53,7 @@ public class EventManager {
         }, 0L);
     }
 
-    public static void playerJoinManager(PlayerJoinEvent event) {
+    public static void playerJoinHandler(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
         injectPlayer(player);
@@ -72,11 +69,11 @@ public class EventManager {
         }
     }
 
-    public static void packetSendManager(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
+    public static void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         PacketManager.packetManager(viewer, msg, ctx, promise);
     }
 
-    public static void entityDeathManager(EntityDeathEvent event) {
+    public static void entityDeathHandler(EntityDeathEvent event) {
         Entity entity = event.getEntity();
         UUID entityUUID = entity.getUniqueId();
 
@@ -84,7 +81,7 @@ public class EventManager {
         if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(entityUUID);
     }
 
-    public static void playerRespawnManager(PlayerRespawnEvent event) {
+    public static void playerRespawnHandler(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
         int entityId = ((CraftPlayer) player).getHandle().getId();
 
@@ -97,7 +94,7 @@ public class EventManager {
         channel.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
             @Override
             public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-                packetSendManager(player, msg, ctx, promise);
+                onPacketSend(player, msg, ctx, promise);
             }
         });
     }
