@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
-public class NametagCloneManager {
+public class NametagCloneRenderer {
 
     private static final ConcurrentHashMap<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
     private static final double CLONE_MOVE_EPSILON_SQ = 0.001 * 0.001;

@@ -1,7 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.manager.events;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
-import RayTraceAntiEntityESP.bukkit.engine.NametagCloneManager;
+import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.engine.DebugVertexVisualizer;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -38,7 +38,7 @@ public class EventManager {
             PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(sp.getBukkitEntity(), playerUUID));
         }
 
-        if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(playerUUID);
+        if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) DebugVertexVisualizer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
         RayTraceEngine.clearViewerCache(playerUUID);
@@ -48,7 +48,7 @@ public class EventManager {
         UUID playerUUID = event.getPlayerUniqueId();
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (isDisplayNameEnabled) NametagCloneManager.removeDisplay(playerUUID);
+            if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplay(playerUUID);
             if (isDebugEnabled) DebugVertexVisualizer.removeDisplay(playerUUID);
         }, 0L);
     }
@@ -77,7 +77,7 @@ public class EventManager {
         Entity entity = event.getEntity();
         UUID entityUUID = entity.getUniqueId();
 
-        if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(entityUUID);
+        if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(entityUUID);
         if (isDebugEnabled) DebugVertexVisualizer.removeDisplayForEntity(entityUUID);
     }
 

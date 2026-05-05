@@ -347,14 +347,14 @@ public class RayTraceEngine {
         if (visibleServer && !visibleClient) {
             VisibilityUtils.setNotHidden(viewer, entity);
             if (Config.isDisplayNameEnabled)
-                NametagCloneManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId(), outbox);
+                NametagCloneRenderer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId(), outbox);
 
         } else if (!visibleServer && visibleClient) {
             VisibilityUtils.setHidden(viewer, entity);
-            if (Config.isDisplayNameEnabled) NametagCloneManager.applyDisplay(viewer, entity, outbox);
+            if (Config.isDisplayNameEnabled) NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
 
         } else if (!visibleServer) {
-            if (Config.isDisplayNameEnabled) NametagCloneManager.refreshDisplay(viewer, entity, outbox);
+            if (Config.isDisplayNameEnabled) NametagCloneRenderer.refreshDisplay(viewer, entity, outbox);
         }
     }
 
@@ -379,7 +379,7 @@ public class RayTraceEngine {
             VisibilityUtils.clearViewer(viewerEntityId);
         }
 
-        NametagCloneManager.removeAllDisplays();
+        NametagCloneRenderer.removeAllDisplays();
         DebugVertexVisualizer.removeAllDisplays();
         PacketManager.bypassPacketSet.clear();
         viewerCaches.clear();
