@@ -1,9 +1,9 @@
 package RayTraceAntiEntityESP.bukkit.manager.events;
 
-import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
-import RayTraceAntiEntityESP.bukkit.manager.engine.NametagCloneManager;
-import RayTraceAntiEntityESP.bukkit.manager.engine.RayTraceManager;
-import RayTraceAntiEntityESP.bukkit.manager.engine.VerticesDebugManager;
+import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.engine.NametagCloneManager;
+import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
+import RayTraceAntiEntityESP.bukkit.engine.DebugVertexVisualizer;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import io.netty.channel.Channel;
@@ -39,9 +39,9 @@ public class EventManager {
         }
 
         if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(playerUUID);
-        if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(playerUUID);
+        if (isDebugEnabled) DebugVertexVisualizer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
-        RayTraceManager.clearViewerCache(playerUUID);
+        RayTraceEngine.clearViewerCache(playerUUID);
     }
 
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
@@ -49,7 +49,7 @@ public class EventManager {
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (isDisplayNameEnabled) NametagCloneManager.removeDisplay(playerUUID);
-            if (isDebugEnabled) VerticesDebugManager.removeDisplay(playerUUID);
+            if (isDebugEnabled) DebugVertexVisualizer.removeDisplay(playerUUID);
         }, 0L);
     }
 
@@ -78,7 +78,7 @@ public class EventManager {
         UUID entityUUID = entity.getUniqueId();
 
         if (isDisplayNameEnabled) NametagCloneManager.removeDisplayForEntity(entityUUID);
-        if (isDebugEnabled) VerticesDebugManager.removeDisplayForEntity(entityUUID);
+        if (isDebugEnabled) DebugVertexVisualizer.removeDisplayForEntity(entityUUID);
     }
 
     public static void playerRespawnHandler(PlayerRespawnEvent event) {
