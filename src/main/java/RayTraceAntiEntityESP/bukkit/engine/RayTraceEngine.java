@@ -38,6 +38,9 @@ public class RayTraceEngine {
 
     private static final ConcurrentHashMap<java.util.UUID, ViewerCache> viewerCaches = new ConcurrentHashMap<>();
 
+
+
+
     private static class ViewerCache {
         double prevX = Double.NaN, prevY = Double.NaN, prevZ = Double.NaN;
         float prevYaw = Float.NaN, prevPitch = Float.NaN;
