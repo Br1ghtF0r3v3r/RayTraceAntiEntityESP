@@ -7,7 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class LicenseManager {
+public class LicenseValidator {
     private static final int RESOURCE_ID = 0;
     private static final String SHARED_TOKEN = "CHYYaWbrVQI12Ttj9Gp3pkxKC7q6HyMz";
     public static final String MEMBER_ID = "%%__USER__%%";
