@@ -70,7 +70,7 @@ public class EventManager {
     }
 
     public static void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        PacketManager.packetManager(viewer, msg, ctx, promise);
+        PacketManager.onPacketSend(viewer, msg, ctx, promise);
     }
 
     public static void entityDeathHandler(EntityDeathEvent event) {
