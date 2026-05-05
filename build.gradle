@@ -18,7 +18,7 @@ plugins {
 
 tasks {
     shadowJar {
-        archiveBaseName.set("${project.name}")
+        archiveBaseName.set("${project.name}-unof")
         archiveClassifier.set("")
         archiveVersion.set("")
         mergeServiceFiles()
@@ -35,36 +35,76 @@ tasks {
 
 tasks.register("obfuscate", ProGuardTask) {
     dependsOn tasks.shadowJar
-
     def inputJar = tasks.shadowJar.archiveFile.get().asFile
-    def tempJar = new File(inputJar.parentFile, "${project.name}-temp.jar")
+    def tempJar = new File(inputJar.parentFile, "${project.name}.jar")
 
     injars inputJar
     outjars tempJar
 
     libraryjars "${System.getProperty('java.home')}/jmods/java.base.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
+    libraryjars "${System.getProperty('java.home')}/jmods/java.net.http.jmod", jarfilter: '!**.jar', filter: '!module-info.class'
     configurations.compileClasspath.each { libraryjars it }
 
     printmapping layout.buildDirectory.file("libs/mapping.txt")
 
-    keep "public class ${main} extends org.bukkit.plugin.java.JavaPlugin"
-    keepclassmembers "class * implements org.bukkit.command.CommandExecutor { *; }"
-    keepclassmembers "class * implements org.bukkit.event.Listener { *; }"
-    keepclassmembers "class * extends com.github.retrooper.packetevents.event.PacketListenerAbstract { *; }"
+    keep "public class ${main} extends org.bukkit.plugin.java.JavaPlugin { \
+        public void onEnable(); \
+        public void onDisable(); \
+        public void onLoad(); \
+    }"
+    keepclassmembers "class * implements org.bukkit.command.CommandExecutor { \
+        public boolean onCommand(...); \
+    }"
+    keepclassmembers "class * implements org.bukkit.command.TabCompleter { \
+        public java.util.List onTabComplete(...); \
+    }"
+    keepclassmembers "class * implements org.bukkit.event.Listener { \
+        @org.bukkit.event.EventHandler <methods>; \
+    }"
+    keepclassmembers "class * extends com.github.retrooper.packetevents.event.PacketListenerAbstract { \
+        public void onPacketSend(...); \
+        public void onPacketReceive(...); \
+    }"
 
     keep "class dev.respark.licensegate.** { *; }"
-    keep "class RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseManager { *; }"
+    keep "class RayTraceAntiEntityESP.bukkit.manager.licenses.** { *; }"
 
-    keepattributes "SourceFile"
+    keepclassmembers "class * extends net.minecraft.world.entity.Entity { *; }"
+
+    obfuscationdictionary layout.buildDirectory.file("libs/dictionary.txt").get().asFile.path
+    classobfuscationdictionary layout.buildDirectory.file("libs/dictionary.txt").get().asFile.path
+    packageobfuscationdictionary layout.buildDirectory.file("libs/dictionary.txt").get().asFile.path
+
+    flattenpackagehierarchy "a"
+
+    overloadaggressively
 
     allowaccessmodification
-    dontoptimize
-    ignorewarnings
-    dontwarn
 
-    doLast {
-        inputJar.delete()
-        tempJar.renameTo(inputJar)
+    optimizationpasses 5
+    optimizations "!code/simplification/arithmetic,!field/*,!class/merging/*,!code/allocation/variable"
+
+    renamesourcefileattribute "a"
+    keepattributes "SourceFile"
+
+    keepattributes "RuntimeVisibleAnnotations"
+
+    dontwarn
+    ignorewarnings
+
+    adaptresourcefilenames
+    adaptresourcefilecontents "**.yml,**.properties"
+
+    doFirst {
+        def dict = layout.buildDirectory.file("libs/dictionary.txt").get().asFile
+        dict.parentFile.mkdirs()
+        def chars = ('a'..'z') + ('A'..'Z')
+        def words = (1..5000).collect {
+            (1..Random.newInstance().nextInt(8) + 3)
+                    .collect { chars[Random.newInstance().nextInt(chars.size())] }
+                    .join('')
+        }.unique()
+        dict.text = words.join('\n')
     }
 }
 
