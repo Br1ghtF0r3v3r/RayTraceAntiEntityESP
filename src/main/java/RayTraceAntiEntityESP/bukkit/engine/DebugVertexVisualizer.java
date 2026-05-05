@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.bukkit.manager.engine;
+package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.utils.VerticesDebugUtils;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -9,7 +9,7 @@ import org.bukkit.util.Vector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class VerticesDebugManager {
+public class DebugVertexVisualizer {
 
     private static final ConcurrentHashMap<UUID, Map<UUID, List<VerticesDebugUtils>>> markers = new ConcurrentHashMap<>();
 
