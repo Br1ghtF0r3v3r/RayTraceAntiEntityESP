@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.bukkit.manager.engine;
+package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;

@@ -1,7 +1,8 @@
-package RayTraceAntiEntityESP.bukkit.manager.engine;
+package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.Main;
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.minecraft.server.level.ServerLevel;
@@ -21,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
-public class RayTraceManager {
+public class RayTraceEngine {
 
     private static BukkitTask task;
 
@@ -172,7 +173,7 @@ public class RayTraceManager {
                 || horizDistSq > range * range
                 || (Config.checkingDistanceOverride > 0 && distSq < Config.checkingDistanceOverride * Config.checkingDistanceOverride)
                 || (hasBelowNameScore(viewer, entity) && distSq <= 10 * 10)) {
-            if (Config.isDebugEnabled) VerticesDebugManager.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
+            if (Config.isDebugEnabled) DebugVertexVisualizer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
 
@@ -187,7 +188,7 @@ public class RayTraceManager {
                 visibilities.add(v);
                 if (v) visible = true;
             }
-            VerticesDebugManager.applyDisplay(viewer, entity, verticesCopy, visibilities);
+            DebugVertexVisualizer.applyDisplay(viewer, entity, verticesCopy, visibilities);
             return visible;
         }
 
@@ -379,7 +380,7 @@ public class RayTraceManager {
         }
 
         NametagCloneManager.removeAllDisplays();
-        VerticesDebugManager.removeAllDisplays();
+        DebugVertexVisualizer.removeAllDisplays();
         PacketManager.bypassPacketSet.clear();
         viewerCaches.clear();
     }

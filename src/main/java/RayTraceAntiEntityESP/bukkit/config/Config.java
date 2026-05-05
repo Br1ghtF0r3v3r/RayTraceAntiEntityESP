@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.config;
 
-import RayTraceAntiEntityESP.bukkit.manager.engine.RayTraceManager;
+import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
@@ -66,9 +66,9 @@ public class Config {
         excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_excluded");
 
         if (isCheckingEnabled) {
-            RayTraceManager.startTask();
+            RayTraceEngine.startTask();
         } else {
-            RayTraceManager.killTask();
+            RayTraceEngine.killTask();
         }
 
     }
