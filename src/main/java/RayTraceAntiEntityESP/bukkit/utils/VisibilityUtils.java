@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
-import RayTraceAntiEntityESP.bukkit.manager.engine.PacketManager;
+import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
