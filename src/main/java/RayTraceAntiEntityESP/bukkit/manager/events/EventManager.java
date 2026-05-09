@@ -3,7 +3,7 @@ package RayTraceAntiEntityESP.bukkit.manager.events;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
-import RayTraceAntiEntityESP.bukkit.engine.DebugVertexVisualizer;
+import RayTraceAntiEntityESP.bukkit.engine.DebugVertexRenderer;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import io.netty.channel.Channel;
@@ -35,11 +35,12 @@ public class EventManager {
         PacketManager.removeBypass(playerUUID);
 
         for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
-            PacketManager.bypassPacketSet.remove(PacketManager.bypassHiddenKey(sp.getBukkitEntity(), playerUUID));
+            PacketManager.removeHiddenBypass(sp.getUUID(), playerUUID);
         }
+        PacketManager.clearBypassForViewer(playerUUID);
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
-        if (isDebugEnabled) DebugVertexVisualizer.removeDisplayForEntity(playerUUID);
+        if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
         RayTraceEngine.clearViewerCache(playerUUID);
     }
@@ -49,7 +50,7 @@ public class EventManager {
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplay(playerUUID);
-            if (isDebugEnabled) DebugVertexVisualizer.removeDisplay(playerUUID);
+            if (isDebugEnabled) DebugVertexRenderer.removeDisplay(playerUUID);
         }, 0L);
     }
 
@@ -69,16 +70,12 @@ public class EventManager {
         }
     }
 
-    public static void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        PacketManager.onPacketSend(viewer, msg, ctx, promise);
-    }
-
     public static void entityDeathHandler(EntityDeathEvent event) {
         Entity entity = event.getEntity();
         UUID entityUUID = entity.getUniqueId();
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(entityUUID);
-        if (isDebugEnabled) DebugVertexVisualizer.removeDisplayForEntity(entityUUID);
+        if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(entityUUID);
     }
 
     public static void playerRespawnHandler(PlayerRespawnEvent event) {
@@ -94,7 +91,7 @@ public class EventManager {
         channel.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
             @Override
             public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-                onPacketSend(player, msg, ctx, promise);
+                PacketManager.onPacketSend(player, msg, ctx, promise);
             }
         });
     }

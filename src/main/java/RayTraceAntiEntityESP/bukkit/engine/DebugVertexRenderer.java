@@ -1,6 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.engine;
 
-import RayTraceAntiEntityESP.bukkit.utils.VerticesDebugUtils;
+import RayTraceAntiEntityESP.bukkit.utils.DebugVertexUtils;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -9,9 +9,9 @@ import org.bukkit.util.Vector;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class DebugVertexVisualizer {
+public class DebugVertexRenderer {
 
-    private static final ConcurrentHashMap<UUID, Map<UUID, List<VerticesDebugUtils>>> markers = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Map<UUID, List<DebugVertexUtils>>> markers = new ConcurrentHashMap<>();
 
     private static boolean shouldShow(Entity entity) {
         if (entity.isDead()) return false;
@@ -24,8 +24,8 @@ public class DebugVertexVisualizer {
             removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return;
         }
-        ConcurrentHashMap<UUID, List<VerticesDebugUtils>> inner = (ConcurrentHashMap<UUID, List<VerticesDebugUtils>>) markers.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
-        List<VerticesDebugUtils> existing = inner.get(entity.getUniqueId());
+        ConcurrentHashMap<UUID, List<DebugVertexUtils>> inner = (ConcurrentHashMap<UUID, List<DebugVertexUtils>>) markers.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
+        List<DebugVertexUtils> existing = inner.get(entity.getUniqueId());
         if (existing != null && existing.size() == vertices.size()) {
             for (int i = 0; i < vertices.size(); i++) {
                 Vector v = vertices.get(i);
@@ -34,10 +34,10 @@ public class DebugVertexVisualizer {
             }
         } else {
             despawnList(existing);
-            List<VerticesDebugUtils> fresh = new ArrayList<>(vertices.size());
+            List<DebugVertexUtils> fresh = new ArrayList<>(vertices.size());
             for (int i = 0; i < vertices.size(); i++) {
                 Vector v = vertices.get(i);
-                VerticesDebugUtils marker = new VerticesDebugUtils(viewer);
+                DebugVertexUtils marker = new DebugVertexUtils(viewer);
                 marker.setPos(v.getX(), v.getY(), v.getZ());
                 marker.spawn(visibilities.get(i));
                 fresh.add(marker);
@@ -47,35 +47,35 @@ public class DebugVertexVisualizer {
     }
 
     public static void removeDisplay(UUID viewerUUID, UUID entityUUID) {
-        Map<UUID, List<VerticesDebugUtils>> inner = markers.get(viewerUUID);
+        Map<UUID, List<DebugVertexUtils>> inner = markers.get(viewerUUID);
         if (inner == null) return;
-        List<VerticesDebugUtils> list = inner.remove(entityUUID);
+        List<DebugVertexUtils> list = inner.remove(entityUUID);
         if (list == null) return;
         despawnList(list);
     }
 
     public static void removeDisplay(UUID viewerUUID) {
-        Map<UUID, List<VerticesDebugUtils>> inner = markers.remove(viewerUUID);
+        Map<UUID, List<DebugVertexUtils>> inner = markers.remove(viewerUUID);
         if (inner == null) return;
-        for (List<VerticesDebugUtils> list : inner.values()) {
+        for (List<DebugVertexUtils> list : inner.values()) {
             if (list == null) continue;
             despawnList(list);
         }
     }
 
     public static void removeDisplayForEntity(UUID entityUUID) {
-        for (Map<UUID, List<VerticesDebugUtils>> inner : markers.values()) {
+        for (Map<UUID, List<DebugVertexUtils>> inner : markers.values()) {
             if (inner == null) continue;
-            List<VerticesDebugUtils> list = inner.remove(entityUUID);
+            List<DebugVertexUtils> list = inner.remove(entityUUID);
             if (list == null) continue;
             despawnList(list);
         }
     }
 
     public static void removeAllDisplays() {
-        for (Map<UUID, List<VerticesDebugUtils>> inner : markers.values()) {
+        for (Map<UUID, List<DebugVertexUtils>> inner : markers.values()) {
             if (inner == null) continue;
-            for (List<VerticesDebugUtils> list : inner.values()) {
+            for (List<DebugVertexUtils> list : inner.values()) {
                 if (list == null) continue;
                 despawnList(list);
             }
@@ -83,9 +83,9 @@ public class DebugVertexVisualizer {
         markers.clear();
     }
 
-    private static void despawnList(List<VerticesDebugUtils> list) {
+    private static void despawnList(List<DebugVertexUtils> list) {
         if (list == null) return;
-        for (VerticesDebugUtils marker : list) {
+        for (DebugVertexUtils marker : list) {
             try {
                 marker.despawn();
             } catch (Throwable ignored) {}

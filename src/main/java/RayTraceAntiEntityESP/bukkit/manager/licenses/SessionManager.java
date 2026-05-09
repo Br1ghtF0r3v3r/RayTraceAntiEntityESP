@@ -41,8 +41,8 @@ public class SessionManager {
             String body = resp.body();
 
             if (body == null || body.trim().equals("[]")) {
-                plugin.getLogger().info("No session limit found for this license — unlimited servers allowed.");
-                maxSessions = -1;
+                plugin.getLogger().warning("No license limit found for member — defaulting to 1 server.");
+                maxSessions = 1;
                 return;
             }
 
