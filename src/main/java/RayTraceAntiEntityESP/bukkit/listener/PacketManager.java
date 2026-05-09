@@ -1,50 +1,55 @@
 package RayTraceAntiEntityESP.bukkit.listener;
 
-import RayTraceAntiEntityESP.bukkit.listener.packet.AddEntityPacketListener;
-import RayTraceAntiEntityESP.bukkit.listener.packet.PlayerInfoRemovePacketListener;
-import RayTraceAntiEntityESP.bukkit.listener.packet.SetDisplayObjectivePacketListener;
-import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
-import RayTraceAntiEntityESP.bukkit.listener.packet.SetObjectivePacketListener;
-import RayTraceAntiEntityESP.bukkit.listener.packet.SetPlayerTeamPacketListener;
+import RayTraceAntiEntityESP.bukkit.listener.packet.*;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import net.minecraft.world.scores.Team;
 import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.Team.OptionStatus;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.bukkit.scoreboard.Team.OptionStatus;
-
-
 public class PacketManager {
 
-    public record BypassKey(UUID viewer, UUID entity, boolean show) {
+    private static final ConcurrentHashMap<UUID, Set<UUID>> showBypass = new ConcurrentHashMap<>();
+
+    private static final ConcurrentHashMap<UUID, Set<UUID>> hiddenBypass = new ConcurrentHashMap<>();
+
+    public static void addShowBypass(UUID viewerUUID, UUID entityUUID) {
+        showBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
     }
 
-    public static final Set<BypassKey> bypassPacketSet = ConcurrentHashMap.newKeySet();
+    public static boolean consumeShowBypass(UUID viewerUUID, UUID entityUUID) {
+        Set<UUID> set = showBypass.get(viewerUUID);
+        return set != null && set.remove(entityUUID);
+    }
+
+    public static void addHiddenBypass(UUID viewerUUID, UUID entityUUID) {
+        hiddenBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
+    }
+
+    public static void removeHiddenBypass(UUID viewerUUID, UUID entityUUID) {
+        Set<UUID> set = hiddenBypass.get(viewerUUID);
+        if (set != null) set.remove(entityUUID);
+    }
+
+    public static boolean isHiddenBypassed(UUID viewerUUID, UUID entityUUID) {
+        Set<UUID> set = hiddenBypass.get(viewerUUID);
+        return set != null && set.contains(entityUUID);
+    }
+
+    public static void clearBypassForViewer(UUID viewerUUID) {
+        showBypass.remove(viewerUUID);
+        hiddenBypass.remove(viewerUUID);
+    }
+
+    public static void clearAllBypasses() {
+        showBypass.clear();
+        hiddenBypass.clear();
+    }
+
     private static volatile Set<UUID> bypassPlayers = new HashSet<>();
-    public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
-
-    public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
-
-    public static OptionStatus mapVisibility(Team.Visibility v) {
-        if (v == null) return OptionStatus.ALWAYS;
-        return switch (v) {
-            case ALWAYS -> OptionStatus.ALWAYS;
-            case NEVER -> OptionStatus.NEVER;
-            case HIDE_FOR_OTHER_TEAMS -> OptionStatus.FOR_OWN_TEAM;
-            case HIDE_FOR_OWN_TEAM -> OptionStatus.FOR_OTHER_TEAMS;
-        };
-    }
-
-    public static BypassKey bypassShowKey(Player viewer, UUID entityUUID) {
-        return new BypassKey(viewer.getUniqueId(), entityUUID, true);
-    }
-
-    public static BypassKey bypassHiddenKey(Player viewer, UUID entityUUID) {
-        return new BypassKey(viewer.getUniqueId(), entityUUID, false);
-    }
 
     public static void addBypass(UUID uuid) {
         Set<UUID> next = new HashSet<>(bypassPlayers);
@@ -59,24 +64,35 @@ public class PacketManager {
     }
 
     public static boolean isBypassed(UUID uuid) {
-        return bypassPlayers.contains(uuid);
+        Set<UUID> players = bypassPlayers;
+        return !players.isEmpty() && players.contains(uuid);
     }
 
+    public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
 
-    private static final List<PacketListener> listeners = new ArrayList<>();
+    public static OptionStatus mapVisibility(Team.Visibility v) {
+        if (v == null) return OptionStatus.ALWAYS;
+        return switch (v) {
+            case ALWAYS -> OptionStatus.ALWAYS;
+            case NEVER -> OptionStatus.NEVER;
+            case HIDE_FOR_OTHER_TEAMS -> OptionStatus.FOR_OWN_TEAM;
+            case HIDE_FOR_OWN_TEAM -> OptionStatus.FOR_OTHER_TEAMS;
+        };
+    }
+
+    private static final List<PacketListener> listeners = List.of(
+            new AddEntityPacketListener(),
+            new PlayerInfoRemovePacketListener(),
+            new SetEntityDataPacketListener(),
+            new SetPlayerTeamPacketListener(),
+            new SetDisplayObjectivePacketListener(),
+            new SetObjectivePacketListener()
+    );
 
     public static void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         for (PacketListener listener : listeners) {
-            listener.onPacketSend(viewer, msg, ctx, promise);
+            if (listener.onPacketSend(viewer, msg, ctx, promise)) return;
         }
-    }
-
-    static {
-        listeners.add(new AddEntityPacketListener());
-        listeners.add(new PlayerInfoRemovePacketListener());
-        listeners.add(new SetEntityDataPacketListener());
-        listeners.add(new SetPlayerTeamPacketListener());
-        listeners.add(new SetDisplayObjectivePacketListener());
-        listeners.add(new SetObjectivePacketListener());
     }
 }

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class VerticesDebugUtils {
+public class DebugVertexUtils {
 
     private static final int ID_MIN = 4_000_000;
     private static final int ID_MAX = 5_000_000;
@@ -35,7 +35,7 @@ public class VerticesDebugUtils {
     private BlockState currentBlockState = null;
     private float currentScale = -1;
 
-    public VerticesDebugUtils(Player viewer) {
+    public DebugVertexUtils(Player viewer) {
         this.viewer = viewer;
         this.entityId = ThreadLocalRandom.current().nextInt(ID_MIN, ID_MAX);
         this.entityUuid = UUID.randomUUID();

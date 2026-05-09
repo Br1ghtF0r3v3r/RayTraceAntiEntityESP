@@ -111,13 +111,18 @@ public class NametagCloneRenderer {
         }
 
         double nx = entity.getX(), ny = clonePosY(entity), nz = entity.getZ();
-
         double dx = nx - existing.getX(), dy = ny - existing.getY(), dz = nz - existing.getZ();
         boolean entityMoved = (dx * dx + dy * dy + dz * dz) > CLONE_MOVE_EPSILON_SQ;
 
+        Component newName = existing.getCachedName();
+        if (entityMoved || newName == null) {
+            newName = getName(entity);
+        }
+
         existing.setOutbox(outbox);
         try {
-            existing.setName(getName(entity));
+            existing.setName(newName);
+            existing.setCachedName(newName);
             if (entityMoved) existing.teleport(nx, ny, nz);
         } finally {
             existing.setOutbox(null);
@@ -170,7 +175,8 @@ public class NametagCloneRenderer {
             } finally {
                 clone.setOutbox(null);
             }
-        } catch (Throwable ignored) {}
+        } catch (Throwable ignored) {
+        }
     }
 
     private static Component getName(Entity entity) {

@@ -3,6 +3,7 @@ package RayTraceAntiEntityESP.bukkit.engine;
 import RayTraceAntiEntityESP.bukkit.Main;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.listener.packet.AddEntityPacketListener;
 import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.minecraft.server.level.ServerLevel;
@@ -173,7 +174,7 @@ public class RayTraceEngine {
                 || horizDistSq > range * range
                 || (Config.checkingDistanceOverride > 0 && distSq < Config.checkingDistanceOverride * Config.checkingDistanceOverride)
                 || (hasBelowNameScore(viewer, entity) && distSq <= 10 * 10)) {
-            if (Config.isDebugEnabled) DebugVertexVisualizer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
+            if (Config.isDebugEnabled) DebugVertexRenderer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
 
@@ -188,7 +189,7 @@ public class RayTraceEngine {
                 visibilities.add(v);
                 if (v) visible = true;
             }
-            DebugVertexVisualizer.applyDisplay(viewer, entity, verticesCopy, visibilities);
+            DebugVertexRenderer.applyDisplay(viewer, entity, verticesCopy, visibilities);
             return visible;
         }
 
@@ -380,14 +381,16 @@ public class RayTraceEngine {
         }
 
         NametagCloneRenderer.removeAllDisplays();
-        DebugVertexVisualizer.removeAllDisplays();
-        PacketManager.bypassPacketSet.clear();
+        DebugVertexRenderer.removeAllDisplays();
+        PacketManager.clearAllBypasses();
         viewerCaches.clear();
     }
 
     public static void startTask() {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            AddEntityPacketListener.drainPendingHides();
+
             blockCache = new it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap();
 
             List<net.minecraft.server.level.ServerPlayer> serverPlayers =
@@ -407,11 +410,8 @@ public class RayTraceEngine {
             double[] viewerX = new double[playerCount];
             double[] viewerY = new double[playerCount];
             double[] viewerZ = new double[playerCount];
-            float[] viewerYaw = new float[playerCount];
-            float[] viewerPitch = new float[playerCount];
             boolean[] viewerMoved = new boolean[playerCount];
             ViewerCache[] caches = new ViewerCache[playerCount];
-            World[] worlds = new World[playerCount];
             ServerLevel[] levels = new ServerLevel[playerCount];
             int[] worldMinY = new int[playerCount];
             int[] worldMaxY = new int[playerCount];
@@ -521,11 +521,8 @@ public class RayTraceEngine {
                 viewerX[vi] = vx;
                 viewerY[vi] = vy;
                 viewerZ[vi] = vz;
-                viewerYaw[vi] = yaw;
-                viewerPitch[vi] = pitch;
                 viewerMoved[vi] = moved;
                 caches[vi] = cache;
-                worlds[vi] = viewer.getWorld();
                 levels[vi] = nmsWorld;
                 worldMinY[vi] = viewer.getWorld().getMinHeight();
                 worldMaxY[vi] = viewer.getWorld().getMaxHeight();
