@@ -14,7 +14,7 @@ import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.mapVisibility;
 
 public class SetPlayerTeamPacketListener extends PacketListener {
     @Override
-    public void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
+    public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         // TEAMS
         if (msg instanceof ClientboundSetPlayerTeamPacket packet) {
             String teamName = packet.getName();
@@ -48,8 +48,8 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                 TeamUtils.teamVisibilities.remove(teamName);
                 TeamUtils.entryToTeam.values().removeIf(teamName::equals);
             }
-
             ctx.write(msg, promise);
         }
+        return false;
     }
 }

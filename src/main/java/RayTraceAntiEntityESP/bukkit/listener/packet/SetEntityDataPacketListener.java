@@ -15,11 +15,14 @@ import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.*;
 
 public class SetEntityDataPacketListener extends PacketListener {
     @Override
-    public void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
+    public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         // ENTITY_METADATA
         if (msg instanceof ClientboundSetEntityDataPacket(int entityId, List<SynchedEntityData.DataValue<?>> packedItems)) {
 
-            if (entityId < 2000000 || entityId >= 3000000 && entityId < 4000000 || entityId >= 5000000) {
+            boolean isNameTagClone = entityId >= 2000000 && entityId < 3000000;
+            boolean isVerticesDebug = entityId >= 4000000 && entityId < 5000000;
+
+            if (isNameTagClone || isVerticesDebug) {
                 Set<Integer> playerSet = glowingEntities.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
 
                 for (SynchedEntityData.DataValue<?> data : packedItems) {
@@ -29,8 +32,8 @@ public class SetEntityDataPacketListener extends PacketListener {
                     }
                 }
             }
-
             ctx.write(msg, promise);
         }
+        return false;
     }
 }
