@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.UUID;
 
 public class PlayerInfoRemovePacketListener extends PacketListener {
-
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         if (!(msg instanceof ClientboundPlayerInfoRemovePacket(List<UUID> original))) return false;
