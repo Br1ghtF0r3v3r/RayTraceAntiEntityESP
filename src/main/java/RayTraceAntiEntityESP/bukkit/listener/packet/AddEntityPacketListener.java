@@ -15,9 +15,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AddEntityPacketListener extends PacketListener {
-
     public static final ConcurrentHashMap<UUID, Set<UUID>> pendingHides = new ConcurrentHashMap<>();
-
     public static void drainPendingHides() {
         if (pendingHides.isEmpty()) return;
         pendingHides.forEach((viewerUUID, entityUUIDs) -> {
@@ -35,7 +33,6 @@ public class AddEntityPacketListener extends PacketListener {
             if (entityUUIDs.isEmpty()) pendingHides.remove(viewerUUID);
         });
     }
-
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         if (!(msg instanceof ClientboundAddEntityPacket packet)) return false;

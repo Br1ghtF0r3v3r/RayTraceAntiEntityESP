@@ -42,7 +42,7 @@ public class EventManager {
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
-        RayTraceEngine.clearViewerCache(playerUUID);
+        RayTraceEngine.clearViewerCache(((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle().getId());
     }
 
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
@@ -90,8 +90,10 @@ public class EventManager {
         if (channel.pipeline().get(HANDLER_NAME) != null) return;
         channel.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
             @Override
-            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-                PacketManager.onPacketSend(player, msg, ctx, promise);
+            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                if (!PacketManager.onPacketSend(player, msg, ctx, promise)) {
+                    super.write(ctx, msg, promise);
+                }
             }
         });
     }

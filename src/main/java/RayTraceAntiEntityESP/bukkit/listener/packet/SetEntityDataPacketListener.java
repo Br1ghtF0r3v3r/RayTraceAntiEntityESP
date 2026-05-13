@@ -10,30 +10,37 @@ import org.bukkit.entity.Player;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.*;
 
 public class SetEntityDataPacketListener extends PacketListener {
+    public static final ConcurrentHashMap<Integer, Boolean> invisibleCache = new ConcurrentHashMap<>();
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        // ENTITY_METADATA
-        if (msg instanceof ClientboundSetEntityDataPacket(int entityId, List<SynchedEntityData.DataValue<?>> packedItems)) {
+        if (!(msg instanceof ClientboundSetEntityDataPacket(
+                int entityId, List<SynchedEntityData.DataValue<?>> packedItems
+        ))) return false;
 
-            boolean isNameTagClone = entityId >= 2000000 && entityId < 3000000;
-            boolean isVerticesDebug = entityId >= 4000000 && entityId < 5000000;
+        boolean isNameTagClone = entityId >= 2000000 && entityId < 3000000;
+        boolean isVerticesDebug = entityId >= 4000000 && entityId < 5000000;
 
-            if (isNameTagClone || isVerticesDebug) {
-                Set<Integer> playerSet = glowingEntities.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+        if (!isNameTagClone && !isVerticesDebug) {
+            for (SynchedEntityData.DataValue<?> data : packedItems) {
+                if (data.id() == 0 && data.value() instanceof Byte flags) {
+                    boolean glowing = (flags & 0x40) != 0;
+                    boolean invisible = (flags & 0x20) != 0;
 
-                for (SynchedEntityData.DataValue<?> data : packedItems) {
-                    if (data.id() == 0 && data.value() instanceof Byte flags) {
-                        if ((flags & 0x40) != 0) playerSet.add(entityId);
-                        else playerSet.remove(entityId);
-                    }
+                    Set<Integer> playerSet = glowingEntities.computeIfAbsent(viewer.getUniqueId(), k -> new HashSet<>());
+                    if (glowing) playerSet.add(entityId);
+                    else playerSet.remove(entityId);
+
+                    invisibleCache.put(entityId, invisible);
                 }
             }
-            ctx.write(msg, promise);
         }
-        return false;
+
+        ctx.write(msg, promise);
+        return true;
     }
 }
