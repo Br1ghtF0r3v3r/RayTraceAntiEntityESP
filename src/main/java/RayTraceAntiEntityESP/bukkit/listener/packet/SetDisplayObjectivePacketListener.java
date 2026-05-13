@@ -11,7 +11,6 @@ import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.belowNameObjec
 public class SetDisplayObjectivePacketListener extends PacketListener {
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        // DISPLAY_OBJECTIVE — track which objective is in the below_name slot
         if (msg instanceof ClientboundSetDisplayObjectivePacket packet) {
             if (packet.getSlot() == net.minecraft.world.scores.DisplaySlot.BELOW_NAME) {
                 String objName = packet.getObjectiveName();
@@ -22,6 +21,7 @@ public class SetDisplayObjectivePacketListener extends PacketListener {
                 }
             }
             ctx.write(msg, promise);
+            return true;
         }
         return false;
     }

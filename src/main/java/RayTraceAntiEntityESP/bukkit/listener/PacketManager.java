@@ -90,9 +90,10 @@ public class PacketManager {
             new SetObjectivePacketListener()
     );
 
-    public static void onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
+    public static boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         for (PacketListener listener : listeners) {
-            if (listener.onPacketSend(viewer, msg, ctx, promise)) return;
+            if (listener.onPacketSend(viewer, msg, ctx, promise)) return true;
         }
+        return false;
     }
 }

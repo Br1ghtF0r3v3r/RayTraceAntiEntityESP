@@ -166,6 +166,15 @@ public class NametagCloneRenderer {
         clones.clear();
     }
 
+    public static void invalidateCachedNames() {
+        for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
+            if (inner == null) continue;
+            for (NametagCloneUtils clone : inner.values()) {
+                if (clone != null) clone.setCachedName(null);
+            }
+        }
+    }
+
     private static void despawnClone(NametagCloneUtils clone, List<Packet<? super ClientGamePacketListener>> outbox) {
         if (clone == null) return;
         try {

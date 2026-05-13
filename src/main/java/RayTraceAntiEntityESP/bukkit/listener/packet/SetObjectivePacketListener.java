@@ -11,16 +11,11 @@ import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.belowNameObjec
 public class SetObjectivePacketListener extends PacketListener {
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        // OBJECTIVE — when objective is removed entirely, clear it from tracking
-        if (msg instanceof ClientboundSetObjectivePacket packet) {
-            if (packet.getMethod() == 1) {
-                String removedName = packet.getObjectiveName();
-                belowNameObjective.values().removeIf(removedName::equals);
-            }
-            ctx.write(msg, promise);
-            return false;
+        if (!(msg instanceof ClientboundSetObjectivePacket packet)) return false;
+        if (packet.getMethod() == 1) {
+            belowNameObjective.values().removeIf(packet.getObjectiveName()::equals);
         }
         ctx.write(msg, promise);
-        return false;
+        return true;
     }
 }

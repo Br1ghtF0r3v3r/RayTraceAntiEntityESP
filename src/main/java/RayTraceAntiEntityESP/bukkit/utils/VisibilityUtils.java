@@ -59,6 +59,10 @@ public class VisibilityUtils {
         return set != null && set.contains(targetId);
     }
 
+    public static IntSet getHiddenSet(int viewerId) {
+        return hiddenByViewer.get(viewerId);
+    }
+
     public static void clearViewer(int viewerEntityId) {
         hiddenByViewer.remove(viewerEntityId);
     }

@@ -14,8 +14,6 @@ import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
 
-    public static String licenseKey;
-
     public static int asyncThreads;
 
     public static boolean isCheckingEnabled;
@@ -41,8 +39,6 @@ public class Config {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
 
         loadSpigotConfig();
-
-        licenseKey = plugin.getConfig().getString("license-key", "");
 
         asyncThreads = config.getInt("performance.async_threads", 2);
 
