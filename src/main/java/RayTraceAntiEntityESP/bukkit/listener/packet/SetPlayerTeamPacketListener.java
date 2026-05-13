@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.listener.packet;
 
+import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.misc.StringFormat;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
@@ -48,7 +49,11 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                 TeamUtils.teamVisibilities.remove(teamName);
                 TeamUtils.entryToTeam.values().removeIf(teamName::equals);
             }
+            if (RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled) {
+                NametagCloneRenderer.invalidateCachedNames();
+            }
             ctx.write(msg, promise);
+            return true;
         }
         return false;
     }
