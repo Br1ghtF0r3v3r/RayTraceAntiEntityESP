@@ -114,15 +114,9 @@ public class NametagCloneRenderer {
         double dx = nx - existing.getX(), dy = ny - existing.getY(), dz = nz - existing.getZ();
         boolean entityMoved = (dx * dx + dy * dy + dz * dz) > CLONE_MOVE_EPSILON_SQ;
 
-        Component newName = existing.getCachedName();
-        if (entityMoved || newName == null) {
-            newName = getName(entity);
-        }
-
         existing.setOutbox(outbox);
         try {
-            existing.setName(newName);
-            existing.setCachedName(newName);
+            existing.setName(getName(entity));
             if (entityMoved) existing.teleport(nx, ny, nz);
         } finally {
             existing.setOutbox(null);
@@ -164,15 +158,6 @@ public class NametagCloneRenderer {
             }
         }
         clones.clear();
-    }
-
-    public static void invalidateCachedNames() {
-        for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
-            if (inner == null) continue;
-            for (NametagCloneUtils clone : inner.values()) {
-                if (clone != null) clone.setCachedName(null);
-            }
-        }
     }
 
     private static void despawnClone(NametagCloneUtils clone, List<Packet<? super ClientGamePacketListener>> outbox) {
