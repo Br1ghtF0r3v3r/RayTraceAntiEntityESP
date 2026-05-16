@@ -48,10 +48,10 @@ public class EventManager {
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
         UUID playerUUID = event.getPlayerUniqueId();
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        Bukkit.getScheduler().runTask(plugin, () -> {
             if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplay(playerUUID);
             if (isDebugEnabled) DebugVertexRenderer.removeDisplay(playerUUID);
-        }, 0L);
+        });
     }
 
     public static void playerJoinHandler(PlayerJoinEvent event) {
@@ -68,6 +68,45 @@ public class EventManager {
         if (obj != null) {
             PacketManager.belowNameObjective.put(playerUUID, obj.getName());
         }
+
+        net.minecraft.server.level.ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
+        net.minecraft.world.scores.Scoreboard nmsScoreboard =
+                net.minecraft.server.MinecraftServer.getServer().getScoreboard();
+
+        for (org.bukkit.scoreboard.Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
+            String teamName = team.getName();
+            try {
+                net.kyori.adventure.text.format.TextColor textColor = team.color();
+                if (textColor instanceof net.kyori.adventure.text.format.NamedTextColor namedColor) {
+                    RayTraceAntiEntityESP.bukkit.utils.TeamUtils.teamColors.put(teamName, namedColor);
+                }
+            } catch (IllegalStateException ignored) {
+            }
+            RayTraceAntiEntityESP.bukkit.utils.TeamUtils.teamPrefixes.put(teamName, team.prefix());
+            RayTraceAntiEntityESP.bukkit.utils.TeamUtils.teamVisibilities.put(teamName,
+                    team.getOption(org.bukkit.scoreboard.Team.Option.NAME_TAG_VISIBILITY));
+            for (String entry : team.getEntries()) {
+                RayTraceAntiEntityESP.bukkit.utils.TeamUtils.entryToTeam.put(entry, teamName);
+            }
+
+        }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            for (org.bukkit.scoreboard.Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
+                net.minecraft.world.scores.PlayerTeam nmsTeam = nmsScoreboard.getPlayerTeam(team.getName());
+                if (nmsTeam == null) continue;
+                nmsPlayer.connection.send(
+                        net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(nmsTeam, true)
+                );
+                for (String member : nmsTeam.getPlayers()) {
+                    nmsPlayer.connection.send(
+                            net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.createPlayerPacket(
+                                    nmsTeam, member, net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.Action.ADD
+                            )
+                    );
+                }
+            }
+        }, 2L);
     }
 
     public static void entityDeathHandler(EntityDeathEvent event) {

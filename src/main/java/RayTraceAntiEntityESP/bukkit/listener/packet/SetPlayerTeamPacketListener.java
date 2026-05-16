@@ -1,6 +1,5 @@
 package RayTraceAntiEntityESP.bukkit.listener.packet;
 
-import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.misc.StringFormat;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
@@ -16,7 +15,6 @@ import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.mapVisibility;
 public class SetPlayerTeamPacketListener extends PacketListener {
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        // TEAMS
         if (msg instanceof ClientboundSetPlayerTeamPacket packet) {
             String teamName = packet.getName();
 
@@ -48,9 +46,6 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                 TeamUtils.teamPrefixes.remove(teamName);
                 TeamUtils.teamVisibilities.remove(teamName);
                 TeamUtils.entryToTeam.values().removeIf(teamName::equals);
-            }
-            if (RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled) {
-                NametagCloneRenderer.invalidateCachedNames();
             }
             ctx.write(msg, promise);
             return true;

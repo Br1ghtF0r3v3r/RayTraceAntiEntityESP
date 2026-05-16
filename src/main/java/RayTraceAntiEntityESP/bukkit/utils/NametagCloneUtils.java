@@ -18,16 +18,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class NametagCloneUtils {
 
-    private net.kyori.adventure.text.Component cachedName = null;
-
-    public net.kyori.adventure.text.Component getCachedName() {
-        return cachedName;
-    }
-
-    public void setCachedName(net.kyori.adventure.text.Component name) {
-        this.cachedName = name;
-    }
-
     private static final int ID_MIN = 2_000_000;
     private static final int ID_MAX = 3_000_000;
 
