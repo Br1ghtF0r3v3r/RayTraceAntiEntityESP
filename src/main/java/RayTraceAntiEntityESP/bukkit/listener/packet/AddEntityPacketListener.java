@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AddEntityPacketListener extends PacketListener {
     public static final ConcurrentHashMap<UUID, Set<UUID>> pendingHides = new ConcurrentHashMap<>();
+
     public static void drainPendingHides() {
         if (pendingHides.isEmpty()) return;
         pendingHides.forEach((viewerUUID, entityUUIDs) -> {
@@ -28,11 +29,20 @@ public class AddEntityPacketListener extends PacketListener {
                 Entity entity = Bukkit.getEntity(entityUUID);
                 if (entity == null) return false;
                 VisibilityUtils.setHidden(viewer, entity);
+                if (RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled) {
+                    java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox = new java.util.ArrayList<>();
+                    RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
+                    if (!outbox.isEmpty()) {
+                        ((org.bukkit.craftbukkit.entity.CraftPlayer) viewer).getHandle().connection
+                                .send(new net.minecraft.network.protocol.game.ClientboundBundlePacket(outbox));
+                    }
+                }
                 return true;
             });
             if (entityUUIDs.isEmpty()) pendingHides.remove(viewerUUID);
         });
     }
+
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
         if (!(msg instanceof ClientboundAddEntityPacket packet)) return false;

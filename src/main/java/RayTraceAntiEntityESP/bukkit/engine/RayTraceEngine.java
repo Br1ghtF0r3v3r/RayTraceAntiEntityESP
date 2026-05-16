@@ -75,6 +75,7 @@ public class RayTraceEngine {
 
         java.util.ArrayList<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>>
                 outboxBuffer = new java.util.ArrayList<>(32);
+        java.util.ArrayList<org.bukkit.entity.Entity> pendingShowsBuffer = new java.util.ArrayList<>(16);
     }
 
     private static final ThreadLocal<ArrayList<Vector>> vertexBuffer =
@@ -82,6 +83,14 @@ public class RayTraceEngine {
 
     public static void clearViewerCache(int entityId) {
         viewerCaches.remove(entityId);
+    }
+
+    public static void clearAllCaches() {
+        viewerCaches.clear();
+        worldEntityCache.clear();
+        blockCacheA.clear();
+        blockCacheB.clear();
+        blockCache = blockCacheA;
     }
 
     private static long blockKey(int x, int y, int z) {
@@ -205,7 +214,10 @@ public class RayTraceEngine {
                 visibilities.add(v);
                 if (v) visible = true;
             }
-            DebugVertexRenderer.applyDisplay(viewer, entity, verticesCopy, visibilities);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!Config.isDebugEnabled) return;
+                DebugVertexRenderer.applyDisplay(viewer, entity, verticesCopy, visibilities);
+            });
             return visible;
         }
 
@@ -390,9 +402,11 @@ public class RayTraceEngine {
         DebugVertexRenderer.removeAllDisplays();
         PacketManager.clearAllBypasses();
         viewerCaches.clear();
+        worldEntityCache.clear();
     }
 
     public static void startTask() {
+        plugin.getLogger().info("RayTraceEngine: startTask() called (debug=" + Config.isDebugEnabled + ")");
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             AddEntityPacketListener.drainPendingHides();
@@ -596,11 +610,10 @@ public class RayTraceEngine {
                         }
 
                         int idx = cache.entityIndexMap.getOrDefault(eid, -1);
-                        double ex2 = entity.getX(), ey2 = entity.getY(), ez2 = entity.getZ();
-                        boolean entityStationary = idx >= 0 && (
-                                (ex2 - cache.cachedX[idx]) * (ex2 - cache.cachedX[idx]) +
-                                        (ey2 - cache.cachedY[idx]) * (ey2 - cache.cachedY[idx]) +
-                                        (ez2 - cache.cachedZ[idx]) * (ez2 - cache.cachedZ[idx])
+                        boolean entityStationary = !Config.isDebugEnabled && idx >= 0 && (
+                                (ex - cache.cachedX[idx]) * (ex - cache.cachedX[idx]) +
+                                        (ey - cache.cachedY[idx]) * (ey - cache.cachedY[idx]) +
+                                        (ez - cache.cachedZ[idx]) * (ez - cache.cachedZ[idx])
                         ) <= ENTITY_POS_EPSILON_SQ;
                         boolean visible;
                         if (!vMoved && entityStationary) {
@@ -639,11 +652,26 @@ public class RayTraceEngine {
                         ViewerCache vcache = caches[i];
                         java.util.ArrayList<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox = vcache.outboxBuffer;
                         outbox.clear();
+                        java.util.ArrayList<Entity> pendingShows = vcache.pendingShowsBuffer;
+                        pendingShows.clear();
                         for (int j = 0; j < count; j++) {
                             boolean visServer = caches[i].asyncResults[j];
                             boolean visClient = clientVisible[i][j];
                             if (visServer && visClient) continue;
-                            updateRayTraceChecking(viewer, snapshots[i][j], visServer, visClient, outbox);
+                            if (visServer) {
+                                pendingShows.add(snapshots[i][j]);
+                                continue;
+                            }
+                            updateRayTraceChecking(viewer, snapshots[i][j], false, visClient, outbox);
+                        }
+                        for (Entity e : pendingShows) {
+                            boolean stillHidden = VisibilityUtils.isHidden(
+                                    ((CraftPlayer) viewer).getHandle().getId(),
+                                    ((org.bukkit.craftbukkit.entity.CraftEntity) e).getHandle().getId()
+                            );
+                            if (stillHidden) {
+                                updateRayTraceChecking(viewer, e, true, false, outbox);
+                            }
                         }
                         if (!outbox.isEmpty()) {
                             ((org.bukkit.craftbukkit.entity.CraftPlayer) viewer).getHandle().connection
@@ -656,3 +684,4 @@ public class RayTraceEngine {
         }, 0L, Config.checkingPeriodTicks);
     }
 }
+

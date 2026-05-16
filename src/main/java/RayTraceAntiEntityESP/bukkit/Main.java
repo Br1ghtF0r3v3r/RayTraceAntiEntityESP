@@ -64,6 +64,7 @@ public final class Main extends JavaPlugin {
         Config.setConfig();
     }
 
+    @SuppressWarnings("deprecation")
     public void registerCommands() {
         CommandsHandler handler = new CommandsHandler();
         TabCompletion tabCompleter = new TabCompletion();
