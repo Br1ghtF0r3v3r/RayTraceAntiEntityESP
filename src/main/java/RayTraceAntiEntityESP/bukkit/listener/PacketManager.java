@@ -89,6 +89,7 @@ public class PacketManager {
     private static final List<PacketListener> listeners = List.of(
             new AddEntityPacketListener(),
             new PlayerInfoRemovePacketListener(),
+            new PlayerInfoUpdatePacketListener(),
             new SetEntityDataPacketListener(),
             new SetPlayerTeamPacketListener(),
             new SetDisplayObjectivePacketListener(),
