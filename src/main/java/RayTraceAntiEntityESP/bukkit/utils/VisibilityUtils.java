@@ -19,23 +19,23 @@ public class VisibilityUtils {
     private static final Int2ObjectOpenHashMap<IntSet> hiddenByViewer = new Int2ObjectOpenHashMap<>();
 
     private static IntSet getOrCreate(int viewerId) {
-        IntSet set = hiddenByViewer.get(viewerId);
-        if (set == null) {
-            set = new IntOpenHashSet();
-            hiddenByViewer.put(viewerId, set);
-        }
-        return set;
+        return hiddenByViewer.computeIfAbsent(viewerId, k -> new IntOpenHashSet());
     }
 
     public static void setHidden(Player player, Entity entity) {
-        getOrCreate(player.getEntityId()).add(entity.getEntityId());
+        int viewerId = player.getEntityId();
+        int entityId = entity.getEntityId();
+        getOrCreate(viewerId).add(entityId);
         PacketManager.addHiddenBypass(player.getUniqueId(), entity.getUniqueId());
+        PacketManager.cancelShowBypass(player.getUniqueId(), entity.getUniqueId());
         player.hideEntity(plugin, entity);
     }
 
     public static void setNotHidden(Player player, Entity entity) {
-        IntSet set = hiddenByViewer.get(player.getEntityId());
-        if (set != null) set.remove(entity.getEntityId());
+        int viewerId = player.getEntityId();
+        int entityId = entity.getEntityId();
+        IntSet set = hiddenByViewer.get(viewerId);
+        if (set != null) set.remove(entityId);
         PacketManager.removeHiddenBypass(player.getUniqueId(), entity.getUniqueId());
         PacketManager.addShowBypass(player.getUniqueId(), entity.getUniqueId());
         player.showEntity(plugin, entity);
@@ -89,3 +89,4 @@ public class VisibilityUtils {
         return new net.minecraft.world.scores.PlayerTeam(nmsScoreboard, teamName);
     }
 }
+

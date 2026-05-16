@@ -127,9 +127,7 @@ public class DebugVertexUtils {
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata(BlockState blockState) {
         List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
-        // index 12 — scale (Display entity)
         metadata.add(new SynchedEntityData.DataValue<>(12, EntityDataSerializers.VECTOR3, new Vector3f(SCALE, SCALE, SCALE)));
-        // index 23 — block state (BlockDisplay entity)
         metadata.add(new SynchedEntityData.DataValue<>(23, EntityDataSerializers.BLOCK_STATE, blockState));
         return metadata;
     }

@@ -25,6 +25,11 @@ public class PacketManager {
         return set != null && set.remove(entityUUID);
     }
 
+    public static void cancelShowBypass(UUID viewerUUID, UUID entityUUID) {
+        Set<UUID> set = showBypass.get(viewerUUID);
+        if (set != null) set.remove(entityUUID);
+    }
+
     public static void addHiddenBypass(UUID viewerUUID, UUID entityUUID) {
         hiddenBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
     }

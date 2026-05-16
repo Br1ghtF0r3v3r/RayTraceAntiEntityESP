@@ -37,7 +37,6 @@ public class Config {
 
     public static void setConfig() {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
-
         loadSpigotConfig();
 
         asyncThreads = config.getInt("performance.async_threads", 2);
@@ -54,12 +53,17 @@ public class Config {
         isDisplayNameEnabled = config.getBoolean("display_name.enabled", true);
         displayNameOffSetY = config.getDouble("display_name.offset_y", 0.25);
 
+        boolean prevDebugEnabled = isDebugEnabled;
         isDebugEnabled = config.getBoolean("debug.enabled", false);
 
         antiEntities = config.getStringList("anti_entities");
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
         excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_excluded");
+
+        if (prevDebugEnabled != isDebugEnabled) {
+            RayTraceEngine.clearAllCaches();
+        }
 
         if (isCheckingEnabled) {
             RayTraceEngine.startTask();
@@ -107,26 +111,20 @@ public class Config {
     }
 
     public static void printConfig(CommandSender sender) {
-        org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
-
+        var cfg = plugin.getConfig();
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP Config (File) ---"));
-        sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + config.getBoolean("checking.enabled", true)));
-        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + config.getLong("checking.period_ticks", 1)));
-        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + config.getDouble("checking.distance_override", 5)));
-        sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + config.getDouble("checking.bounding_box_extra_value", 0.5)));
-        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + config.getInt("checking.vertices_layers", 5)));
-
-        sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + config.getBoolean("perspective_checking.enabled", true)));
-        sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + config.getDouble("perspective_checking.distances_from_head", 4)));
-
-        sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + config.getBoolean("display_name.enabled", true)));
-        sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + config.getDouble("display_name.offset_y", 0.25)));
-
-        sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + config.getBoolean("debug.enabled", false)));
-
-        List<String> entities = config.getStringList("anti_entities");
-        sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", entities)));
-        sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + config.getString("anti_mode", "whitelist")));
+        sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + cfg.getBoolean("checking.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 1)));
+        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + cfg.getDouble("checking.distance_override", 5)));
+        sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + cfg.getDouble("checking.bounding_box_extra_value", 0.5)));
+        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + cfg.getInt("checking.vertices_layers", 5)));
+        sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + cfg.getBoolean("perspective_checking.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + cfg.getDouble("perspective_checking.distances_from_head", 4)));
+        sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + cfg.getBoolean("display_name.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + cfg.getDouble("display_name.offset_y", 0.25)));
+        sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));
+        sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
+        sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));
     }
 
 }
