@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -32,7 +33,8 @@ public class NametagCloneRenderer {
         int targetEntityId = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getId();
         if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
 
-        if (entity.isInvisible()) return false;
+        Boolean cachedInvis = SetEntityDataPacketListener.invisibleCache.get(entity.getEntityId());
+        if (cachedInvis != null ? cachedInvis : entity.isInvisible()) return false;
         if (entity instanceof Player player) {
             if (player.isSneaking()) return false;
             return !((CraftPlayer) player).getHandle().hasDisconnected();
@@ -57,11 +59,17 @@ public class NametagCloneRenderer {
             removeDisplay(viewerUUID, entityUUID, outbox);
             return;
         }
-        ConcurrentHashMap<UUID, NametagCloneUtils> inner = (ConcurrentHashMap<UUID, NametagCloneUtils>) clones.computeIfAbsent(viewerUUID, k -> new ConcurrentHashMap<>());
-        NametagCloneUtils existing = inner.get(entityUUID);
+        Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
+        if (inner == null) {
+            inner = new ConcurrentHashMap<>();
+            Map<UUID, NametagCloneUtils> existing = clones.putIfAbsent(viewerUUID, inner);
+            if (existing != null) inner = existing;
+        }
+        ConcurrentHashMap<UUID, NametagCloneUtils> innerMap = (ConcurrentHashMap<UUID, NametagCloneUtils>) inner;
+        NametagCloneUtils existing = innerMap.get(entityUUID);
         if (existing != null) {
             if (!existing.isSpawned()) {
-                inner.remove(entityUUID);
+                innerMap.remove(entityUUID);
                 despawnClone(existing, outbox);
             } else {
                 existing.setOutbox(outbox);
@@ -84,7 +92,7 @@ public class NametagCloneRenderer {
             } finally {
                 clone.setOutbox(null);
             }
-            inner.put(entityUUID, clone);
+            innerMap.put(entityUUID, clone);
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to spawn display for " + viewer.getName() + " -> " + entity.getName() + ": " + t);
         }
@@ -147,6 +155,20 @@ public class NametagCloneRenderer {
             if (clone == null) continue;
             despawnClone(clone, null);
         }
+    }
+
+    public static void cleanupStaleClones(List<Packet<? super ClientGamePacketListener>> outbox, Player viewer) {
+        UUID viewerUUID = viewer.getUniqueId();
+        Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
+        if (inner == null) return;
+        inner.entrySet().removeIf(entry -> {
+            Entity entity = org.bukkit.Bukkit.getEntity(entry.getKey());
+            if (entity == null || !shouldShowFast(viewer, entity)) {
+                despawnClone(entry.getValue(), outbox);
+                return true;
+            }
+            return false;
+        });
     }
 
     public static void removeAllDisplays() {

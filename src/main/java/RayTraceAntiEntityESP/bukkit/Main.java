@@ -10,13 +10,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public final class Main extends JavaPlugin {
 
     public static Main plugin;
-    public static ExecutorService executor;
 
     @Override
     public void onEnable() {
@@ -40,20 +37,11 @@ public final class Main extends JavaPlugin {
         registerCommands();
         getLogger().info("RayTraceEntityESP enabled successfully!");
 
-        executor = Executors.newFixedThreadPool(Config.asyncThreads, r -> {
-            Thread t = new Thread(r, "RTAEE-Worker");
-            t.setDaemon(true);
-            return t;
-        });
     }
 
     @Override
     public void onDisable() {
         SessionManager.endSession();
-
-        if (executor != null) {
-            executor.shutdownNow();
-        }
 
         getLogger().info("RayTraceEntityESP disabled.");
     }
