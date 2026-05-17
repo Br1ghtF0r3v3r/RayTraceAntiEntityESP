@@ -95,6 +95,8 @@ public class Config {
 
     public static double getSpigotTrackingRange(Entity entity) {
         String key = entity.getWorld().getName() + ":" + entity.getClass().getSimpleName();
+        Double cached = trackingRangeCache.get(key);
+        if (cached != null) return cached;
         return trackingRangeCache.computeIfAbsent(key, k -> computeTrackingRange(entity));
     }
 
