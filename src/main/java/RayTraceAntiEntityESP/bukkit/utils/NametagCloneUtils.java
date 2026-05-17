@@ -21,6 +21,12 @@ public class NametagCloneUtils {
     private static final int ID_MIN = 2_000_000;
     private static final int ID_MAX = 3_000_000;
 
+    private static final List<SynchedEntityData.DataValue<?>> CACHED_METADATA = List.of(
+            new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20),
+            new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true),
+            new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19)
+    );
+
     private final Player viewer;
     private final int entityId;
     private final UUID entityUuid;
@@ -73,16 +79,15 @@ public class NametagCloneUtils {
     }
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata() {
-        List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
-
-        metadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
-
-        if (customName != null) {
-            metadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT,
-                    Optional.of(PaperAdventure.asVanilla(customName))));
-            metadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
+        if (customName == null) {
+            return CACHED_METADATA;
         }
 
+        List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
+        metadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
+        metadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT,
+                Optional.of(PaperAdventure.asVanilla(customName))));
+        metadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
         metadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
         metadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
 

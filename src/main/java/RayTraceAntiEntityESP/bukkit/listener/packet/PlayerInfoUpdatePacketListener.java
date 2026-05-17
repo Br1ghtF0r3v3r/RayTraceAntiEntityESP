@@ -2,7 +2,6 @@ package RayTraceAntiEntityESP.bukkit.listener.packet;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
-import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.papermc.paper.adventure.PaperAdventure;
@@ -11,7 +10,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -28,7 +26,6 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
             return true;
         }
 
-        int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
         List<Entry> original = packet.entries();
         List<Entry> modified = new ArrayList<>(original.size());
         boolean changed = false;
@@ -37,7 +34,7 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
             net.minecraft.server.level.ServerPlayer nmsTarget =
                     net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayer(entry.profileId());
 
-            if (nmsTarget == null || !VisibilityUtils.isHidden(viewerEntityId, nmsTarget.getId())) {
+            if (nmsTarget == null) {
                 modified.add(entry);
                 continue;
             }

@@ -51,6 +51,7 @@ public class DebugVertexUtils {
         this.z = z;
     }
 
+    @SuppressWarnings("unused")
     public boolean isSpawned() {
         return spawned;
     }
