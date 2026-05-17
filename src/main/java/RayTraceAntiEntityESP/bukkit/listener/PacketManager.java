@@ -97,6 +97,7 @@ public class PacketManager {
     );
 
     public static boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
+        if (!RayTraceAntiEntityESP.bukkit.config.Config.isCheckingEnabled) return false;
         for (PacketListener listener : listeners) {
             if (listener.onPacketSend(viewer, msg, ctx, promise)) return true;
         }

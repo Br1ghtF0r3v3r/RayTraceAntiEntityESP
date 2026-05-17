@@ -42,6 +42,30 @@ public class SetPlayerTeamPacketListener extends PacketListener {
 
         if (playerAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
             for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.remove(entry);
+
+            net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
+            int viewerEntityId = nmsViewer.getId();
+            for (String entry : packet.getPlayers()) {
+                Player target = Bukkit.getPlayerExact(entry);
+                if (target == null) continue;
+                int targetEntityId = ((CraftPlayer) target).getHandle().getId();
+                if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) continue;
+                net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
+                nmsViewer.connection.send(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
+                        java.util.EnumSet.of(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
+                        java.util.List.of(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry(
+                                nmsTarget.getUUID(),
+                                nmsTarget.getGameProfile(),
+                                true,
+                                nmsTarget.connection.latency(),
+                                nmsTarget.gameMode.getGameModeForPlayer(),
+                                net.minecraft.network.chat.Component.literal(nmsTarget.getScoreboardName()),
+                                true,
+                                0,
+                                null
+                        ))
+                ));
+            }
         }
 
         if (teamAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
