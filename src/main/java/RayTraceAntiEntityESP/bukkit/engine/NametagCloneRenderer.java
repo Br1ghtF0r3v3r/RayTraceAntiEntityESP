@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
-import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -33,8 +32,7 @@ public class NametagCloneRenderer {
         int targetEntityId = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getId();
         if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
 
-        Boolean cachedInvis = SetEntityDataPacketListener.invisibleCache.get(entity.getEntityId());
-        if (cachedInvis != null ? cachedInvis : entity.isInvisible()) return false;
+        if (entity.isInvisible()) return false;
         if (entity instanceof Player player) {
             if (player.isSneaking()) return false;
             return !((CraftPlayer) player).getHandle().hasDisconnected();
@@ -172,13 +170,23 @@ public class NametagCloneRenderer {
     }
 
     public static void removeAllDisplays() {
-        for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
-            if (inner == null) continue;
-            for (NametagCloneUtils clone : inner.values()) {
-                if (clone == null) continue;
-                despawnClone(clone, null);
+        clones.forEach((viewerUUID, inner) -> {
+            if (inner == null) return;
+            Player viewer = org.bukkit.Bukkit.getPlayer(viewerUUID);
+            if (viewer == null) {
+                inner.values().forEach(c -> despawnClone(c, null));
+                return;
             }
-        }
+            java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox
+                    = new java.util.ArrayList<>(inner.size());
+            for (NametagCloneUtils clone : inner.values()) {
+                despawnClone(clone, outbox);
+            }
+            if (!outbox.isEmpty()) {
+                ((org.bukkit.craftbukkit.entity.CraftPlayer) viewer).getHandle().connection
+                        .send(new net.minecraft.network.protocol.game.ClientboundBundlePacket(outbox));
+            }
+        });
         clones.clear();
     }
 
