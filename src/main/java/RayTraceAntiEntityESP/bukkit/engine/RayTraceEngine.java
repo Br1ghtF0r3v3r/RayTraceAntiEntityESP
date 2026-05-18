@@ -215,7 +215,8 @@ public class RayTraceEngine {
                                         Vector eyePos, Vector lookDir, Vector negLookDir, Vector endpoint) {
         if (!hitsBlock(level, minY, maxY, eyePos, endpoint)) return true;
         if (!Config.isPerspectiveCheckingEnabled) return false;
-        if (!hitsBlock(level, minY, maxY, getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance), endpoint)) return true;
+        if (!hitsBlock(level, minY, maxY, getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance), endpoint))
+            return true;
         return !hitsBlock(level, minY, maxY, getThirdPersonPosNms(level, minY, maxY, eyePos, lookDir, Config.perspectiveCheckingDistance), endpoint);
     }
 
@@ -385,6 +386,7 @@ public class RayTraceEngine {
         NametagCloneRenderer.removeAllDisplays();
         DebugVertexRenderer.removeAllDisplays();
         PacketManager.clearAllBypasses();
+        AddEntityPacketListener.pendingHides.clear();
         viewerCaches.clear();
         worldEntityCache.clear();
     }
