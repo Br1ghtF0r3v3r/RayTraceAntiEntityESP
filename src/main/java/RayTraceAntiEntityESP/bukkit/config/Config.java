@@ -37,7 +37,7 @@ public class Config {
         loadSpigotConfig();
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
-        checkingPeriodTicks = config.getLong("checking.period_ticks", 2);
+        checkingPeriodTicks = config.getLong("checking.period_ticks", 5);
         checkingDistanceOverride = config.getDouble("checking.distance_override", 5);
         checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
         checkingVerticesLayers = config.getInt("checking.vertices_layers", 5);
@@ -125,7 +125,7 @@ public class Config {
         var cfg = plugin.getConfig();
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP Config (File) ---"));
         sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + cfg.getBoolean("checking.enabled", true)));
-        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 2)));
+        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 5)));
         sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + cfg.getDouble("checking.distance_override", 5)));
         sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + cfg.getDouble("checking.bounding_box_extra_value", 0)));
         sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + cfg.getInt("checking.vertices_layers", 5)));

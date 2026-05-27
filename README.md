@@ -40,7 +40,7 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 ```yaml
 checking:
   enabled: true
-  period_ticks: 2 # How often to run checks in ticks (lower = more accurate, more CPU)
+  period_ticks: 5 # How often to run checks in ticks (lower = more accurate, more CPU)
   distance_override: 5 # Entities within this many blocks are always shown (0 to disable)
   bounding_box_extra_value: 0 # Expand entity bounding box for more lenient detection
   vertices_layers: 5 # Sample points per entity (min 2, higher = more accurate)
