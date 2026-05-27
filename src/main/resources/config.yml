@@ -16,7 +16,7 @@ checking:
   # How often to check entity visibility (in ticks, 1 tick = 50ms)
   # Lower = more accurate but more CPU usage
   # Recommended: 1-5
-  period_ticks: 2
+  period_ticks: 5
 
   # Entities within this distance (in blocks) are always shown regardless of walls
   # Set to 0 to disable
