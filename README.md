@@ -43,22 +43,22 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 ```yaml
 checking:
   enabled: true
-  period_ticks: 1          # How often to run checks in ticks (lower = more accurate, more CPU)
-  distance_override: 5     # Entities within this many blocks are always shown (0 to disable)
-  bounding_box_extra_value: 0  # Expand entity bounding box for more lenient detection
-  vertices_layers: 5       # Sample points per entity (min 2, higher = more accurate)
+  period_ticks: 2 # How often to run checks in ticks (lower = more accurate, more CPU)
+  distance_override: 5 # Entities within this many blocks are always shown (0 to disable)
+  bounding_box_extra_value: 0 # Expand entity bounding box for more lenient detection
+  vertices_layers: 5 # Sample points per entity (min 2, higher = more accurate)
 perspective_checking:
   enabled: true
-  distances_from_head: 4   # Simulated third-person camera distance in blocks
+  distances_from_head: 4 # Simulated third-person camera distance in blocks
 display_name:
-  enabled: true            # Show a fake name tag above hidden entities
-  offset_y: 0              # Vertical offset of the name tag above the entity's head
+  enabled: true # Show a fake name tag above hidden entities
+  offset_y: 0 # Vertical offset of the name tag above the entity's head
 debug:
-  enabled: false           # Show block markers at raytrace vertices (testing only)
+  enabled: false # Show block markers at raytrace vertices (testing only)
 anti_entities:
   - player
-anti_mode: whitelist       # whitelist = only listed types | blacklist = all except listed
-exclude_entity_tag: raytrace_anti_esp_excluded  # Tag this to an entity to always show it
+anti_mode: whitelist # whitelist = only listed types | blacklist = all except listed
+exclude_entity_tag: raytrace_anti_esp_excluded # Tag this to an entity to always show it
 ```
 
 </details>
