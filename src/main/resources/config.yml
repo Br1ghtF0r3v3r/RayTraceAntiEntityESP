@@ -81,5 +81,4 @@ anti_mode: whitelist
 # Entities with this scoreboard tag will always be shown regardless of walls
 # Use /tag <entity> add <tag> to apply
 # EX: /tag @e[type=player,limit=1,sort=nearest] add raytrace_anti_esp_excluded
-# Leave empty to disable
 exclude_entity_tag: raytrace_anti_esp_excluded
