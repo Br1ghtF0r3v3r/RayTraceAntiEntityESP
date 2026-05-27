@@ -65,9 +65,16 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         if (playerAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
             for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.remove(entry);
 
+            net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
+            int viewerEntityId = nmsViewer.getId();
+
             for (String entry : packet.getPlayers()) {
                 Player target = Bukkit.getPlayerExact(entry);
                 if (target == null) continue;
+                int targetEntityId = ((CraftPlayer) target).getHandle().getId();
+
+                if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) continue;
+
                 net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
 
                 outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
