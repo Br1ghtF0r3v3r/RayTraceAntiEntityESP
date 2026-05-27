@@ -420,7 +420,7 @@ public class RayTraceEngine {
             next.clear();
             blockCache = next;
 
-            if (++excludeTagCacheTick > 2) {
+            if (++excludeTagCacheTick > 20) {
                 excludeTagCache.clear();
                 excludeTagCacheTick = 0;
             }
