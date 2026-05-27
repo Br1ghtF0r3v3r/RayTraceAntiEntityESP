@@ -7,15 +7,6 @@
 # RayTrace Anti Entity ESP - Configuration File
 
 # -----------------------------------------------
-# PERFORMANCE
-# -----------------------------------------------
-performance:
-  # Number of threads used for async raytrace calculations
-  # Recommended: 1-4, set to number of CPU cores for best performance
-  # Higher values use more CPU but check more entities simultaneously
-  async_threads: 2
-
-# -----------------------------------------------
 # CHECKING
 # -----------------------------------------------
 checking:
@@ -25,7 +16,7 @@ checking:
   # How often to check entity visibility (in ticks, 1 tick = 50ms)
   # Lower = more accurate but more CPU usage
   # Recommended: 1-5
-  period_ticks: 1
+  period_ticks: 2
 
   # Entities within this distance (in blocks) are always shown regardless of walls
   # Set to 0 to disable

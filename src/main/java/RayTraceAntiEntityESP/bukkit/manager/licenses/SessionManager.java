@@ -46,7 +46,7 @@ public class SessionManager {
                 return;
             }
 
-            maxSessions = parseIntField(body, "max_sessions", -1); // store the result
+            maxSessions = parseIntField(body);
             plugin.getLogger().info("Max sessions for this license: " + (maxSessions < 0 ? "∞" : maxSessions));
 
         } catch (Exception e) {
@@ -186,10 +186,10 @@ public class SessionManager {
                 .header("Authorization", "Bearer " + ANON_KEY);
     }
 
-    private static int parseIntField(String json, String field, int defaultValue) {
-        String key = "\"" + field + "\":";
+    private static int parseIntField(String json) {
+        String key = "\"" + "max_sessions" + "\":";
         int idx = json.indexOf(key);
-        if (idx == -1) return defaultValue;
+        if (idx == -1) return -1;
         int start = idx + key.length();
         while (start < json.length() && json.charAt(start) == ' ') start++;
         int end = start;
@@ -197,7 +197,7 @@ public class SessionManager {
         try {
             return Integer.parseInt(json.substring(start, end));
         } catch (NumberFormatException e) {
-            return defaultValue;
+            return -1;
         }
     }
 
