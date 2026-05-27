@@ -65,13 +65,9 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         if (playerAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
             for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.remove(entry);
 
-            net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
-            int viewerEntityId = nmsViewer.getId();
             for (String entry : packet.getPlayers()) {
                 Player target = Bukkit.getPlayerExact(entry);
                 if (target == null) continue;
-                int targetEntityId = ((CraftPlayer) target).getHandle().getId();
-                if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) continue;
                 net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
 
                 outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
@@ -119,22 +115,15 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                     .toList()
                     : packet.getPlayers();
 
-            net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
-            int viewerEntityId = nmsViewer.getId();
-
             for (String entry : entries) {
                 Player target = Bukkit.getPlayerExact(entry);
                 if (target == null) continue;
-                int targetEntityId = ((CraftPlayer) target).getHandle().getId();
-                if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) continue;
 
                 Component displayName = Component.text(target.getName());
                 if (teamColor != null) displayName = displayName.color(teamColor);
                 if (teamPrefix != null) displayName = teamPrefix.append(displayName);
 
-                net.minecraft.network.chat.Component nmsName = PaperAdventure.asVanilla(displayName);
                 net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
-
                 outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
                         java.util.EnumSet.of(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
                         java.util.List.of(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry(
@@ -143,7 +132,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                                 true,
                                 nmsTarget.connection.latency(),
                                 nmsTarget.gameMode.getGameModeForPlayer(),
-                                nmsName,
+                                PaperAdventure.asVanilla(displayName),
                                 true,
                                 0,
                                 null
