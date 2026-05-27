@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.listener.packet;
 
+import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -18,9 +19,13 @@ public class AddEntityPacketListener extends PacketListener {
     public static final ConcurrentHashMap<UUID, Set<UUID>> pendingHides = new ConcurrentHashMap<>();
 
     public static void drainPendingHides() {
-        if (!RayTraceAntiEntityESP.bukkit.config.Config.isCheckingEnabled) return;
+        if (!Config.isCheckingEnabled) return;
         if (pendingHides.isEmpty()) return;
         pendingHides.forEach((viewerUUID, entityUUIDs) -> {
+            if (PacketManager.isBypassed(viewerUUID)) {
+                pendingHides.remove(viewerUUID);
+                return;
+            }
             Player viewer = Bukkit.getPlayer(viewerUUID);
             if (viewer == null) {
                 pendingHides.remove(viewerUUID);
@@ -60,8 +65,12 @@ public class AddEntityPacketListener extends PacketListener {
         }
 
         UUID entityUUID = packet.getUUID();
-
         if (viewer.getUniqueId().equals(entityUUID)) {
+            ctx.write(msg, promise);
+            return true;
+        }
+
+        if (PacketManager.isBypassed(viewer.getUniqueId())) {
             ctx.write(msg, promise);
             return true;
         }
@@ -70,8 +79,7 @@ public class AddEntityPacketListener extends PacketListener {
             ctx.write(msg, promise);
             return true;
         }
-
-        if (!RayTraceAntiEntityESP.bukkit.config.Config.isCheckingEnabled) {
+        if (!Config.isCheckingEnabled) {
             ctx.write(msg, promise);
             return true;
         }
@@ -79,7 +87,6 @@ public class AddEntityPacketListener extends PacketListener {
         pendingHides
                 .computeIfAbsent(viewer.getUniqueId(), k -> ConcurrentHashMap.newKeySet())
                 .add(entityUUID);
-
         return true;
     }
 }
