@@ -84,6 +84,7 @@ public class RayTraceEngine {
 
     private static final it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache =
             new it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<>();
+
     private static final it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap excludeTagCache =
             new it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap();
     private static final it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap prevExcludeTagCache =
@@ -138,14 +139,22 @@ public class RayTraceEngine {
     }
 
     public static boolean hitsBlock(ServerLevel level, int minY, int maxY, Vector origin, Vector endpoint) {
-        double dirX = endpoint.getX() - origin.getX(), dirY = endpoint.getY() - origin.getY(), dirZ = endpoint.getZ() - origin.getZ();
+        return hitsBlock(level, minY, maxY,
+                origin.getX(), origin.getY(), origin.getZ(),
+                endpoint.getX(), endpoint.getY(), endpoint.getZ());
+    }
+
+    public static boolean hitsBlock(ServerLevel level, int minY, int maxY,
+                                    double ox2, double oy2, double oz2,
+                                    double ex2, double ey2, double ez2) {
+        double dirX = ex2 - ox2, dirY = ey2 - oy2, dirZ = ez2 - oz2;
         double distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
         if (distance == 0) return false;
         double inv = 1.0 / distance;
         dirX *= inv;
         dirY *= inv;
         dirZ *= inv;
-        double ox = origin.getX(), oy = origin.getY(), oz = origin.getZ();
+        double ox = ox2, oy = oy2, oz = oz2;
         int posX = (int) Math.floor(ox), posY = (int) Math.floor(oy), posZ = (int) Math.floor(oz);
         int stepX = dirX > 0 ? 1 : -1, stepY = dirY > 0 ? 1 : -1, stepZ = dirZ > 0 ? 1 : -1;
         double tDX = dirX == 0 ? Double.MAX_VALUE : Math.abs(1.0 / dirX);
@@ -154,7 +163,7 @@ public class RayTraceEngine {
         double tMX = dirX == 0 ? Double.MAX_VALUE : Math.abs((stepX > 0 ? (posX + 1 - ox) : (ox - posX)) / dirX);
         double tMY = dirY == 0 ? Double.MAX_VALUE : Math.abs((stepY > 0 ? (posY + 1 - oy) : (oy - posY)) / dirY);
         double tMZ = dirZ == 0 ? Double.MAX_VALUE : Math.abs((stepZ > 0 ? (posZ + 1 - oz) : (oz - posZ)) / dirZ);
-        int endX = (int) Math.floor(endpoint.getX()), endY = (int) Math.floor(endpoint.getY()), endZ = (int) Math.floor(endpoint.getZ());
+        int endX = (int) Math.floor(ex2), endY = (int) Math.floor(ey2), endZ = (int) Math.floor(ez2);
         int maxSteps = (int) (distance + 2) * 3;
         for (int s = 0; s < maxSteps; s++) {
             if (posX == endX && posY == endY && posZ == endZ) return false;
@@ -179,24 +188,10 @@ public class RayTraceEngine {
         return s != null && s.contains(entity.getEntityId());
     }
 
-    private static boolean isAntiEntityType(Entity entity) {
-        EntityType type = entity.getType();
-        if (antiEntityTypeCache.containsKey(type)) return antiEntityTypeCache.getBoolean(type);
-        boolean listed = Config.antiEntities.contains(type.name().toLowerCase());
-        boolean result = Config.isBlacklist != listed;
-        antiEntityTypeCache.put(type, result);
-        return result;
-    }
-
     public static boolean isEntityInSight(Player viewer, Entity entity, double ex, double ey, double ez,
                                           Vector eyePos, Vector lookDir, Vector negLookDir,
                                           double vx, double vy, double vz,
                                           ServerLevel level, int minY, int maxY) {
-        if (hasExcludeTag(entity)) {
-            if (Config.isDebugEnabled) DebugVertexRenderer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
-            return true;
-        }
-
         double range = Config.getSpigotTrackingRange(entity);
         double dx = vx - ex, dy = vy - ey, dz = vz - ez;
         double horizDistSq = dx * dx + dz * dz, distSq = horizDistSq + dy * dy;
@@ -224,17 +219,21 @@ public class RayTraceEngine {
             return visible;
         }
 
-        for (Vector v : vertices) if (isVisibleNms(level, minY, maxY, eyePos, lookDir, negLookDir, v)) return true;
+        Vector thirdBack = null, thirdFront = null;
+        if (Config.isPerspectiveCheckingEnabled) {
+            thirdBack = getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance);
+            thirdFront = getThirdPersonPosNms(level, minY, maxY, eyePos, lookDir, Config.perspectiveCheckingDistance);
+        }
+        for (Vector v : vertices) if (isVisibleNms(level, minY, maxY, eyePos, thirdBack, thirdFront, v)) return true;
         return false;
     }
 
     private static boolean isVisibleNms(ServerLevel level, int minY, int maxY,
-                                        Vector eyePos, Vector lookDir, Vector negLookDir, Vector endpoint) {
+                                        Vector eyePos, Vector thirdBack, Vector thirdFront, Vector endpoint) {
         if (!hitsBlock(level, minY, maxY, eyePos, endpoint)) return true;
-        if (!Config.isPerspectiveCheckingEnabled) return false;
-        if (!hitsBlock(level, minY, maxY, getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance), endpoint))
-            return true;
-        return !hitsBlock(level, minY, maxY, getThirdPersonPosNms(level, minY, maxY, eyePos, lookDir, Config.perspectiveCheckingDistance), endpoint);
+        if (thirdBack == null) return false;
+        if (!hitsBlock(level, minY, maxY, thirdBack, endpoint)) return true;
+        return !hitsBlock(level, minY, maxY, thirdFront, endpoint);
     }
 
     private static Vector getThirdPersonPosNms(ServerLevel level, int minY, int maxY,
@@ -290,6 +289,7 @@ public class RayTraceEngine {
     private static boolean hasExcludeTag(Entity entity) {
         if (Config.excludeEntityTag.isEmpty()) return false;
         int eid = entity.getEntityId();
+
         if (excludeTagCache.containsKey(eid)) return excludeTagCache.get(eid);
 
         boolean result = entity.getScoreboardTags().contains(Config.excludeEntityTag);
@@ -381,8 +381,6 @@ public class RayTraceEngine {
             if (Config.isDisplayNameEnabled) NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
         } else if (!visibleServer) {
             if (Config.isDisplayNameEnabled) NametagCloneRenderer.refreshDisplay(viewer, entity, outbox);
-        } else {
-            if (Config.isDisplayNameEnabled) NametagCloneRenderer.refreshDisplay(viewer, entity, outbox);
         }
     }
 
@@ -420,7 +418,7 @@ public class RayTraceEngine {
             next.clear();
             blockCache = next;
 
-            if (++excludeTagCacheTick > 20) {
+            if (++excludeTagCacheTick > 2) {
                 excludeTagCache.clear();
                 excludeTagCacheTick = 0;
             }
@@ -482,7 +480,7 @@ public class RayTraceEngine {
                     nmsWorld.getEntities().get(AABB.ofSize(new Vec3(vx, vy, vz), r * 2, r * 2, r * 2), e -> {
                         if (e.getId() == vid) return;
                         Entity bukkit = e.getBukkitEntity();
-                        if (!isAntiEntityType(bukkit) || PacketManager.isBypassed(bukkit.getUniqueId())) return;
+                        if (!isAntiEntity(bukkit) || PacketManager.isBypassed(bukkit.getUniqueId())) return;
                         if (snap.entityCount >= snap.entities.length)
                             snap.entities = java.util.Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
                         snap.entities[snap.entityCount++] = e;
@@ -623,6 +621,7 @@ public class RayTraceEngine {
                 pendingShows.clear();
                 for (int j = 0; j < count; j++) {
                     boolean visServer = vcache.asyncResults[j], visClient = clientVisible[i][j];
+                    if (visServer && visClient) continue;
                     if (visServer) {
                         pendingShows.add(snapshots[i][j]);
                         continue;
@@ -631,8 +630,8 @@ public class RayTraceEngine {
                 }
                 int vid = ((CraftPlayer) viewer).getHandle().getId();
                 for (Entity e : pendingShows) {
-                    boolean stillHidden = VisibilityUtils.isHidden(vid, ((org.bukkit.craftbukkit.entity.CraftEntity) e).getHandle().getId());
-                    updateRayTraceChecking(viewer, e, true, !stillHidden, outbox);
+                    if (VisibilityUtils.isHidden(vid, ((org.bukkit.craftbukkit.entity.CraftEntity) e).getHandle().getId()))
+                        updateRayTraceChecking(viewer, e, true, false, outbox);
                 }
                 if (Config.isDisplayNameEnabled) NametagCloneRenderer.cleanupStaleClones(outbox, viewer);
                 if (!outbox.isEmpty())

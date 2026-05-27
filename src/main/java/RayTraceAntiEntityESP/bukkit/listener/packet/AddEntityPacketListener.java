@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.listener.packet;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -14,6 +15,8 @@ import org.bukkit.entity.Player;
 import java.util.UUID;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class AddEntityPacketListener extends PacketListener {
     public static final ConcurrentHashMap<UUID, Set<UUID>> pendingHides = new ConcurrentHashMap<>();
@@ -34,8 +37,15 @@ public class AddEntityPacketListener extends PacketListener {
             entityUUIDs.removeIf(entityUUID -> {
                 Entity entity = Bukkit.getEntity(entityUUID);
                 if (entity == null) return false;
+
+                if (!RayTraceEngine.isAntiEntity(entity)) {
+                    PacketManager.addShowBypass(viewerUUID, entityUUID);
+                    viewer.showEntity(plugin, entity);
+                    return true;
+                }
+
                 VisibilityUtils.setHidden(viewer, entity);
-                if (RayTraceAntiEntityESP.bukkit.config.Config.isCheckingEnabled && RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled) {
+                if (Config.isCheckingEnabled && Config.isDisplayNameEnabled) {
                     java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox = new java.util.ArrayList<>();
                     RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
                     if (!outbox.isEmpty()) {
