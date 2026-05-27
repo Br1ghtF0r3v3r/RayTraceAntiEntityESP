@@ -60,19 +60,44 @@ public class CommandsHandler implements CommandExecutor {
                 sender.sendMessage(StringFormat.formatToString(sender, "&aSet anti_mode to &e" + mode));
             }
             case "anti_entities" -> {
-                if (args.length < 3) { sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove> <type>")); return true; }
-                String type = args[2].toLowerCase();
-                try { EntityType.valueOf(type.toUpperCase()); }
-                catch (IllegalArgumentException e) { sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &cis not a valid entity type.")); return true; }
-                boolean isAdd = args[1].equalsIgnoreCase("add");
-                boolean exists = Config.antiEntities.contains(type);
-                if ((isAdd && exists) || (!isAdd && !exists)) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &c" + (isAdd ? "is already in the list." : "not found.")));
-                } else {
-                    if (isAdd) Config.antiEntities.add(type);
-                    else Config.antiEntities.remove(type);
-                    saveAndReload("anti_entities", Config.antiEntities);
-                    sender.sendMessage(StringFormat.formatToString(sender, "&a" + (isAdd ? "Added" : "Removed") + " &e" + type));
+                if (args.length < 2) { sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove|list|clear> [type]")); return true; }
+
+                switch (args[1].toLowerCase()) {
+                    case "add", "remove" -> {
+                        if (args.length < 3) { sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove> <type>")); return true; }
+                        String type = args[2].toLowerCase();
+                        try { EntityType.valueOf(type.toUpperCase()); }
+                        catch (IllegalArgumentException e) { sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &cis not a valid entity type.")); return true; }
+                        boolean isAdd = args[1].equalsIgnoreCase("add");
+                        boolean exists = Config.antiEntities.contains(type);
+                        if ((isAdd && exists) || (!isAdd && !exists)) {
+                            sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &c" + (isAdd ? "is already in the list." : "not found.")));
+                        } else {
+                            if (isAdd) Config.antiEntities.add(type);
+                            else Config.antiEntities.remove(type);
+                            saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                            sender.sendMessage(StringFormat.formatToString(sender, "&a" + (isAdd ? "Added" : "Removed") + " &e" + type));
+                        }
+                    }
+                    case "list" -> {
+                        if (Config.antiEntities.isEmpty()) {
+                            sender.sendMessage(StringFormat.formatToString(sender, "&7Anti entities list is empty."));
+                        } else {
+                            sender.sendMessage(StringFormat.formatToString(sender, "&6--- Anti Entities (" + Config.antiEntities.size() + ") ---"));
+                            sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", Config.antiEntities)));
+                        }
+                    }
+                    case "clear" -> {
+                        if (Config.antiEntities.isEmpty()) {
+                            sender.sendMessage(StringFormat.formatToString(sender, "&7Anti entities list is already empty."));
+                        } else {
+                            int count = Config.antiEntities.size();
+                            Config.antiEntities.clear();
+                            saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                            sender.sendMessage(StringFormat.formatToString(sender, "&aCleared &e" + count + " &aentities."));
+                        }
+                    }
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
                 }
             }
             default -> sendHelp(sender);
@@ -123,7 +148,7 @@ public class CommandsHandler implements CommandExecutor {
             "&e/rtaee debug <enabled|period_ticks> <value>",
             "&e/rtaee fake_name_display <enabled|period_ticks|offset_y> <value>",
             "&e/rtaee anti_mode <whitelist|blacklist>",
-            "&e/rtaee anti_entities <add|remove> <type>",
+            "&e/rtaee anti_entities <add|remove|list|clear> [type]",
             "&e/rtaee help"
         };
         for (String msg : help) sender.sendMessage(StringFormat.formatToString(sender, msg));

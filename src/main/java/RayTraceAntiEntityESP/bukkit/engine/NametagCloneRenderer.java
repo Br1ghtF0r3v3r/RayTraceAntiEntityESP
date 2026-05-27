@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -32,7 +33,9 @@ public class NametagCloneRenderer {
         int targetEntityId = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getId();
         if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
 
-        if (entity.isInvisible()) return false;
+        Boolean cachedInvisible = SetEntityDataPacketListener.invisibleCache.get(targetEntityId);
+        if (cachedInvisible != null ? cachedInvisible : entity.isInvisible()) return false;
+
         if (entity instanceof Player player) {
             if (player.isSneaking()) return false;
             return !((CraftPlayer) player).getHandle().hasDisconnected();
