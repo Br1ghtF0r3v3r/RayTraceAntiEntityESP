@@ -39,14 +39,14 @@ public class Config {
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
         checkingDistanceOverride = config.getDouble("checking.distance_override", 5);
-        checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0.5);
+        checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
         checkingVerticesLayers = config.getInt("checking.vertices_layers", 5);
 
         isPerspectiveCheckingEnabled = config.getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
 
         isDisplayNameEnabled = config.getBoolean("display_name.enabled", true);
-        displayNameOffSetY = config.getDouble("display_name.offset_y", 0.25);
+        displayNameOffSetY = config.getDouble("display_name.offset_y", 0);
 
         boolean prevDebugEnabled = isDebugEnabled;
         isDebugEnabled = config.getBoolean("debug.enabled", false);

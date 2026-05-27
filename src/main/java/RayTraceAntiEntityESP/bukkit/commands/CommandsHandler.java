@@ -100,6 +100,7 @@ public class CommandsHandler implements CommandExecutor {
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
                 }
             }
+            case "help" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
         return true;
@@ -136,20 +137,20 @@ public class CommandsHandler implements CommandExecutor {
 
     public static void sendHelp(CommandSender sender) {
         String[] help = {
-            "&6--- RayTrace Anti Entity ESP ---",
-            "&e/rtaee config_value &7- Show all config values",
-            "&e/rtaee reload",
-            "&e/rtaee enabled <true|false>",
-            "&e/rtaee checking_period_ticks <value>",
-            "&e/rtaee checking_distance_override <value>",
-            "&e/rtaee bounding_box_extra_value <value>",
-            "&e/rtaee vertices_layers <value>",
-            "&e/rtaee perspective_checking <enabled|distances_from_head> <value>",
-            "&e/rtaee debug <enabled|period_ticks> <value>",
-            "&e/rtaee fake_name_display <enabled|period_ticks|offset_y> <value>",
-            "&e/rtaee anti_mode <whitelist|blacklist>",
-            "&e/rtaee anti_entities <add|remove|list|clear> [type]",
-            "&e/rtaee help"
+                "&6--- RayTrace Anti Entity ESP ---",
+                "&e/rtaee reload &7- Reload config from disk",
+                "&e/rtaee config_value &7- Print all current config values",
+                "&e/rtaee enabled <true|false> &7- Enable or disable the plugin",
+                "&e/rtaee checking_period_ticks <value> &7- Set check frequency",
+                "&e/rtaee checking_distance_override <value> &7- Set always-show range",
+                "&e/rtaee bounding_box_extra_value <value> &7- Set bounding box expansion",
+                "&e/rtaee vertices_layers <value> &7- Set vertex sample count",
+                "&e/rtaee perspective_checking <enabled|distances_from_head> <value> &7- Perspective options",
+                "&e/rtaee display_name <enabled|offset_y> <value> &7- Name tag options",
+                "&e/rtaee debug enabled <true|false> &7- Toggle debug mode",
+                "&e/rtaee anti_mode <whitelist|blacklist> &7- Switch filter mode",
+                "&e/rtaee anti_entities <add|remove|list|clear> [type] &7- Edit entity list",
+                "&e/rtaee help &7- Show help information"
         };
         for (String msg : help) sender.sendMessage(StringFormat.formatToString(sender, msg));
     }
