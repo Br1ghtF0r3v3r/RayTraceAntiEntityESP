@@ -18,10 +18,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class NametagCloneUtils {
 
-    private static final int ID_MIN = 2_000_000;
-    private static final int ID_MAX = 3_000_000;
+    private static final int ID_MIN = 2_000_000, ID_MAX = 3_000_000;
 
-    private static final List<SynchedEntityData.DataValue<?>> CACHED_METADATA = List.of(
+    private static final List<SynchedEntityData.DataValue<?>> CACHED_METADATA_NO_NAME = List.of(
             new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20),
             new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true),
             new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19)
@@ -33,10 +32,11 @@ public class NametagCloneUtils {
     private double x, y, z;
     private long lastX, lastY, lastZ;
     private boolean spawned;
-
     private Component customName;
 
-    private List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox;
+    private List<SynchedEntityData.DataValue<?>> cachedNamedMetadata = null;
+
+    private List<net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>> outbox;
 
     public double getX() {
         return x;
@@ -50,14 +50,18 @@ public class NametagCloneUtils {
         return z;
     }
 
-    public void setOutbox(List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox) {
+    public boolean isSpawned() {
+        return spawned;
+    }
+
+    public void setOutbox(List<net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>> outbox) {
         this.outbox = outbox;
     }
 
     @SuppressWarnings("unchecked")
     private void send(net.minecraft.network.protocol.Packet<?> packet) {
         if (outbox != null) {
-            outbox.add((net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>) packet);
+            outbox.add((net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>) packet);
             return;
         }
         ((CraftPlayer) viewer).getHandle().connection.send(packet);
@@ -66,32 +70,25 @@ public class NametagCloneUtils {
     @SuppressWarnings("unchecked")
     private void sendAtomic(net.minecraft.network.protocol.Packet<?>... packets) {
         if (outbox != null) {
-            for (net.minecraft.network.protocol.Packet<?> p : packets) {
-                outbox.add((net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>) p);
-            }
+            for (var p : packets)
+                outbox.add((net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>) p);
             return;
         }
-        List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> list = new ArrayList<>(packets.length);
-        for (net.minecraft.network.protocol.Packet<?> p : packets) {
-            list.add((net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>) p);
-        }
+        List<net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>> list = new ArrayList<>(packets.length);
+        for (var p : packets) list.add((net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>) p);
         ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(list));
     }
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata() {
-        if (customName == null) {
-            return CACHED_METADATA;
-        }
-
-        List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
-        metadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
-        metadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT,
-                Optional.of(PaperAdventure.asVanilla(customName))));
-        metadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
-        metadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
-        metadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
-
-        return metadata;
+        if (customName == null) return CACHED_METADATA_NO_NAME;
+        if (cachedNamedMetadata == null) cachedNamedMetadata = new ArrayList<>(5);
+        else cachedNamedMetadata.clear();
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(PaperAdventure.asVanilla(customName))));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
+        return cachedNamedMetadata;
     }
 
     public NametagCloneUtils(Player viewer) {
@@ -103,6 +100,7 @@ public class NametagCloneUtils {
     public void setName(Component name) {
         if (name != null && name.equals(this.customName)) return;
         this.customName = name;
+        this.cachedNamedMetadata = null;
         if (spawned) send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
     }
 
@@ -112,20 +110,13 @@ public class NametagCloneUtils {
         this.z = z;
     }
 
-    public boolean isSpawned() {
-        return spawned;
-    }
-
     public void spawn() {
         if (spawned) return;
-
         lastX = (long) (x * 4096);
         lastY = (long) (y * 4096);
         lastZ = (long) (z * 4096);
-
         sendAtomic(
-                new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f,
-                        EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
+                new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
                 new ClientboundSetEntityDataPacket(entityId, buildMetadata())
         );
         spawned = true;
@@ -133,33 +124,21 @@ public class NametagCloneUtils {
 
     public void teleport(double x, double y, double z) {
         if (!spawned) return;
-
-        long newX = (long) (x * 4096);
-        long newY = (long) (y * 4096);
-        long newZ = (long) (z * 4096);
-
-        long dx = newX - lastX;
-        long dy = newY - lastY;
-        long dz = newZ - lastZ;
-
+        long nx = (long) (x * 4096), ny = (long) (y * 4096), nz = (long) (z * 4096);
+        long dx = nx - lastX, dy = ny - lastY, dz = nz - lastZ;
         if (dx == 0 && dy == 0 && dz == 0) return;
-
         this.x = x;
         this.y = y;
         this.z = z;
-        this.lastX = newX;
-        this.lastY = newY;
-        this.lastZ = newZ;
-
+        lastX = nx;
+        lastY = ny;
+        lastZ = nz;
         if (dx < -32768 || dx > 32767 || dy < -32768 || dy > 32767 || dz < -32768 || dz > 32767) {
-            sendAtomic(
-                    new ClientboundRemoveEntitiesPacket(entityId),
+            sendAtomic(new ClientboundRemoveEntitiesPacket(entityId),
                     new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
-                    new ClientboundSetEntityDataPacket(entityId, buildMetadata())
-            );
+                    new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
             return;
         }
-
         send(new ClientboundMoveEntityPacket.Pos(entityId, (short) dx, (short) dy, (short) dz, true));
     }
 
