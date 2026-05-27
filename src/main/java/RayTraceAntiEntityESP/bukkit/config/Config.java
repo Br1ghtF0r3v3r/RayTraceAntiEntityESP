@@ -7,14 +7,11 @@ import org.bukkit.entity.*;
 
 import java.io.File;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
-
-    public static int asyncThreads;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -30,7 +27,7 @@ public class Config {
 
     public static boolean isDebugEnabled;
 
-    public static List<String> antiEntities;
+    public static java.util.Set<String> antiEntities;
     public static String antiMode;
     public static boolean isBlacklist;
     public static String excludeEntityTag;
@@ -38,8 +35,6 @@ public class Config {
     public static void setConfig() {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
         loadSpigotConfig();
-
-        asyncThreads = config.getInt("performance.async_threads", 2);
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
@@ -56,10 +51,16 @@ public class Config {
         boolean prevDebugEnabled = isDebugEnabled;
         isDebugEnabled = config.getBoolean("debug.enabled", false);
 
-        antiEntities = config.getStringList("anti_entities");
+        List<String> entityList = config.getStringList("anti_entities");
+        antiEntities = new java.util.HashSet<>();
+        for (String entity : entityList) {
+            antiEntities.add(entity.toLowerCase());
+        }
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
         excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_excluded");
+
+        RayTraceEngine.clearAntiEntityCache();
 
         if (prevDebugEnabled != isDebugEnabled) {
             RayTraceEngine.clearAllCaches();
@@ -70,7 +71,6 @@ public class Config {
         } else {
             RayTraceEngine.killTask();
         }
-
     }
 
     public static YamlConfiguration spigotConfig;
@@ -87,29 +87,38 @@ public class Config {
         return maxTrackingRange;
     }
 
-    private static final ConcurrentHashMap<String, Double> trackingRangeCache = new ConcurrentHashMap<>();
+    private static final it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<String> trackingRangeCache =
+            new it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<>();
 
     public static void clearTrackingRangeCache() {
         trackingRangeCache.clear();
     }
 
     public static double getSpigotTrackingRange(Entity entity) {
-        String key = entity.getWorld().getName() + ":" + entity.getClass().getSimpleName();
-        Double cached = trackingRangeCache.get(key);
-        if (cached != null) return cached;
-        return trackingRangeCache.computeIfAbsent(key, k -> computeTrackingRange(entity));
+        String worldName = entity.getWorld().getName();
+        String entityType = entity.getClass().getSimpleName();
+        String key = worldName + ":" + entityType;
+        double cached = trackingRangeCache.getOrDefault(key, Double.NEGATIVE_INFINITY);
+        if (cached != Double.NEGATIVE_INFINITY) return cached;
+        double range = computeTrackingRange(entity);
+        trackingRangeCache.put(key, range);
+        return range;
     }
 
     public static double computeTrackingRange(Entity entity) {
         String worldName = entity.getWorld().getName();
-        String base = spigotConfig.contains("world-settings." + worldName + ".entity-tracking-range") ? "world-settings." + worldName + ".entity-tracking-range." : "world-settings.default.entity-tracking-range.";
-        return switch (entity) {
+        String worldPath = "world-settings." + worldName + ".entity-tracking-range.";
+        boolean hasWorldSettings = spigotConfig.contains(worldPath.substring(0, worldPath.length() - 1));
+        String base = hasWorldSettings ? worldPath : "world-settings.default.entity-tracking-range.";
+
+        double range = switch (entity) {
             case Player ignored -> spigotConfig.getDouble(base + "players", 128);
             case Animals ignored -> spigotConfig.getDouble(base + "animals", 96);
             case Monster ignored -> spigotConfig.getDouble(base + "monsters", 96);
             case AbstractVillager ignored -> spigotConfig.getDouble(base + "misc", 96);
             default -> spigotConfig.getDouble(base + "other", 64);
-        } + 16;
+        };
+        return range + 16;
     }
 
     public static void printConfig(CommandSender sender) {
@@ -128,5 +137,4 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
         sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));
     }
-
 }

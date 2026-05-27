@@ -41,8 +41,6 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 <summary>View</summary>
 
 ```yaml
-performance:
-  async_threads: 2         # Worker threads for raytrace calculations
 checking:
   enabled: true
   period_ticks: 1          # How often to run checks in ticks (lower = more accurate, more CPU)
