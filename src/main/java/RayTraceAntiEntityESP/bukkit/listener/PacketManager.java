@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.listener;
 
+import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.packet.*;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -86,19 +87,25 @@ public class PacketManager {
         };
     }
 
-    private static final List<PacketListener> listeners = List.of(
+    private static final List<PacketListener> alwaysOnListeners = List.of(
+            new PlayerInfoUpdatePacketListener(),
+            new SetPlayerTeamPacketListener()
+    );
+
+    private static final List<PacketListener> checkingListeners = List.of(
             new AddEntityPacketListener(),
             new PlayerInfoRemovePacketListener(),
-            new PlayerInfoUpdatePacketListener(),
             new SetEntityDataPacketListener(),
-            new SetPlayerTeamPacketListener(),
             new SetDisplayObjectivePacketListener(),
             new SetObjectivePacketListener()
     );
 
     public static boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        if (!RayTraceAntiEntityESP.bukkit.config.Config.isCheckingEnabled) return false;
-        for (PacketListener listener : listeners) {
+        for (PacketListener listener : alwaysOnListeners) {
+            if (listener.onPacketSend(viewer, msg, ctx, promise)) return true;
+        }
+        if (!Config.isCheckingEnabled) return false;
+        for (PacketListener listener : checkingListeners) {
             if (listener.onPacketSend(viewer, msg, ctx, promise)) return true;
         }
         return false;
