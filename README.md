@@ -15,11 +15,11 @@ https://github.com/user-attachments/assets/68cc56f7-f8e2-4c7c-95db-995082286535
 
 ### With RayTrace Anti Entity ESP
 https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
-
 </details>
 
 ---
 ## Installation
+
 <details>
 <summary>View</summary>
 
@@ -27,16 +27,13 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 2. **Drop** the `.jar` into your server's `/plugins` folder.
 3. **Restart** your server (do not use `/reload`).
 4. **Edit** the generated [config.yml](src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to your liking.
-5. **Run** `/rtaee reload` in-game to apply any config changes without restarting.
-* Note that you should restart your server after each of these steps. Don't enable, disable or reload this plugin on a
-  running server under any circumstances (e.g. using `/reload`, plugin managers, etc.). It won't work properly and will
-  cause issues.
+5. **Run** `/rtaee reload` in-game to apply config changes.
 > ⚠️ **Requirements:** Paper **1.21.x**.
-
 </details>
 
 ---
 ## Configuration
+
 <details>
 <summary>View</summary>
 
@@ -60,35 +57,36 @@ anti_entities:
 anti_mode: whitelist # whitelist = only listed types | blacklist = all except listed
 exclude_entity_tag: raytrace_anti_esp_excluded # Tag this to an entity to always show it
 ```
-
 </details>
 
 ---
 ## Commands
+
 <details>
 <summary>View</summary>
 
-All commands require OP or the `raytrace_anti_entity_esp.command` permission. Alias: `/rtaee`
+All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alias: `/rtaee`
 
-| Command | Description |
-|---|---|
-| `reload` | Reload config from disk |
-| `config_value` | Print all current config values |
-| `enabled <true\|false>` | Enable or disable the plugin |
-| `checking_period_ticks <value>` | Set check frequency |
-| `checking_distance_override <value>` | Set always-show range |
-| `bounding_box_extra_value <value>` | Set bounding box expansion |
-| `vertices_layers <value>` | Set vertex sample count |
-| `perspective_checking <enabled\|distances_from_head> <value>` | Perspective options |
-| `display_name <enabled\|offset_y> <value>` | Name tag options |
-| `debug enabled <true\|false>` | Toggle debug mode |
-| `anti_mode <whitelist\|blacklist>` | Switch filter mode |
-| `anti_entities <add\|remove> <type>` | Edit entity list |
-
+| Command                                                              | Description                     |
+|----------------------------------------------------------------------|---------------------------------|
+| `/rtaee reload`                                                      | Reload config from disk         |
+| `/rtaee config_value`                                                | Print all current config values |
+| `/rtaee enabled <true\|false>`                                       | Enable or disable the plugin    |
+| `/rtaee checking_period_ticks <value>`                               | Set check frequency             |
+| `/rtaee checking_distance_override <value>`                          | Set always-show range           |
+| `/rtaee bounding_box_extra_value <value>`                            | Set bounding box expansion      |
+| `/rtaee vertices_layers <value>`                                     | Set vertex sample count         |
+| `/rtaee perspective_checking <enabled\|distances_from_head> <value>` | Perspective options             |
+| `/rtaee display_name <enabled\|offset_y> <value>`                    | Name tag options                |
+| `/rtaee debug enabled <true\|false>`                                 | Toggle debug mode               |
+| `/rtaee anti_mode <whitelist\|blacklist>`                            | Switch filter mode              |
+| `/rtaee anti_entities <add\|remove\|list\|clear> [type]`             | Edit entity list |
+| `/rtaee help`                                                        | Show help information |
 </details>
 
 ---
 ## License
+
 <details>
 <summary>View</summary>
 
@@ -96,5 +94,4 @@ Copyright (c) 2026 [Br1ghtF0r3v3r](https://github.com/Br1ghtF0r3v3r)
 
 All rights reserved. Redistribution, resale, or decompilation of this plugin is strictly prohibited. One license per
 server instance.
-
 </details>
