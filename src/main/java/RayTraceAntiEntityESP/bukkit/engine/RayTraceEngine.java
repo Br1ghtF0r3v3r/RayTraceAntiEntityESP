@@ -26,9 +26,9 @@ public class RayTraceEngine {
     private static BukkitTask task;
 
     private static final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCacheA =
-            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(512);
+            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(2048);
     private static final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCacheB =
-            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(512);
+            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(2048);
     private static volatile it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCache = blockCacheA;
     private static boolean blockCacheUseA = true;
     private static final byte CACHE_MISS = 0, CACHE_TRUE = 1, CACHE_FALSE = 2;
@@ -41,6 +41,8 @@ public class RayTraceEngine {
     private static final float ROT_EPSILON = 0.5f;
     private static final int AABB_REFRESH_TICKS = 20;
     private static final double AABB_REFRESH_MOVE_SQ = 64.0;
+
+    private static final double PERSPECTIVE_CHECK_MAX_DIST_SQ = 16.0 * 16.0;
 
     private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ViewerCache> viewerCaches =
             new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
@@ -205,13 +207,18 @@ public class RayTraceEngine {
             return true;
         }
 
-        List<Vector> vertices = getEntityVertices(distance, entity, range);
+        Vector thirdBack = null, thirdFront = null;
+        if (Config.isPerspectiveCheckingEnabled && distSq <= PERSPECTIVE_CHECK_MAX_DIST_SQ) {
+            thirdBack = getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance);
+            thirdFront = getThirdPersonPosNms(level, minY, maxY, eyePos, lookDir, Config.perspectiveCheckingDistance);
+        }
 
         if (Config.isDebugEnabled) {
+            List<Vector> vertices = getEntityVertices(distance, entity, range);
             List<Boolean> vis = new ArrayList<>(vertices.size());
             boolean visible = false;
             for (Vector v : vertices) {
-                boolean r = isVisibleNms(level, minY, maxY, eyePos, lookDir, negLookDir, v);
+                boolean r = isVisibleNms(level, minY, maxY, eyePos, thirdBack, thirdFront, v);
                 vis.add(r);
                 if (r) visible = true;
             }
@@ -219,11 +226,13 @@ public class RayTraceEngine {
             return visible;
         }
 
-        Vector thirdBack = null, thirdFront = null;
-        if (Config.isPerspectiveCheckingEnabled) {
-            thirdBack = getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance);
-            thirdFront = getThirdPersonPosNms(level, minY, maxY, eyePos, lookDir, Config.perspectiveCheckingDistance);
-        }
+        net.minecraft.world.phys.AABB box = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getBoundingBox();
+        double centerX = (box.minX + box.maxX) * 0.5;
+        double centerY = (box.minY + box.maxY) * 0.5;
+        double centerZ = (box.minZ + box.maxZ) * 0.5;
+        if (isVisibleNmsRaw(level, minY, maxY, eyePos, thirdBack, thirdFront, centerX, centerY, centerZ)) return true;
+
+        List<Vector> vertices = getEntityVertices(distance, entity, range);
         for (Vector v : vertices) if (isVisibleNms(level, minY, maxY, eyePos, thirdBack, thirdFront, v)) return true;
         return false;
     }
@@ -234,6 +243,16 @@ public class RayTraceEngine {
         if (thirdBack == null) return false;
         if (!hitsBlock(level, minY, maxY, thirdBack, endpoint)) return true;
         return !hitsBlock(level, minY, maxY, thirdFront, endpoint);
+    }
+
+    private static boolean isVisibleNmsRaw(ServerLevel level, int minY, int maxY,
+                                           Vector eyePos, Vector thirdBack, Vector thirdFront,
+                                           double ex, double ey, double ez) {
+        if (!hitsBlock(level, minY, maxY, eyePos.getX(), eyePos.getY(), eyePos.getZ(), ex, ey, ez)) return true;
+        if (thirdBack == null) return false;
+        if (!hitsBlock(level, minY, maxY, thirdBack.getX(), thirdBack.getY(), thirdBack.getZ(), ex, ey, ez))
+            return true;
+        return !hitsBlock(level, minY, maxY, thirdFront.getX(), thirdFront.getY(), thirdFront.getZ(), ex, ey, ez);
     }
 
     private static Vector getThirdPersonPosNms(ServerLevel level, int minY, int maxY,
