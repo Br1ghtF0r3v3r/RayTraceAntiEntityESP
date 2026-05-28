@@ -58,7 +58,7 @@ public class Config {
         }
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
-        excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_esp_excluded");
+        excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_entity_esp_excluded");
 
         RayTraceEngine.clearAntiEntityCache();
 
@@ -136,6 +136,6 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
         sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));
-        sender.sendMessage(formatToString(sender, "&eexclude_entity_tag: &f" + cfg.getString("exclude_entity_tag", "raytrace_anti_esp_excluded")));
+        sender.sendMessage(formatToString(sender, "&eexclude_entity_tag: &f" + cfg.getString("exclude_entity_tag", "raytrace_anti_entity_esp_excluded")));
     }
 }
