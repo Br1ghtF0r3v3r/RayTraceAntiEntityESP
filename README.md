@@ -55,7 +55,7 @@ debug:
 anti_entities:
   - player
 anti_mode: whitelist # whitelist = only listed types | blacklist = all except listed
-exclude_entity_tag: raytrace_anti_esp_excluded # Tag this to an entity to always show it
+exclude_entity_tag: raytrace_anti_entity_esp_excluded # Tag this to an entity to always show it
 ```
 </details>
 
