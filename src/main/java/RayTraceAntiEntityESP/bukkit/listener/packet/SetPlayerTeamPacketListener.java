@@ -65,12 +65,17 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         if (playerAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
             for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.remove(entry);
 
+            net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
+            int viewerEntityId = nmsViewer.getId();
+
             for (String entry : packet.getPlayers()) {
                 Player target = Bukkit.getPlayerExact(entry);
                 if (target == null) continue;
 
-                net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
+                int targetEntityId = ((CraftPlayer) target).getHandle().getId();
+                boolean isHidden = VisibilityUtils.isHidden(viewerEntityId, targetEntityId);
 
+                net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
                 outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
                         java.util.EnumSet.of(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
                         java.util.List.of(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry(
@@ -86,7 +91,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                         ))
                 ));
 
-                if (Config.isDisplayNameEnabled) {
+                if (isHidden && Config.isDisplayNameEnabled) {
                     NametagCloneRenderer.refreshDisplay(viewer, target, outbox);
                 }
             }
