@@ -18,6 +18,7 @@ public class Config {
     public static double checkingDistanceOverride;
     public static double checkingBoundingBoxExtraValue;
     public static int checkingVerticesLayers;
+    public static int checkingStaggerGroups;
 
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
@@ -37,10 +38,11 @@ public class Config {
         loadSpigotConfig();
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
-        checkingPeriodTicks = config.getLong("checking.period_ticks", 5);
+        checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
+        checkingStaggerGroups = Math.max(1, config.getInt("checking.stagger_groups", 3));
         checkingDistanceOverride = config.getDouble("checking.distance_override", 5);
         checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
-        checkingVerticesLayers = config.getInt("checking.vertices_layers", 5);
+        checkingVerticesLayers = config.getInt("checking.vertices_layers", 4);
 
         isPerspectiveCheckingEnabled = config.getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
@@ -125,11 +127,12 @@ public class Config {
         var cfg = plugin.getConfig();
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP Config (File) ---"));
         sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + cfg.getBoolean("checking.enabled", true)));
-        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 5)));
+        sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 1)));
+        sender.sendMessage(formatToString(sender, "&echecking.stagger_groups: &f" + cfg.getInt("checking.stagger_groups", 3)));
         sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + cfg.getDouble("checking.distance_override", 5)));
         sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + cfg.getDouble("checking.bounding_box_extra_value", 0)));
-        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + cfg.getInt("checking.vertices_layers", 5)));
-        sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + cfg.getBoolean("perspective_checking.enabled", false)));
+        sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + cfg.getInt("checking.vertices_layers", 4)));
+        sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + cfg.getBoolean("perspective_checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + cfg.getDouble("perspective_checking.distances_from_head", 4)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + cfg.getBoolean("display_name.enabled", true)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + cfg.getDouble("display_name.offset_y", 0)));
