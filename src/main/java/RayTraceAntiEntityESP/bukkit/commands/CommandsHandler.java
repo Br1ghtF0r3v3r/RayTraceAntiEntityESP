@@ -16,21 +16,32 @@ public class CommandsHandler implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, Command command, @NotNull String label, String @NonNull [] args) {
         if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return false;
-        if (args.length == 0) { sendHelp(sender); return true; }
+        if (args.length == 0) {
+            sendHelp(sender);
+            return true;
+        }
 
         switch (args[0].toLowerCase()) {
             case "config_value" -> Config.printConfig(sender);
-            case "reload" -> { plugin.reloadConfigAll(); sender.sendMessage(StringFormat.formatToString(sender, "&aReloaded!")); }
+            case "reload" -> {
+                plugin.reloadConfigAll();
+                sender.sendMessage(StringFormat.formatToString(sender, "&aReloaded!"));
+            }
             case "enabled" -> set(sender, "checking.enabled", args, 1, Boolean::parseBoolean);
             case "checking_period_ticks" -> setWithMin(sender, "checking.period_ticks", args, 1, Long::parseLong, 1L);
+            case "checking_stagger_groups" -> setWithMin(sender, "checking.stagger_groups", args, 1, Integer::parseInt, 1);
             case "checking_distance_override" -> set(sender, "checking.distance_override", args, 1, Double::parseDouble);
             case "bounding_box_extra_value" -> set(sender, "checking.bounding_box_extra_value", args, 1, Double::parseDouble);
             case "vertices_layers" -> setWithMin(sender, "checking.vertices_layers", args, 1, Integer::parseInt, 2);
             case "perspective_checking" -> {
-                if (args.length < 3) { sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value.")); return true; }
+                if (args.length < 3) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
+                    return true;
+                }
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "perspective_checking.enabled", args, 2, Boolean::parseBoolean);
-                    case "distances_from_head" -> set(sender, "perspective_checking.distances_from_head", args, 2, Double::parseDouble);
+                    case "distances_from_head" ->
+                            set(sender, "perspective_checking.distances_from_head", args, 2, Double::parseDouble);
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
@@ -46,7 +57,10 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "debug" -> {
-                if (args.length < 3) { sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value.")); return true; }
+                if (args.length < 3) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
+                    return true;
+                }
                 if (args[1].equalsIgnoreCase("enabled")) {
                     set(sender, "debug.enabled", args, 2, Boolean::parseBoolean);
                 } else {
@@ -54,20 +68,33 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "anti_mode" -> {
-                if (args.length < 2) { sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value.")); return true; }
+                if (args.length < 2) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value."));
+                    return true;
+                }
                 String mode = args[1].toLowerCase();
                 saveAndReload("anti_mode", mode);
                 sender.sendMessage(StringFormat.formatToString(sender, "&aSet anti_mode to &e" + mode));
             }
             case "anti_entities" -> {
-                if (args.length < 2) { sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove|list|clear> [type]")); return true; }
+                if (args.length < 2) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove|list|clear> [type]"));
+                    return true;
+                }
 
                 switch (args[1].toLowerCase()) {
                     case "add", "remove" -> {
-                        if (args.length < 3) { sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove> <type>")); return true; }
+                        if (args.length < 3) {
+                            sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove> <type>"));
+                            return true;
+                        }
                         String type = args[2].toLowerCase();
-                        try { EntityType.valueOf(type.toUpperCase()); }
-                        catch (IllegalArgumentException e) { sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &cis not a valid entity type.")); return true; }
+                        try {
+                            EntityType.valueOf(type.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &cis not a valid entity type."));
+                            return true;
+                        }
                         boolean isAdd = args[1].equalsIgnoreCase("add");
                         boolean exists = Config.antiEntities.contains(type);
                         if ((isAdd && exists) || (!isAdd && !exists)) {
@@ -97,7 +124,8 @@ public class CommandsHandler implements CommandExecutor {
                             sender.sendMessage(StringFormat.formatToString(sender, "&aCleared &e" + count + " &aentities."));
                         }
                     }
-                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
+                    default ->
+                            sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
                 }
             }
             case "help" -> sendHelp(sender);
@@ -113,7 +141,10 @@ public class CommandsHandler implements CommandExecutor {
     }
 
     public static <T> void set(CommandSender sender, String key, String[] args, int argIndex, java.util.function.Function<String, T> parser) {
-        if (args.length <= argIndex) { sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key)); return; }
+        if (args.length <= argIndex) {
+            sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key));
+            return;
+        }
         try {
             T val = parser.apply(args[argIndex]);
             saveAndReload(key, val);
@@ -124,10 +155,16 @@ public class CommandsHandler implements CommandExecutor {
     }
 
     public static <T extends Comparable<T>> void setWithMin(CommandSender sender, String key, String[] args, int argIndex, java.util.function.Function<String, T> parser, T min) {
-        if (args.length <= argIndex) { sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key)); return; }
+        if (args.length <= argIndex) {
+            sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key));
+            return;
+        }
         try {
             T val = parser.apply(args[argIndex]);
-            if (val.compareTo(min) < 0) { sender.sendMessage(StringFormat.formatToString(sender, "&c" + key + " must be at least " + min + "!")); return; }
+            if (val.compareTo(min) < 0) {
+                sender.sendMessage(StringFormat.formatToString(sender, "&c" + key + " must be at least " + min + "!"));
+                return;
+            }
             saveAndReload(key, val);
             sender.sendMessage(StringFormat.formatToString(sender, "&aSet &e" + key + " &ato &e" + val));
         } catch (NumberFormatException e) {
@@ -142,6 +179,7 @@ public class CommandsHandler implements CommandExecutor {
                 "&e/rtaee config_value &7- Print all current config values",
                 "&e/rtaee enabled <true|false> &7- Enable or disable the plugin",
                 "&e/rtaee checking_period_ticks <value> &7- Set check frequency",
+                "&e/rtaee checking_stagger_groups <value> &7- Set entity check stagger groups",
                 "&e/rtaee checking_distance_override <value> &7- Set always-show range",
                 "&e/rtaee bounding_box_extra_value <value> &7- Set bounding box expansion",
                 "&e/rtaee vertices_layers <value> &7- Set vertex sample count",

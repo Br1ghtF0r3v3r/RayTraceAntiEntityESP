@@ -17,22 +17,25 @@ public class TabCompletion implements TabCompleter {
         if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return null;
 
         if (args.length == 1) {
-            return filter(args[0], List.of("config_value", "reload", "enabled", "checking_period_ticks",
+            return filter(args[0], List.of(
+                    "config_value", "reload", "enabled",
+                    "checking_period_ticks", "checking_stagger_groups",
                     "checking_distance_override", "bounding_box_extra_value", "vertices_layers",
-                    "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "help"));
+                    "perspective_checking", "debug", "display_name",
+                    "anti_mode", "anti_entities", "help"));
         }
 
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
                 case "enabled" -> filter(args[1], List.of("true", "false"));
-                case "checking_period_ticks", "checking_distance_override",
-                     "bounding_box_extra_value", "vertices_layers" -> List.of("<value>");
+                case "checking_period_ticks", "checking_stagger_groups",
+                     "checking_distance_override", "bounding_box_extra_value",
+                     "vertices_layers" -> List.of("<value>");
                 case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
                 case "debug" -> filter(args[1], List.of("enabled"));
                 case "display_name" -> filter(args[1], List.of("enabled", "offset_y"));
                 case "anti_mode" -> filter(args[1], List.of("whitelist", "blacklist"));
-                case "anti_entities" ->
-                        filter(args[1], List.of("add", "remove", "list", "clear"));
+                case "anti_entities" -> filter(args[1], List.of("add", "remove", "list", "clear"));
                 default -> null;
             };
         }
@@ -70,6 +73,7 @@ public class TabCompletion implements TabCompleter {
                 default -> null;
             };
         }
+
         return null;
     }
 
