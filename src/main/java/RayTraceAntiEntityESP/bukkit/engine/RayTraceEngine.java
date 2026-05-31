@@ -25,13 +25,11 @@ public class RayTraceEngine {
 
     private static BukkitTask task;
 
-    private static final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCacheA =
-            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(2048);
-    private static final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCacheB =
-            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(2048);
-    private static volatile it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCache = blockCacheA;
-    private static boolean blockCacheUseA = true;
+    private static final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCache =
+            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(4096);
     private static final byte CACHE_MISS = 0, CACHE_TRUE = 1, CACHE_FALSE = 2;
+
+    private static int staggerTick = 0;
 
     private static final net.minecraft.world.scores.Scoreboard NMS_SCOREBOARD =
             net.minecraft.server.MinecraftServer.getServer().getScoreboard();
@@ -41,7 +39,6 @@ public class RayTraceEngine {
     private static final float ROT_EPSILON = 0.5f;
     private static final int AABB_REFRESH_TICKS = 20;
     private static final double AABB_REFRESH_MOVE_SQ = 64.0;
-
     private static final double PERSPECTIVE_CHECK_MAX_DIST_SQ = 16.0 * 16.0;
 
     private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ViewerCache> viewerCaches =
@@ -86,7 +83,6 @@ public class RayTraceEngine {
 
     private static final it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache =
             new it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<>();
-
     private static final it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap excludeTagCache =
             new it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap();
     private static final it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap prevExcludeTagCache =
@@ -103,12 +99,14 @@ public class RayTraceEngine {
         prevExcludeTagCache.clear();
     }
 
+    public static void invalidateBlockAt(int x, int y, int z) {
+        blockCache.remove(blockKey(x, y, z));
+    }
+
     public static void clearAllCaches() {
         viewerCaches.clear();
         worldEntityCache.clear();
-        blockCacheA.clear();
-        blockCacheB.clear();
-        blockCache = blockCacheA;
+        blockCache.clear();
         antiEntityTypeCache.clear();
         excludeTagCache.clear();
         prevExcludeTagCache.clear();
@@ -308,12 +306,9 @@ public class RayTraceEngine {
     private static boolean hasExcludeTag(Entity entity) {
         if (Config.excludeEntityTag.isEmpty()) return false;
         int eid = entity.getEntityId();
-
         if (excludeTagCache.containsKey(eid)) return excludeTagCache.get(eid);
-
         boolean result = entity.getScoreboardTags().contains(Config.excludeEntityTag);
         excludeTagCache.put(eid, result);
-
         if (prevExcludeTagCache.containsKey(eid)) {
             boolean prev = prevExcludeTagCache.get(eid);
             if (prev != result) {
@@ -330,8 +325,16 @@ public class RayTraceEngine {
                 }
             }
         }
-
         prevExcludeTagCache.put(eid, result);
+        return result;
+    }
+
+    private static boolean isAntiEntityType(Entity entity) {
+        EntityType type = entity.getType();
+        if (antiEntityTypeCache.containsKey(type)) return antiEntityTypeCache.getBoolean(type);
+        boolean listed = Config.antiEntities.contains(type.name().toLowerCase());
+        boolean result = Config.isBlacklist != listed;
+        antiEntityTypeCache.put(type, result);
         return result;
     }
 
@@ -432,15 +435,13 @@ public class RayTraceEngine {
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             AddEntityPacketListener.drainPendingHides();
 
-            blockCacheUseA = !blockCacheUseA;
-            it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap next = blockCacheUseA ? blockCacheA : blockCacheB;
-            next.clear();
-            blockCache = next;
 
             if (++excludeTagCacheTick > 2) {
                 excludeTagCache.clear();
                 excludeTagCacheTick = 0;
             }
+
+            staggerTick++;
 
             List<net.minecraft.server.level.ServerPlayer> serverPlayers =
                     net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers();
@@ -499,7 +500,7 @@ public class RayTraceEngine {
                     nmsWorld.getEntities().get(AABB.ofSize(new Vec3(vx, vy, vz), r * 2, r * 2, r * 2), e -> {
                         if (e.getId() == vid) return;
                         Entity bukkit = e.getBukkitEntity();
-                        if (!isAntiEntity(bukkit) || PacketManager.isBypassed(bukkit.getUniqueId())) return;
+                        if (!isAntiEntityType(bukkit) || PacketManager.isBypassed(bukkit.getUniqueId())) return;
                         if (snap.entityCount >= snap.entities.length)
                             snap.entities = java.util.Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
                         snap.entities[snap.entityCount++] = e;
@@ -590,17 +591,28 @@ public class RayTraceEngine {
             }
             if (vi == 0) return;
 
+            int groups = Config.checkingStaggerGroups;
+            int currentGroup = staggerTick % groups;
+
             for (int i = 0; i < vi; i++) {
                 int count = entityCounts[i];
                 boolean[] results = caches[i].asyncResults;
                 ViewerCache cache = caches[i];
                 boolean vMoved = viewerMoved[i];
+
                 for (int j = 0; j < count; j++) {
                     Entity entity = snapshots[i][j];
                     int eid = entityIdSnapshots[i][j];
                     net.minecraft.world.entity.Entity nmsEnt = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle();
                     double ex = nmsEnt.getX(), ey = nmsEnt.getY(), ez = nmsEnt.getZ();
                     int idx = cache.entityIndexMap.getOrDefault(eid, -1);
+
+                    boolean forceCheck = idx < 0 || vMoved || Config.isDebugEnabled;
+                    if (!forceCheck && (eid % groups) != currentGroup) {
+                        results[j] = cache.cachedVisible[idx];
+                        continue;
+                    }
+
                     if (idx >= 0 && !vMoved && !Config.isDebugEnabled) {
                         double dxe = ex - cache.cachedX[idx], dye = ey - cache.cachedY[idx], dze = ez - cache.cachedZ[idx];
                         if ((dxe * dxe + dye * dye + dze * dze) <= ENTITY_POS_EPSILON_SQ) {
@@ -608,6 +620,7 @@ public class RayTraceEngine {
                             continue;
                         }
                     }
+
                     boolean visible = isEntityInSight(viewers[i], entity, ex, ey, ez,
                             eyePositions[i], lookDirs[i], negLookDirs[i],
                             vxArr[i], vyArr[i], vzArr[i], levels[i], worldMinY[i], worldMaxY[i]);
