@@ -3,7 +3,6 @@ package RayTraceAntiEntityESP.bukkit.engine;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.listener.packet.AddEntityPacketListener;
-import RayTraceAntiEntityESP.bukkit.misc.Maths;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
@@ -364,7 +363,7 @@ public class RayTraceEngine {
         else scaledSampleLayers = Math.max(2, (int) Math.round(Config.checkingVerticesLayers * (1.0 - ratio * 0.5)));
         boolean includeCorners = ratio < 0.25;
         for (int i = 0; i < scaledSampleLayers; i++) {
-            double y = Maths.lerp(minY, maxY, ((double) i) / (scaledSampleLayers - 1));
+            double y = RayTraceAntiEntityESP.bukkit.misc.Math.lerp(minY, maxY, ((double) i) / (scaledSampleLayers - 1));
             vertices.add(new Vector(midX, y, midZ));
             if (includeCorners) {
                 if (Config.checkingBoundingBoxExtraValue > 0) {
