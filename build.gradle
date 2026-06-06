@@ -18,7 +18,7 @@ plugins {
 
 tasks {
     shadowJar {
-        archiveBaseName.set("${project.name}-unof")
+        archiveBaseName.set("${project.name}")
         archiveClassifier.set("")
         archiveVersion.set("")
         mergeServiceFiles()
