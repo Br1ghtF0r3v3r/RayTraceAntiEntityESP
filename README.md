@@ -109,6 +109,5 @@ All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alia
 
 Copyright (c) 2026 [Br1ghtF0r3v3r](https://github.com/Br1ghtF0r3v3r)
 
-All rights reserved. Redistribution, resale, or decompilation of this plugin is strictly prohibited. One license per
-server instance.
+All rights reserved. Redistribution, resale, or decompilation of this plugin is strictly prohibited.
 </details>
