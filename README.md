@@ -107,7 +107,6 @@ All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alia
 <details>
 <summary>View</summary>
 
-Copyright (c) 2026 [Br1ghtF0r3v3r](https://github.com/Br1ghtF0r3v3r)
+This project is licensed under the GPL-3.0 License. See the [LICENSE](LICENSE) file for details.
 
-All rights reserved. Redistribution, resale, or decompilation of this plugin is strictly prohibited.
 </details>
