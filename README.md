@@ -28,7 +28,7 @@ https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
 <details>
 <summary>View</summary>
 
-1. **Download** the latest `.jar` from [Download Link]().
+1. **Download** the latest `.jar` from [Download Link](https://modrinth.com/plugin/raytraceantientityesp).
 2. **Drop** the `.jar` into your server's `/plugins` folder.
 3. **Restart** your server (do not use `/reload`).
 4. **Edit** the generated [config.yml](src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to
