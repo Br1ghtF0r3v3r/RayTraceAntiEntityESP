@@ -4,8 +4,6 @@ import RayTraceAntiEntityESP.bukkit.commands.CommandsHandler;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
-import RayTraceAntiEntityESP.bukkit.manager.licenses.LicenseValidator;
-import RayTraceAntiEntityESP.bukkit.manager.licenses.SessionManager;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,18 +19,6 @@ public final class Main extends JavaPlugin {
 
         reloadConfigAll();
 
-        if (!LicenseValidator.verifyLicense(this)) {
-            getLogger().severe("License verification failed! Disabling plugin.");
-            Bukkit.getPluginManager().disablePlugin(this);
-            return;
-        }
-
-        if (!SessionManager.startSession(LicenseValidator.MEMBER_ID, this)) {
-            getLogger().severe("License session failed! Disabling plugin.");
-            Bukkit.getPluginManager().disablePlugin(this);
-            return;
-        }
-
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
         registerCommands();
         getLogger().info("RayTraceEntityESP enabled successfully!");
@@ -41,7 +27,6 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        SessionManager.endSession();
 
         getLogger().info("RayTraceEntityESP disabled.");
     }
