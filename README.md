@@ -14,11 +14,11 @@ blocks are concealed at the packet level, meaning clients never receive data for
 
 ### Without RayTrace Anti Entity ESP
 
-https://github.com/user-attachments/assets/68cc56f7-f8e2-4c7c-95db-995082286535
+https://github.com/user-attachments/assets/a18e1ea7-40af-45de-9716-c8ba8a471a5e
 
 ### With RayTrace Anti Entity ESP
 
-https://github.com/user-attachments/assets/c9be734c-eb48-4401-9587-965c3b0977f3
+https://github.com/user-attachments/assets/6e0cf8f0-8df9-46a7-a2a4-cbe4d4facab3
 </details>
 
 ---
