@@ -66,9 +66,6 @@ tasks.register("obfuscate", ProGuardTask) {
         public void onPacketReceive(...); \
     }"
 
-    keep "class dev.respark.licensegate.** { *; }"
-    keep "class RayTraceAntiEntityESP.bukkit.manager.licenses.** { *; }"
-
     keepclassmembers "class * extends net.minecraft.world.entity.Entity { *; }"
 
     obfuscationdictionary layout.buildDirectory.file("libs/dictionary.txt").get().asFile.path
@@ -123,7 +120,6 @@ allprojects {
 dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "me.clip:placeholderapi:2.12.2"
-    implementation "dev.respark.licensegate:license-gate:1.0.4"
     paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
 }
 
