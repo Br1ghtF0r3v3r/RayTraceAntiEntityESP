@@ -13,13 +13,9 @@ blocks are concealed at the packet level, meaning clients never receive data for
 <summary>View</summary>
 
 ### Without RayTrace Anti Entity ESP
-
-https://github.com/user-attachments/assets/14bf26c5-5dd9-48d2-9fd9-91b141232c39
-
+<img width="480" height="270" alt="RayTraceAntiEntityESP without plugin" src="https://github.com/user-attachments/assets/72ce8cb0-ed64-4d95-881c-43b0f0ca5de6" />
 ### With RayTrace Anti Entity ESP
-
-https://github.com/user-attachments/assets/11961819-6f45-45fb-a81d-f21e8127b58f
-
+<img width="480" height="270" alt="RayTraceAntiEntityESP with plugin" src="https://github.com/user-attachments/assets/f10e4ead-9f08-465a-b3bd-7645aff3b1a7" />
 </details>
 
 ---
