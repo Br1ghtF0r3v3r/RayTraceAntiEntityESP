@@ -38,7 +38,6 @@ public class RayTraceEngine {
     private static final float ROT_EPSILON = 0.5f;
     private static final int AABB_REFRESH_TICKS = 20;
     private static final double AABB_REFRESH_MOVE_SQ = 64.0;
-    private static final double PERSPECTIVE_CHECK_MAX_DIST_SQ = 16.0 * 16.0;
 
     private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ViewerCache> viewerCaches =
             new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
@@ -126,9 +125,8 @@ public class RayTraceEngine {
                 result = false;
             } else {
                 int si = level.getSectionIndex(y);
-                net.minecraft.world.level.chunk.LevelChunkSection[] sections = chunk.getSections();
-                result = (si >= 0 && si < sections.length) &&
-                        sections[si].getBlockState(x & 15, y & 15, z & 15).canOcclude();
+                net.minecraft.world.level.chunk.LevelChunkSection[] s = chunk.getSections();
+                result = (si >= 0 && si < s.length) && s[si].getBlockState(x & 15, y & 15, z & 15).isSolidRender();
             }
         } catch (Throwable t) {
             result = false;
@@ -205,7 +203,7 @@ public class RayTraceEngine {
         }
 
         Vector thirdBack = null, thirdFront = null;
-        if (Config.isPerspectiveCheckingEnabled && distSq <= PERSPECTIVE_CHECK_MAX_DIST_SQ) {
+        if (Config.isPerspectiveCheckingEnabled) {
             thirdBack = getThirdPersonPosNms(level, minY, maxY, eyePos, negLookDir, Config.perspectiveCheckingDistance);
             thirdFront = getThirdPersonPosNms(level, minY, maxY, eyePos, lookDir, Config.perspectiveCheckingDistance);
         }
