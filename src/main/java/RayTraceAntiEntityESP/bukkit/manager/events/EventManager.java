@@ -4,6 +4,7 @@ import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.engine.DebugVertexRenderer;
+import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import io.netty.channel.Channel;
@@ -61,18 +62,15 @@ public class EventManager {
         if (player.hasPermission("raytrace_anti_entity_esp.bypass")) {
             PacketManager.addBypass(playerUUID);
         }
-
         org.bukkit.scoreboard.Objective obj =
                 Bukkit.getScoreboardManager().getMainScoreboard()
                         .getObjective(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
         if (obj != null) {
             PacketManager.belowNameObjective.put(playerUUID, obj.getName());
         }
-
         net.minecraft.server.level.ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
         net.minecraft.world.scores.Scoreboard nmsScoreboard =
                 net.minecraft.server.MinecraftServer.getServer().getScoreboard();
-
         for (org.bukkit.scoreboard.Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
             String teamName = team.getName();
             try {
@@ -88,9 +86,7 @@ public class EventManager {
             for (String entry : team.getEntries()) {
                 RayTraceAntiEntityESP.bukkit.utils.TeamUtils.entryToTeam.put(entry, teamName);
             }
-
         }
-
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             for (org.bukkit.scoreboard.Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
                 net.minecraft.world.scores.PlayerTeam nmsTeam = nmsScoreboard.getPlayerTeam(team.getName());
@@ -105,6 +101,9 @@ public class EventManager {
                             )
                     );
                 }
+            }
+            if (player.isOnline() && player.hasPermission("raytrace_anti_entity_esp.admin")) {
+                VersionChecker.notifyIfOutdated(player);
             }
         }, 2L);
     }
