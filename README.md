@@ -53,7 +53,7 @@ checking:
   enabled: true
   period_ticks: 1        # How often to run the check loop in ticks (recommended: 1 when using stagger_groups)
   stagger_groups: 3      # Divide entities into N groups, checking 1 group per tick for smooth CPU usage (1 = disabled)
-  distance_override: 5   # Entities within this many blocks are always shown (0 to disable)
+  distance_override: 10   # Entities within this many blocks are always shown (0 to disable)
   bounding_box_extra_value: 0  # Expand entity bounding box for more lenient detection
   vertices_layers: 4     # Sample points per entity (min 2, higher = more accurate)
 perspective_checking:

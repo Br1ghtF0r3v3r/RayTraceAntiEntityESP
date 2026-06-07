@@ -40,7 +40,7 @@ public class Config {
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
         checkingStaggerGroups = Math.max(1, config.getInt("checking.stagger_groups", 3));
-        checkingDistanceOverride = config.getDouble("checking.distance_override", 5);
+        checkingDistanceOverride = config.getDouble("checking.distance_override", 10);
         checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
         checkingVerticesLayers = config.getInt("checking.vertices_layers", 4);
 
@@ -81,7 +81,6 @@ public class Config {
     public static void loadSpigotConfig() {
         File spigotFile = new File("spigot.yml");
         spigotConfig = YamlConfiguration.loadConfiguration(spigotFile);
-        maxTrackingRange = spigotConfig.getDouble("world-settings.default.entity-tracking-range.players", 128) + 16;
         clearTrackingRangeCache();
     }
 
@@ -104,7 +103,7 @@ public class Config {
         if (cached != Double.NEGATIVE_INFINITY) return cached;
         double range = computeTrackingRange(entity);
         trackingRangeCache.put(key, range);
-        return range;
+        return range + 16;
     }
 
     public static double computeTrackingRange(Entity entity) {
@@ -113,14 +112,13 @@ public class Config {
         boolean hasWorldSettings = spigotConfig.contains(worldPath.substring(0, worldPath.length() - 1));
         String base = hasWorldSettings ? worldPath : "world-settings.default.entity-tracking-range.";
 
-        double range = switch (entity) {
+        return switch (entity) {
             case Player ignored -> spigotConfig.getDouble(base + "players", 128);
             case Animals ignored -> spigotConfig.getDouble(base + "animals", 96);
             case Monster ignored -> spigotConfig.getDouble(base + "monsters", 96);
             case AbstractVillager ignored -> spigotConfig.getDouble(base + "misc", 96);
             default -> spigotConfig.getDouble(base + "other", 64);
         };
-        return range + 16;
     }
 
     public static void printConfig(CommandSender sender) {
@@ -129,7 +127,7 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + cfg.getBoolean("checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 1)));
         sender.sendMessage(formatToString(sender, "&echecking.stagger_groups: &f" + cfg.getInt("checking.stagger_groups", 3)));
-        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + cfg.getDouble("checking.distance_override", 5)));
+        sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + cfg.getDouble("checking.distance_override", 10)));
         sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + cfg.getDouble("checking.bounding_box_extra_value", 0)));
         sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + cfg.getInt("checking.vertices_layers", 4)));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + cfg.getBoolean("perspective_checking.enabled", true)));
