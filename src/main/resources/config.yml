@@ -25,7 +25,7 @@ checking:
 
   # Entities within this distance (in blocks) are always shown regardless of walls
   # Set to 0 to disable
-  distance_override: 5
+  distance_override: 10
 
   # Expands the entity bounding box by this value for more lenient detection
   # Set to 0 to disable
