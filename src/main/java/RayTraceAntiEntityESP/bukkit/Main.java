@@ -4,6 +4,7 @@ import RayTraceAntiEntityESP.bukkit.commands.CommandsHandler;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
+import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -21,6 +22,7 @@ public final class Main extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
         registerCommands();
+        VersionChecker.check();
         getLogger().info("RayTraceEntityESP enabled successfully!");
 
     }
