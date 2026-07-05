@@ -21,7 +21,7 @@ public class PlayerInfoRemovePacketListener extends PacketListener {
         List<UUID> filtered = new ArrayList<>();
         for (UUID entityUUID : original) {
             if (viewer.getUniqueId().equals(entityUUID)) continue;
-            if (PacketManager.isHiddenBypassed(viewer.getUniqueId(), entityUUID)) continue;
+            if (PacketManager.removeHiddenBypass(viewer.getUniqueId(), entityUUID)) continue;
             filtered.add(entityUUID);
         }
 
