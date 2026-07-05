@@ -30,14 +30,12 @@ public class RayTraceEngine {
 
     private static int staggerTick = 0;
 
-    private static final net.minecraft.world.scores.Scoreboard NMS_SCOREBOARD =
-            net.minecraft.server.MinecraftServer.getServer().getScoreboard();
-
     private static final double VIEWER_POS_EPSILON_SQ = 0.01 * 0.01;
     private static final double ENTITY_POS_EPSILON_SQ = 0.01 * 0.01;
     private static final float ROT_EPSILON = 0.5f;
-    private static final int AABB_REFRESH_TICKS = 20;
-    private static final double AABB_REFRESH_MOVE_SQ = 64.0;
+    private static final int AABB_REFRESH_TICKS = 4;
+    private static final double AABB_REFRESH_MOVE_SQ = 16.0;
+    private static final double AABB_QUERY_MARGIN = 4.0;
 
     private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ViewerCache> viewerCaches =
             new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
@@ -142,16 +140,15 @@ public class RayTraceEngine {
     }
 
     public static boolean hitsBlock(ServerLevel level, int minY, int maxY,
-                                    double ox2, double oy2, double oz2,
+                                    double ox, double oy, double oz,
                                     double ex2, double ey2, double ez2) {
-        double dirX = ex2 - ox2, dirY = ey2 - oy2, dirZ = ez2 - oz2;
+        double dirX = ex2 - ox, dirY = ey2 - oy, dirZ = ez2 - oz;
         double distance = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
         if (distance == 0) return false;
         double inv = 1.0 / distance;
         dirX *= inv;
         dirY *= inv;
         dirZ *= inv;
-        double ox = ox2, oy = oy2, oz = oz2;
         int posX = (int) Math.floor(ox), posY = (int) Math.floor(oy), posZ = (int) Math.floor(oz);
         int stepX = dirX > 0 ? 1 : -1, stepY = dirY > 0 ? 1 : -1, stepZ = dirZ > 0 ? 1 : -1;
         double tDX = dirX == 0 ? Double.MAX_VALUE : Math.abs(1.0 / dirX);
@@ -293,11 +290,12 @@ public class RayTraceEngine {
     private static boolean hasBelowNameScore(Player viewer, Entity entity) {
         String objective = PacketManager.belowNameObjective.get(viewer.getUniqueId());
         if (objective == null) return false;
-        net.minecraft.world.scores.Objective nmsObjective = NMS_SCOREBOARD.getObjective(objective);
-        if (nmsObjective == null) return false;
+        Map<String, Set<String>> perObjective = PacketManager.objectiveScores.get(viewer.getUniqueId());
+        if (perObjective == null) return false;
+        Set<String> entries = perObjective.get(objective);
+        if (entries == null) return false;
         String entry = entity instanceof Player p ? p.getName() : entity.getUniqueId().toString();
-        return NMS_SCOREBOARD.getPlayerScoreInfo(
-                net.minecraft.world.scores.ScoreHolder.forNameOnly(entry), nmsObjective) != null;
+        return entries.contains(entry);
     }
 
     private static boolean hasExcludeTag(Entity entity) {
@@ -494,7 +492,8 @@ public class RayTraceEngine {
                     }
                     final WorldEntitySnapshot snap = worldSnap;
                     snap.entityCount = 0;
-                    nmsWorld.getEntities().get(AABB.ofSize(new Vec3(vx, vy, vz), r * 2, r * 2, r * 2), e -> {
+                    double queryDiameter = (r + AABB_QUERY_MARGIN) * 2;
+                    nmsWorld.getEntities().get(AABB.ofSize(new Vec3(vx, vy, vz), queryDiameter, queryDiameter, queryDiameter), e -> {
                         if (e.getId() == vid) return;
                         Entity bukkit = e.getBukkitEntity();
                         if (!isAntiEntityType(bukkit) || PacketManager.isBypassed(bukkit.getUniqueId())) return;
@@ -525,6 +524,7 @@ public class RayTraceEngine {
                 int count = 0;
                 for (int ei = 0; ei < aabbCount; ei++) {
                     net.minecraft.world.entity.Entity nmsEntity = worldSnap.entities[ei];
+                    if (nmsEntity.getId() == vid) continue;
                     double ex = nmsEntity.getX(), ey = nmsEntity.getY(), ez = nmsEntity.getZ();
                     double dxe = ex - vx, dye = ey - vy, dze = ez - vz;
                     if ((dxe * dxe + dye * dye + dze * dze) > rangeSq) continue;
