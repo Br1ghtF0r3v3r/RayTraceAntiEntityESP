@@ -9,7 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
-
 public final class Main extends JavaPlugin {
 
     public static Main plugin;
@@ -23,8 +22,7 @@ public final class Main extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
         registerCommands();
         VersionChecker.check();
-        getLogger().info("RayTraceEntityESP enabled successfully!");
-
+        getLogger().info("RayTraceEntityESP enabled.");
     }
 
     @Override

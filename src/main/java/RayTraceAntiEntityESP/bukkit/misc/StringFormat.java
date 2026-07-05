@@ -21,6 +21,7 @@ public class StringFormat {
     public static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     public static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
     public static final Map<String, String> COLOR_CODES = new LinkedHashMap<>();
+
     static {
         COLOR_CODES.put("&0", "<black>");
         COLOR_CODES.put("&1", "<dark_blue>");
@@ -76,6 +77,8 @@ public class StringFormat {
         return NamedTextColor.namedColor(formatting.getColor());
     }
 
-    public static void debug(String text) {Bukkit.broadcast(Component.text(text));}
+    public static void debug(String text) {
+        Bukkit.broadcast(Component.text(text));
+    }
 
 }
