@@ -6,6 +6,12 @@
 # ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
 # RayTrace Anti Entity ESP - Configuration File
 
+# Used internally to detect outdated config files after a plugin update.
+# Do not edit this manually - if it's missing or doesn't match the plugin jar's
+# version, your config.yml will be automatically rebuilt on next start/reload
+# (your existing values are carried over; the old file is backed up first).
+config_version: 1
+
 # -----------------------------------------------
 # CHECKING
 # -----------------------------------------------
@@ -53,6 +59,15 @@ perspective_checking:
 display_name:
   # Show a fake name tag above hidden entities so players can still identify them
   enabled: true
+
+  # How many ticks ahead to extrapolate the fake nametag's position, based on the
+  # hidden entity's recent velocity. Vanilla clients smooth incoming position updates
+  # for non-locally-controlled entities (this includes the armor stand used for the
+  # nametag) over a fixed window of a few ticks. Without compensation, a fast-moving
+  # hidden entity's nametag visibly trails behind it. Raise this if the tag still lags
+  # during very fast movement (elytra, speed effects); lower/zero it if the tag starts
+  # overshooting or jittering on sudden stops/turns. 0 disables extrapolation entirely.
+  lookahead_ticks: 3.0
 
   # Vertical offset of the name tag above the entity's head (in blocks)
   # Set to 0 for default height, negative to lower, positive to raise
