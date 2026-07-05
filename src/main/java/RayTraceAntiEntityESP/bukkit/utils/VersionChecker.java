@@ -17,6 +17,7 @@ public class VersionChecker {
     private static final String GITHUB_REPO = "Br1ghtF0r3v3r/RayTraceAntiEntityESP";
     private static final String API_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases";
 
+    private static String currentVersion = null;
     private static String latestVersion = null;
     private static boolean updateAvailable = false;
 
@@ -40,21 +41,19 @@ public class VersionChecker {
                 latestVersion = releases.get(0).getAsJsonObject()
                         .get("tag_name").getAsString()
                         .replace("v", "").trim();
+                currentVersion = plugin.getPluginMeta().getVersion().trim();
 
-                String current = plugin.getPluginMeta().getVersion().trim();
-
-                if (!current.equals(latestVersion)) {
+                if (!currentVersion.equals(latestVersion)) {
                     updateAvailable = true;
                     plugin.getLogger().warning("=================================");
                     plugin.getLogger().warning("A new version is available!");
-                    plugin.getLogger().warning("Current: v" + current);
+                    plugin.getLogger().warning("Current: v" + currentVersion);
                     plugin.getLogger().warning("Latest:  v" + latestVersion);
                     plugin.getLogger().warning("https://github.com/" + GITHUB_REPO + "/releases/latest");
                     plugin.getLogger().warning("=================================");
                 } else {
-                    plugin.getLogger().info("Plugin is up to date! (v" + current + ")");
+                    plugin.getLogger().info("Plugin is up to date! (v" + currentVersion + ")");
                 }
-
             } catch (Exception e) {
                 plugin.getLogger().warning("Failed to check for updates: " + e.getMessage());
             }
@@ -63,8 +62,16 @@ public class VersionChecker {
 
     public static void notifyIfOutdated(Player player) {
         if (!updateAvailable) return;
-        player.sendMessage(StringFormat.formatToString(player,
-                "&e[RayTraceAntiEntityESP] &aUpdate available! &fv" + latestVersion +
-                        " &7→ &fhttps://github.com/" + GITHUB_REPO + "/releases/latest"));
+        String[] lines = {
+                "&e=================================",
+                "&eA new version is available!",
+                "&eCurrent: &fv" + currentVersion,
+                "&eLatest:  &fv" + latestVersion,
+                "&fhttps://github.com/" + GITHUB_REPO + "/releases/latest",
+                "&e================================="
+        };
+        for (String line : lines) {
+            player.sendMessage(StringFormat.formatToString(player, line));
+        }
     }
 }
