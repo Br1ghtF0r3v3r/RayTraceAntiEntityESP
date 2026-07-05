@@ -10,7 +10,7 @@
 # Do not edit this manually - if it's missing or doesn't match the plugin jar's
 # version, your config.yml will be automatically rebuilt on next start/reload
 # (your existing values are carried over; the old file is backed up first).
-config_version: 1
+config_version: 2
 
 # -----------------------------------------------
 # CHECKING
@@ -67,7 +67,7 @@ display_name:
   # hidden entity's nametag visibly trails behind it. Raise this if the tag still lags
   # during very fast movement (elytra, speed effects); lower/zero it if the tag starts
   # overshooting or jittering on sudden stops/turns. 0 disables extrapolation entirely.
-  lookahead_ticks: 3.0
+  lookahead_ticks: 3
 
   # Vertical offset of the name tag above the entity's head (in blocks)
   # Set to 0 for default height, negative to lower, positive to raise
@@ -95,7 +95,7 @@ anti_entities:
 anti_mode: whitelist
 
 # -----------------------------------------------
-# BYPASS
+# EXCLUDE ENTITY TAG
 # -----------------------------------------------
 # Entities with this scoreboard tag will always be shown regardless of walls
 # Use /tag <entity> add <tag> to apply
