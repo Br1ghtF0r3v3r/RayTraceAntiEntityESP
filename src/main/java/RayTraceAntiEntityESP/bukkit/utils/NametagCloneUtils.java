@@ -95,6 +95,7 @@ public class NametagCloneUtils {
         this.viewer = viewer;
         this.entityId = ThreadLocalRandom.current().nextInt(ID_MIN, ID_MAX);
         this.entityUuid = UUID.randomUUID();
+        RayTraceAntiEntityESP.bukkit.listener.PacketManager.registerFakeEntity(entityId);
     }
 
     public void setName(Component name) {
@@ -146,5 +147,6 @@ public class NametagCloneUtils {
         if (!spawned) return;
         send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
+        RayTraceAntiEntityESP.bukkit.listener.PacketManager.unregisterFakeEntity(entityId);
     }
 }

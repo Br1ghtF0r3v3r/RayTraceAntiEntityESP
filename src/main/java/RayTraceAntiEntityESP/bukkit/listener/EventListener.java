@@ -86,6 +86,25 @@ public class EventListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+        invalidatePiston(event.getBlock(), event.getDirection(), event.getBlocks());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPistonRetract(BlockPistonRetractEvent event) {
+        invalidatePiston(event.getBlock(), event.getDirection(), event.getBlocks());
+    }
+
+    private static void invalidatePiston(Block pistonBlock, org.bukkit.block.BlockFace direction, java.util.List<Block> movedBlocks) {
+        invalidate(pistonBlock);
+        invalidate(pistonBlock.getRelative(direction));
+        for (Block block : movedBlocks) {
+            invalidate(block);
+            invalidate(block.getRelative(direction));
+        }
+    }
+
     private static void invalidate(Block block) {
         RayTraceEngine.invalidateBlockAt(block.getX(), block.getY(), block.getZ());
     }

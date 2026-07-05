@@ -69,6 +69,20 @@ public class PacketManager {
         return !players.isEmpty() && players.contains(uuid);
     }
 
+    private static final Set<Integer> fakeEntityIds = ConcurrentHashMap.newKeySet();
+
+    public static void registerFakeEntity(int entityId) {
+        fakeEntityIds.add(entityId);
+    }
+
+    public static void unregisterFakeEntity(int entityId) {
+        fakeEntityIds.remove(entityId);
+    }
+
+    public static boolean isFakeEntity(int entityId) {
+        return fakeEntityIds.contains(entityId);
+    }
+
     public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
 
