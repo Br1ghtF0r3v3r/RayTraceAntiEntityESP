@@ -12,11 +12,11 @@ blocks are concealed at the packet level, meaning clients never receive data for
 <details>
 <summary>View</summary>
 
-### Without RayTrace Anti Entity ESP
-<img width="1920" height="1080" alt="RayTraceAntiEntityESP without plugin" src="https://github.com/user-attachments/assets/72ce8cb0-ed64-4d95-881c-43b0f0ca5de6" />
+### Without Xray
+<img width="720" height="405" alt="=Without Xray" src="https://github.com/user-attachments/assets/f8c1979e-fa92-4a03-91ba-458b5f6a2f8d" />
 
-### With RayTrace Anti Entity ESP
-<img width="1920" height="1080" alt="RayTraceAntiEntityESP with plugin" src="https://github.com/user-attachments/assets/f10e4ead-9f08-465a-b3bd-7645aff3b1a7" />
+### With Xray
+<img width="720" height="405" alt="With Xray" src="https://github.com/user-attachments/assets/3061f724-cf3d-49a5-a8ad-ae32cccea742" />
 </details>
 
 ---
