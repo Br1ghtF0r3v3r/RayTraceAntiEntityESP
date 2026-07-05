@@ -13,6 +13,8 @@ import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
 
+    public static final int CONFIG_VERSION = 1;
+
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
@@ -25,6 +27,7 @@ public class Config {
 
     public static boolean isDisplayNameEnabled;
     public static double displayNameOffSetY;
+    public static double displayNameLookaheadTicks;
 
     public static boolean isDebugEnabled;
 
@@ -32,6 +35,57 @@ public class Config {
     public static String antiMode;
     public static boolean isBlacklist;
     public static String excludeEntityTag;
+
+    public static void migrateConfigIfNeeded() {
+        File configFile = new File(plugin.getDataFolder(), "config.yml");
+        if (!configFile.exists()) return;
+
+        YamlConfiguration current = YamlConfiguration.loadConfiguration(configFile);
+        int fileVersion = current.getInt("config_version", -1);
+        if (fileVersion == CONFIG_VERSION) return;
+
+        plugin.getLogger().info("config.yml is " + (fileVersion == -1 ? "missing a config_version"
+                : "on version " + fileVersion) + " (jar is on " + CONFIG_VERSION + "). Migrating...");
+
+        File backup = new File(plugin.getDataFolder(),
+                "config.yml.backup-" + (fileVersion == -1 ? "unversioned" : String.valueOf(fileVersion)));
+        try {
+            java.nio.file.Files.copy(configFile.toPath(), backup.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (java.io.IOException e) {
+            plugin.getLogger().warning("Could not back up old config.yml before migrating: " + e.getMessage());
+        }
+
+        YamlConfiguration fresh;
+        try (var in = plugin.getResource("config.yml")) {
+            if (in == null) {
+                plugin.getLogger().severe("Bundled config.yml not found inside the jar; skipping migration.");
+                return;
+            }
+            fresh = YamlConfiguration.loadConfiguration(
+                    new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
+        } catch (java.io.IOException e) {
+            plugin.getLogger().severe("Failed to read bundled config.yml: " + e.getMessage());
+            return;
+        }
+
+        for (String key : current.getKeys(true)) {
+            if (key.equals("config_version")) continue;
+            Object value = current.get(key);
+            if (value instanceof org.bukkit.configuration.ConfigurationSection) continue;
+            if (fresh.contains(key)) fresh.set(key, value);
+        }
+        fresh.set("config_version", CONFIG_VERSION);
+
+        try {
+            fresh.save(configFile);
+        } catch (java.io.IOException e) {
+            plugin.getLogger().severe("Failed to save migrated config.yml: " + e.getMessage());
+            return;
+        }
+
+        plugin.getLogger().info("config.yml migrated to version " + CONFIG_VERSION + ". Your previous file was backed up as " + backup.getName() + ".");
+    }
 
     public static void setConfig() {
         org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
@@ -49,6 +103,7 @@ public class Config {
 
         isDisplayNameEnabled = config.getBoolean("display_name.enabled", true);
         displayNameOffSetY = config.getDouble("display_name.offset_y", 0);
+        displayNameLookaheadTicks = config.getDouble("display_name.lookahead_ticks", 3.0);
 
         boolean prevDebugEnabled = isDebugEnabled;
         isDebugEnabled = config.getBoolean("debug.enabled", false);
@@ -124,6 +179,7 @@ public class Config {
     public static void printConfig(CommandSender sender) {
         var cfg = plugin.getConfig();
         sender.sendMessage(formatToString(sender, "&6--- RayTrace Anti Entity ESP Config (File) ---"));
+        sender.sendMessage(formatToString(sender, "&econfig_version: &f" + cfg.getInt("config_version", -1) + " &7(jar: " + CONFIG_VERSION + ")"));
         sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + cfg.getBoolean("checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 1)));
         sender.sendMessage(formatToString(sender, "&echecking.stagger_groups: &f" + cfg.getInt("checking.stagger_groups", 3)));
@@ -134,6 +190,7 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + cfg.getDouble("perspective_checking.distances_from_head", 4)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + cfg.getBoolean("display_name.enabled", true)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + cfg.getDouble("display_name.offset_y", 0)));
+        sender.sendMessage(formatToString(sender, "&edisplay_name.lookahead_ticks: &f" + cfg.getDouble("display_name.lookahead_ticks", 3.0)));
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
         sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));

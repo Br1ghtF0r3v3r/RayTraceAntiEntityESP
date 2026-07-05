@@ -33,6 +33,7 @@ public final class Main extends JavaPlugin {
 
     public void reloadConfigAll() {
         saveDefaultConfig();
+        Config.migrateConfigIfNeeded();
         reloadConfig();
         Config.setConfig();
     }

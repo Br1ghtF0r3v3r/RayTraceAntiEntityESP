@@ -25,6 +25,38 @@ public class NametagCloneRenderer {
     private static final ConcurrentHashMap<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
     private static final double CLONE_MOVE_EPSILON_SQ = 0.001 * 0.001;
 
+    private static final ConcurrentHashMap<UUID, double[]> velocityTrackers = new ConcurrentHashMap<>();
+
+    private static double[] extrapolatedPos(Entity entity) {
+        double ex = entity.getX(), ey = entity.getY(), ez = entity.getZ();
+        double lookahead = Config.displayNameLookaheadTicks;
+        if (lookahead <= 0) return new double[]{ex, ey, ez};
+
+        int tick = org.bukkit.Bukkit.getCurrentTick();
+        double[] tracker = velocityTrackers.computeIfAbsent(entity.getUniqueId(),
+                k -> new double[]{ex, ey, ez, tick, 0, 0, 0});
+
+        int dt = tick - (int) tracker[3];
+        if (dt > 0) {
+            tracker[4] = (ex - tracker[0]) / dt;
+            tracker[5] = (ey - tracker[1]) / dt;
+            tracker[6] = (ez - tracker[2]) / dt;
+            tracker[0] = ex;
+            tracker[1] = ey;
+            tracker[2] = ez;
+            tracker[3] = tick;
+        }
+        return new double[]{
+                ex + tracker[4] * lookahead,
+                ey + tracker[5] * lookahead,
+                ez + tracker[6] * lookahead
+        };
+    }
+
+    private static void clearVelocityTracker(UUID entityUUID) {
+        velocityTrackers.remove(entityUUID);
+    }
+
     private static boolean shouldShowFast(Player viewer, Entity entity) {
         if (entity.isDead()) return false;
         if (!entity.isValid()) return false;
@@ -48,8 +80,8 @@ public class NametagCloneRenderer {
         return VisibilityUtils.isNameVisible(viewer, entity);
     }
 
-    private static double clonePosY(Entity entity) {
-        return entity.getY() + entity.getHeight() + Config.displayNameOffSetY;
+    private static double clonePosY(double rawY, Entity entity) {
+        return rawY + entity.getHeight() + Config.displayNameOffSetY;
     }
 
     public static void applyDisplay(Player viewer, Entity entity, List<Packet<? super ClientGamePacketListener>> outbox) {
@@ -76,7 +108,8 @@ public class NametagCloneRenderer {
                 existing.setOutbox(outbox);
                 try {
                     existing.setName(getName(entity));
-                    existing.teleport(entity.getX(), clonePosY(entity), entity.getZ());
+                    double[] pos = extrapolatedPos(entity);
+                    existing.teleport(pos[0], clonePosY(pos[1], entity), pos[2]);
                 } finally {
                     existing.setOutbox(null);
                 }
@@ -88,7 +121,8 @@ public class NametagCloneRenderer {
             clone.setOutbox(outbox);
             try {
                 clone.setName(getName(entity));
-                clone.setPos(entity.getX(), clonePosY(entity), entity.getZ());
+                double[] pos = extrapolatedPos(entity);
+                clone.setPos(pos[0], clonePosY(pos[1], entity), pos[2]);
                 clone.spawn();
             } finally {
                 clone.setOutbox(null);
@@ -119,7 +153,8 @@ public class NametagCloneRenderer {
             return;
         }
 
-        double nx = entity.getX(), ny = clonePosY(entity), nz = entity.getZ();
+        double[] pos = extrapolatedPos(entity);
+        double nx = pos[0], ny = clonePosY(pos[1], entity), nz = pos[2];
         double dx = nx - existing.getX(), dy = ny - existing.getY(), dz = nz - existing.getZ();
         boolean entityMoved = (dx * dx + dy * dy + dz * dz) > CLONE_MOVE_EPSILON_SQ;
 
@@ -156,6 +191,7 @@ public class NametagCloneRenderer {
             if (clone == null) continue;
             despawnClone(clone, null);
         }
+        clearVelocityTracker(entityUUID);
     }
 
     public static void cleanupStaleClones(List<Packet<? super ClientGamePacketListener>> outbox, Player viewer) {
@@ -191,6 +227,7 @@ public class NametagCloneRenderer {
             }
         });
         clones.clear();
+        velocityTrackers.clear();
     }
 
     private static void despawnClone(NametagCloneUtils clone, List<Packet<? super ClientGamePacketListener>> outbox) {

@@ -44,6 +44,8 @@ public class EventManager {
             PacketManager.removeHiddenBypass(sp.getUUID(), playerUUID);
         }
         PacketManager.clearBypassForViewer(playerUUID);
+        PacketManager.belowNameObjective.remove(playerUUID);
+        PacketManager.objectiveScores.remove(playerUUID);
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
