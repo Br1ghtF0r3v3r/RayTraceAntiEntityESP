@@ -27,12 +27,24 @@ public class CommandsHandler implements CommandExecutor {
                 plugin.reloadConfigAll();
                 sender.sendMessage(StringFormat.formatToString(sender, "&aReloaded!"));
             }
-            case "enabled" -> set(sender, "checking.enabled", args, 1, Boolean::parseBoolean);
-            case "checking_period_ticks" -> setWithMin(sender, "checking.period_ticks", args, 1, Long::parseLong, 1L);
-            case "checking_stagger_groups" -> setWithMin(sender, "checking.stagger_groups", args, 1, Integer::parseInt, 1);
-            case "checking_distance_override" -> set(sender, "checking.distance_override", args, 1, Double::parseDouble);
-            case "bounding_box_extra_value" -> set(sender, "checking.bounding_box_extra_value", args, 1, Double::parseDouble);
-            case "vertices_layers" -> setWithMin(sender, "checking.vertices_layers", args, 1, Integer::parseInt, 2);
+            case "checking" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
+                    return true;
+                }
+                switch (args[1].toLowerCase()) {
+                    case "enabled" -> set(sender, "checking.enabled", args, 2, Boolean::parseBoolean);
+                    case "period_ticks" -> setWithMin(sender, "checking.period_ticks", args, 2, Long::parseLong, 1L);
+                    case "stagger_groups" ->
+                            setWithMin(sender, "checking.stagger_groups", args, 2, Integer::parseInt, 1);
+                    case "distance_override" -> set(sender, "checking.distance_override", args, 2, Double::parseDouble);
+                    case "bounding_box_extra_value" ->
+                            set(sender, "checking.bounding_box_extra_value", args, 2, Double::parseDouble);
+                    case "vertices_layers" ->
+                            setWithMin(sender, "checking.vertices_layers", args, 2, Integer::parseInt, 2);
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                }
+            }
             case "perspective_checking" -> {
                 if (args.length < 3) {
                     sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
@@ -53,6 +65,7 @@ public class CommandsHandler implements CommandExecutor {
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "display_name.enabled", args, 2, Boolean::parseBoolean);
                     case "offset_y" -> set(sender, "display_name.offset_y", args, 2, Double::parseDouble);
+                    case "lookahead_ticks" -> set(sender, "display_name.lookahead_ticks", args, 2, Double::parseDouble);
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
@@ -128,7 +141,6 @@ public class CommandsHandler implements CommandExecutor {
                             sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
                 }
             }
-            case "help" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
         return true;
@@ -177,14 +189,9 @@ public class CommandsHandler implements CommandExecutor {
                 "&6--- RayTrace Anti Entity ESP ---",
                 "&e/rtaee reload &7- Reload config from disk",
                 "&e/rtaee config_value &7- Print all current config values",
-                "&e/rtaee enabled <true|false> &7- Enable or disable the plugin",
-                "&e/rtaee checking_period_ticks <value> &7- Set check frequency",
-                "&e/rtaee checking_stagger_groups <value> &7- Set entity check stagger groups",
-                "&e/rtaee checking_distance_override <value> &7- Set always-show range",
-                "&e/rtaee bounding_box_extra_value <value> &7- Set bounding box expansion",
-                "&e/rtaee vertices_layers <value> &7- Set vertex sample count",
+                "&e/rtaee checking <enabled|period_ticks|stagger_groups|distance_override|bounding_box_extra_value|vertices_layers> <value> &7- Checking options",
                 "&e/rtaee perspective_checking <enabled|distances_from_head> <value> &7- Perspective options",
-                "&e/rtaee display_name <enabled|offset_y> <value> &7- Name tag options",
+                "&e/rtaee display_name <enabled|offset_y|lookahead_ticks> <value> &7- Name tag options",
                 "&e/rtaee debug enabled <true|false> &7- Toggle debug mode",
                 "&e/rtaee anti_mode <whitelist|blacklist> &7- Switch filter mode",
                 "&e/rtaee anti_entities <add|remove|list|clear> [type] &7- Edit entity list",

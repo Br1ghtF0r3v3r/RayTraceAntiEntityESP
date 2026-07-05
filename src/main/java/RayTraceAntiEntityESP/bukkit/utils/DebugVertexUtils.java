@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
+import RayTraceAntiEntityESP.bukkit.config.Config;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -128,6 +129,8 @@ public class DebugVertexUtils {
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata(BlockState blockState) {
         List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
+        int interpolationTicks = (int) Config.checkingPeriodTicks + 1;
+        metadata.add(new SynchedEntityData.DataValue<>(10, EntityDataSerializers.INT, interpolationTicks));
         metadata.add(new SynchedEntityData.DataValue<>(12, EntityDataSerializers.VECTOR3, new Vector3f(SCALE, SCALE, SCALE)));
         metadata.add(new SynchedEntityData.DataValue<>(23, EntityDataSerializers.BLOCK_STATE, blockState));
         return metadata;

@@ -72,6 +72,8 @@ public class PacketManager {
     public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<UUID, String> belowNameObjective = new ConcurrentHashMap<>();
 
+    public static final ConcurrentHashMap<UUID, Map<String, Set<String>>> objectiveScores = new ConcurrentHashMap<>();
+
     public static OptionStatus mapVisibility(Team.Visibility v) {
         if (v == null) return OptionStatus.ALWAYS;
         return switch (v) {
@@ -92,7 +94,8 @@ public class PacketManager {
             new PlayerInfoRemovePacketListener(),
             new SetEntityDataPacketListener(),
             new SetDisplayObjectivePacketListener(),
-            new SetObjectivePacketListener()
+            new SetObjectivePacketListener(),
+            new SetScorePacketListener()
     );
 
     public static boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
