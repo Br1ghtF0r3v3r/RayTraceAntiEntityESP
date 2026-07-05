@@ -496,7 +496,7 @@ public class RayTraceEngine {
                     nmsWorld.getEntities().get(AABB.ofSize(new Vec3(vx, vy, vz), queryDiameter, queryDiameter, queryDiameter), e -> {
                         if (e.getId() == vid) return;
                         Entity bukkit = e.getBukkitEntity();
-                        if (!isAntiEntityType(bukkit) || PacketManager.isBypassed(bukkit.getUniqueId())) return;
+                        if (!isAntiEntityType(bukkit)) return;
                         if (snap.entityCount >= snap.entities.length)
                             snap.entities = java.util.Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
                         snap.entities[snap.entityCount++] = e;

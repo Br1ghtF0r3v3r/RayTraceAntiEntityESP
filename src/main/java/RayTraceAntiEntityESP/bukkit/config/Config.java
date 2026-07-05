@@ -13,7 +13,7 @@ import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
 
-    public static final int CONFIG_VERSION = 1;
+    public static final int CONFIG_VERSION = 2;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
