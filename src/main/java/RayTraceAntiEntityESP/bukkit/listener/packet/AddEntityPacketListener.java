@@ -65,11 +65,7 @@ public class AddEntityPacketListener extends PacketListener {
 
         int entityId = packet.getId();
 
-        if (entityId >= 2000000 && entityId < 3000000) {
-            ctx.write(msg, promise);
-            return true;
-        }
-        if (entityId >= 4000000 && entityId < 5000000) {
+        if (PacketManager.isFakeEntity(entityId)) {
             ctx.write(msg, promise);
             return true;
         }
