@@ -137,10 +137,28 @@ public class Config {
         File spigotFile = new File("spigot.yml");
         spigotConfig = YamlConfiguration.loadConfiguration(spigotFile);
         clearTrackingRangeCache();
+        recomputeMaxTrackingRange();
     }
 
     public static double getMaxTrackingRange() {
         return maxTrackingRange;
+    }
+
+    private static void recomputeMaxTrackingRange() {
+        double max = 128;
+        org.bukkit.configuration.ConfigurationSection worldSettings =
+                spigotConfig.getConfigurationSection("world-settings");
+        if (worldSettings != null) {
+            for (String world : worldSettings.getKeys(false)) {
+                String base = "world-settings." + world + ".entity-tracking-range.";
+                max = Math.max(max, spigotConfig.getDouble(base + "players", 0));
+                max = Math.max(max, spigotConfig.getDouble(base + "animals", 0));
+                max = Math.max(max, spigotConfig.getDouble(base + "monsters", 0));
+                max = Math.max(max, spigotConfig.getDouble(base + "misc", 0));
+                max = Math.max(max, spigotConfig.getDouble(base + "other", 0));
+            }
+        }
+        maxTrackingRange = max + 16;
     }
 
     private static final it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<String> trackingRangeCache =
@@ -156,9 +174,9 @@ public class Config {
         String key = worldName + ":" + entityType;
         double cached = trackingRangeCache.getOrDefault(key, Double.NEGATIVE_INFINITY);
         if (cached != Double.NEGATIVE_INFINITY) return cached;
-        double range = computeTrackingRange(entity);
+        double range = computeTrackingRange(entity) + 16;
         trackingRangeCache.put(key, range);
-        return range + 16;
+        return range;
     }
 
     public static double computeTrackingRange(Entity entity) {

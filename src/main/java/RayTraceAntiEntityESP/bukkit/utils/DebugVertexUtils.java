@@ -40,6 +40,7 @@ public class DebugVertexUtils {
         this.viewer = viewer;
         this.entityId = ThreadLocalRandom.current().nextInt(ID_MIN, ID_MAX);
         this.entityUuid = UUID.randomUUID();
+        RayTraceAntiEntityESP.bukkit.listener.PacketManager.registerFakeEntity(entityId);
     }
 
     private void send(net.minecraft.network.protocol.Packet<?> packet) {
@@ -125,6 +126,7 @@ public class DebugVertexUtils {
         if (!spawned) return;
         send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
+        RayTraceAntiEntityESP.bukkit.listener.PacketManager.unregisterFakeEntity(entityId);
     }
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata(BlockState blockState) {
