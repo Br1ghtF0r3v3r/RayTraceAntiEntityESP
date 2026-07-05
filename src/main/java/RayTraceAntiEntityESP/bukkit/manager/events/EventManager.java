@@ -36,6 +36,11 @@ public class EventManager {
         PacketManager.removeBypass(playerUUID);
 
         for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
+            if (sp.getUUID().equals(playerUUID)) continue;
+
+            if (VisibilityUtils.isHidden(sp.getId(), viewerEntityId)) {
+                sp.connection.send(new net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket(java.util.List.of(playerUUID)));
+            }
             PacketManager.removeHiddenBypass(sp.getUUID(), playerUUID);
         }
         PacketManager.clearBypassForViewer(playerUUID);
