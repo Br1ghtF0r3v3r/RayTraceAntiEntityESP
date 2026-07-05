@@ -28,6 +28,9 @@ public class RayTraceEngine {
             new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(4096);
     private static final byte CACHE_MISS = 0, CACHE_TRUE = 1, CACHE_FALSE = 2;
 
+    private static int blockCacheTtlTick = 0;
+    private static final int BLOCK_CACHE_TTL_TICKS = 200;
+
     private static int staggerTick = 0;
 
     private static final double VIEWER_POS_EPSILON_SQ = 0.01 * 0.01;
@@ -434,6 +437,11 @@ public class RayTraceEngine {
             if (++excludeTagCacheTick > 2) {
                 excludeTagCache.clear();
                 excludeTagCacheTick = 0;
+            }
+
+            if (++blockCacheTtlTick > BLOCK_CACHE_TTL_TICKS) {
+                blockCache.clear();
+                blockCacheTtlTick = 0;
             }
 
             staggerTick++;
