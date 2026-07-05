@@ -214,6 +214,8 @@ public class NametagCloneRenderer {
         if (teamColor != null) name = name.color(teamColor);
         Component teamPrefix = TeamUtils.getTeamPrefix(entity);
         if (teamPrefix != null) name = teamPrefix.append(name);
+        Component teamSuffix = TeamUtils.getTeamSuffix(entity);
+        if (teamSuffix != null) name = name.append(teamSuffix);
         return name;
     }
 }
