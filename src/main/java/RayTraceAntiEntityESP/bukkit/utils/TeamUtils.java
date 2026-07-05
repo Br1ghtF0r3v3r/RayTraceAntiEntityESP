@@ -11,6 +11,7 @@ public class TeamUtils {
 
     public static final ConcurrentHashMap<String, NamedTextColor> teamColors = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamPrefixes = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<String, Component> teamSuffixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, String> entryToTeam = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Team.OptionStatus> teamVisibilities = new ConcurrentHashMap<>();
 
@@ -35,6 +36,12 @@ public class TeamUtils {
         String teamName = entryToTeam.get(entity.getScoreboardEntryName());
         if (teamName == null) return null;
         return teamPrefixes.get(teamName);
+    }
+
+    public static Component getTeamSuffix(Entity entity) {
+        String teamName = entryToTeam.get(entity.getScoreboardEntryName());
+        if (teamName == null) return null;
+        return teamSuffixes.get(teamName);
     }
 
     public static String getTeamName(Entity entity) {

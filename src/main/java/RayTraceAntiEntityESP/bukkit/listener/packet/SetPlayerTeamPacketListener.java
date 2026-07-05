@@ -37,9 +37,11 @@ public class SetPlayerTeamPacketListener extends PacketListener {
 
         packet.getParameters().ifPresent(params -> {
             NamedTextColor color = StringFormat.chatFormattingToNamedTextColor(params.getColor());
-            Component prefix = PaperAdventure.asAdventure(params.getPlayerPrefix());
+            Component prefix = StringFormat.LEGACY_SERIALIZER.deserialize(params.getPlayerPrefix().getString());
+            Component suffix = StringFormat.LEGACY_SERIALIZER.deserialize(params.getPlayerSuffix().getString());
             if (color != null) TeamUtils.teamColors.put(teamName, color);
             TeamUtils.teamPrefixes.put(teamName, prefix);
+            TeamUtils.teamSuffixes.put(teamName, suffix);
             TeamUtils.teamVisibilities.put(teamName, mapVisibility(params.getNametagVisibility()));
 
             if (Config.isDisplayNameEnabled) {
@@ -100,6 +102,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         if (teamAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
             TeamUtils.teamColors.remove(teamName);
             TeamUtils.teamPrefixes.remove(teamName);
+            TeamUtils.teamSuffixes.remove(teamName);
             TeamUtils.teamVisibilities.remove(teamName);
             TeamUtils.entryToTeam.values().removeIf(teamName::equals);
         }
@@ -109,7 +112,8 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         if (playerAction == ClientboundSetPlayerTeamPacket.Action.ADD || teamAction == ClientboundSetPlayerTeamPacket.Action.ADD) {
             NamedTextColor teamColor = TeamUtils.teamColors.get(teamName);
             Component teamPrefix = TeamUtils.teamPrefixes.get(teamName);
-            if (teamColor == null && teamPrefix == null) {
+            Component teamSuffix = TeamUtils.teamSuffixes.get(teamName);
+            if (teamColor == null && teamPrefix == null && teamSuffix == null) {
                 flushOutbox(viewer, outbox);
                 return true;
             }
@@ -121,13 +125,20 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                     .toList()
                     : packet.getPlayers();
 
+            net.minecraft.server.level.ServerPlayer nmsViewerForAdd = ((CraftPlayer) viewer).getHandle();
+            int viewerEntityIdForAdd = nmsViewerForAdd.getId();
+
             for (String entry : entries) {
                 Player target = Bukkit.getPlayerExact(entry);
                 if (target == null) continue;
 
+                int targetEntityId = ((CraftPlayer) target).getHandle().getId();
+                if (!VisibilityUtils.isHidden(viewerEntityIdForAdd, targetEntityId)) continue;
+
                 Component displayName = Component.text(target.getName());
                 if (teamColor != null) displayName = displayName.color(teamColor);
                 if (teamPrefix != null) displayName = teamPrefix.append(displayName);
+                if (teamSuffix != null) displayName = displayName.append(teamSuffix);
 
                 net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
                 outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
