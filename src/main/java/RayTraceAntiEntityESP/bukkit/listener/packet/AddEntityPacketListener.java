@@ -40,6 +40,7 @@ public class AddEntityPacketListener extends PacketListener {
 
                 if (!RayTraceEngine.isAntiEntity(entity)) {
                     PacketManager.addShowBypass(viewerUUID, entityUUID);
+                    viewer.hideEntity(plugin, entity);
                     viewer.showEntity(plugin, entity);
                     return true;
                 }
