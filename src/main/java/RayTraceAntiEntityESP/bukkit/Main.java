@@ -1,7 +1,9 @@
 package RayTraceAntiEntityESP.bukkit;
 
 import RayTraceAntiEntityESP.bukkit.commands.CommandsHandler;
+import RayTraceAntiEntityESP.bukkit.compatibility.PacketEventsBridge;
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
@@ -21,6 +23,7 @@ public final class Main extends JavaPlugin {
 
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
         registerCommands();
+        PacketEventsBridge.registerIfAvailable();
         VersionChecker.check();
         getLogger().info("RayTraceEntityESP enabled.");
     }
@@ -36,7 +39,7 @@ public final class Main extends JavaPlugin {
         Config.migrateConfigIfNeeded();
         reloadConfig();
         Config.setConfig();
-        RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager.load();
+        ExcludeBypassManager.load();
     }
 
     @SuppressWarnings("deprecation")

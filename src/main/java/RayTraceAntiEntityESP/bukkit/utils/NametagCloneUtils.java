@@ -1,7 +1,9 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
+import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -14,11 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class NametagCloneUtils {
-
-    private static final int ID_MIN = 2_000_000, ID_MAX = 3_000_000;
 
     private static final List<SynchedEntityData.DataValue<?>> CACHED_METADATA_NO_NAME = List.of(
             new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20),
@@ -36,7 +35,7 @@ public class NametagCloneUtils {
 
     private List<SynchedEntityData.DataValue<?>> cachedNamedMetadata = null;
 
-    private List<net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>> outbox;
+    private List<Packet<? super ClientGamePacketListener>> outbox;
 
     public double getX() {
         return x;
@@ -54,28 +53,28 @@ public class NametagCloneUtils {
         return spawned;
     }
 
-    public void setOutbox(List<net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>> outbox) {
+    public void setOutbox(List<Packet<? super ClientGamePacketListener>> outbox) {
         this.outbox = outbox;
     }
 
     @SuppressWarnings("unchecked")
-    private void send(net.minecraft.network.protocol.Packet<?> packet) {
+    private void send(Packet<?> packet) {
         if (outbox != null) {
-            outbox.add((net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>) packet);
+            outbox.add((Packet<? super ClientGamePacketListener>) packet);
             return;
         }
         ((CraftPlayer) viewer).getHandle().connection.send(packet);
     }
 
     @SuppressWarnings("unchecked")
-    private void sendAtomic(net.minecraft.network.protocol.Packet<?>... packets) {
+    private void sendAtomic(Packet<?>... packets) {
         if (outbox != null) {
             for (var p : packets)
-                outbox.add((net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>) p);
+                outbox.add((Packet<? super ClientGamePacketListener>) p);
             return;
         }
-        List<net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>> list = new ArrayList<>(packets.length);
-        for (var p : packets) list.add((net.minecraft.network.protocol.Packet<? super ClientGamePacketListener>) p);
+        List<Packet<? super ClientGamePacketListener>> list = new ArrayList<>(packets.length);
+        for (var p : packets) list.add((Packet<? super ClientGamePacketListener>) p);
         ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(list));
     }
 
@@ -93,9 +92,8 @@ public class NametagCloneUtils {
 
     public NametagCloneUtils(Player viewer) {
         this.viewer = viewer;
-        this.entityId = ThreadLocalRandom.current().nextInt(ID_MIN, ID_MAX);
+        this.entityId = PacketManager.allocateFakeEntityId();
         this.entityUuid = UUID.randomUUID();
-        RayTraceAntiEntityESP.bukkit.listener.PacketManager.registerFakeEntity(entityId);
     }
 
     public void setName(Component name) {
@@ -147,6 +145,6 @@ public class NametagCloneUtils {
         if (!spawned) return;
         send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
-        RayTraceAntiEntityESP.bukkit.listener.PacketManager.unregisterFakeEntity(entityId);
+        PacketManager.unregisterFakeEntity(entityId);
     }
 }
