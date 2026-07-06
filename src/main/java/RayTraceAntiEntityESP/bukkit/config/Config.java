@@ -1,12 +1,22 @@
 package RayTraceAntiEntityESP.bukkit.config;
 
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
+import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.*;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
@@ -15,6 +25,7 @@ public class Config {
 
     public static final int CONFIG_VERSION = 3;
 
+    // ---- checking.* ----
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
@@ -22,16 +33,20 @@ public class Config {
     public static int checkingVerticesLayers;
     public static int checkingStaggerGroups;
 
+    // ---- perspective_checking.* ----
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
 
+    // ---- display_name.* ----
     public static boolean isDisplayNameEnabled;
     public static double displayNameOffSetY;
     public static double displayNameLookaheadTicks;
 
+    // ---- debug.* ----
     public static boolean isDebugEnabled;
 
-    public static java.util.Set<String> antiEntities;
+    // ---- anti_entities / anti_mode ----
+    public static Set<String> antiEntities;
     public static String antiMode;
     public static boolean isBlacklist;
 
@@ -49,9 +64,8 @@ public class Config {
         File backup = new File(plugin.getDataFolder(),
                 "config.yml.backup-" + (fileVersion == -1 ? "unversioned" : String.valueOf(fileVersion)));
         try {
-            java.nio.file.Files.copy(configFile.toPath(), backup.toPath(),
-                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (java.io.IOException e) {
+            Files.copy(configFile.toPath(), backup.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
             plugin.getLogger().warning("Could not back up old config.yml before migrating: " + e.getMessage());
         }
 
@@ -61,9 +75,8 @@ public class Config {
                 plugin.getLogger().severe("Bundled config.yml not found inside the jar; skipping migration.");
                 return;
             }
-            fresh = YamlConfiguration.loadConfiguration(
-                    new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8));
-        } catch (java.io.IOException e) {
+            fresh = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (IOException e) {
             plugin.getLogger().severe("Failed to read bundled config.yml: " + e.getMessage());
             return;
         }
@@ -71,14 +84,14 @@ public class Config {
         for (String key : current.getKeys(true)) {
             if (key.equals("config_version")) continue;
             Object value = current.get(key);
-            if (value instanceof org.bukkit.configuration.ConfigurationSection) continue;
+            if (value instanceof ConfigurationSection) continue;
             if (fresh.contains(key)) fresh.set(key, value);
         }
         fresh.set("config_version", CONFIG_VERSION);
 
         try {
             fresh.save(configFile);
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             plugin.getLogger().severe("Failed to save migrated config.yml: " + e.getMessage());
             return;
         }
@@ -87,7 +100,7 @@ public class Config {
     }
 
     public static void setConfig() {
-        org.bukkit.configuration.file.FileConfiguration config = plugin.getConfig();
+        FileConfiguration config = plugin.getConfig();
         loadSpigotConfig();
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
@@ -108,7 +121,7 @@ public class Config {
         isDebugEnabled = config.getBoolean("debug.enabled", false);
 
         List<String> entityList = config.getStringList("anti_entities");
-        antiEntities = new java.util.HashSet<>();
+        antiEntities = new HashSet<>();
         for (String entity : entityList) {
             antiEntities.add(entity.toLowerCase());
         }
@@ -128,8 +141,12 @@ public class Config {
         }
     }
 
+    // ---- Spigot entity-tracking-range mirror (used to size AABB queries / vertex sampling) ----
+
     public static YamlConfiguration spigotConfig;
     public static volatile double maxTrackingRange = 144.0;
+
+    private static final Object2DoubleOpenHashMap<String> trackingRangeCache = new Object2DoubleOpenHashMap<>();
 
     public static void loadSpigotConfig() {
         File spigotFile = new File("spigot.yml");
@@ -144,8 +161,7 @@ public class Config {
 
     private static void recomputeMaxTrackingRange() {
         double max = 128;
-        org.bukkit.configuration.ConfigurationSection worldSettings =
-                spigotConfig.getConfigurationSection("world-settings");
+        ConfigurationSection worldSettings = spigotConfig.getConfigurationSection("world-settings");
         if (worldSettings != null) {
             for (String world : worldSettings.getKeys(false)) {
                 String base = "world-settings." + world + ".entity-tracking-range.";
@@ -159,9 +175,6 @@ public class Config {
         maxTrackingRange = max + 16;
     }
 
-    private static final it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<String> trackingRangeCache =
-            new it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap<>();
-
     public static void clearTrackingRangeCache() {
         trackingRangeCache.clear();
     }
@@ -170,8 +183,10 @@ public class Config {
         String worldName = entity.getWorld().getName();
         String entityType = entity.getClass().getSimpleName();
         String key = worldName + ":" + entityType;
+
         double cached = trackingRangeCache.getOrDefault(key, Double.NEGATIVE_INFINITY);
         if (cached != Double.NEGATIVE_INFINITY) return cached;
+
         double range = computeTrackingRange(entity) + 16;
         trackingRangeCache.put(key, range);
         return range;

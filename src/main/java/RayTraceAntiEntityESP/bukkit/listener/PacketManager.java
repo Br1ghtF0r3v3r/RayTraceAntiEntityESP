@@ -10,6 +10,7 @@ import org.bukkit.scoreboard.Team.OptionStatus;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PacketManager {
 
@@ -70,6 +71,15 @@ public class PacketManager {
     }
 
     private static final Set<Integer> fakeEntityIds = ConcurrentHashMap.newKeySet();
+
+    private static final AtomicInteger nextFakeEntityId =
+            new AtomicInteger(Integer.MAX_VALUE - 1);
+
+    public static int allocateFakeEntityId() {
+        int id = nextFakeEntityId.getAndDecrement();
+        registerFakeEntity(id);
+        return id;
+    }
 
     public static void registerFakeEntity(int entityId) {
         fakeEntityIds.add(entityId);

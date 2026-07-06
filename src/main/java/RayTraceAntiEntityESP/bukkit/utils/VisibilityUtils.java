@@ -5,6 +5,9 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -81,12 +84,10 @@ public class VisibilityUtils {
         return (visibility == Team.OptionStatus.FOR_OWN_TEAM) == onSameTeam;
     }
 
-    private static net.minecraft.world.scores.PlayerTeam getOrBuildNmsTeam(String teamName) {
-        net.minecraft.world.scores.Scoreboard nmsScoreboard =
-                net.minecraft.server.MinecraftServer.getServer().getScoreboard();
-        net.minecraft.world.scores.PlayerTeam team = nmsScoreboard.getPlayerTeam(teamName);
+    private static PlayerTeam getOrBuildNmsTeam(String teamName) {
+        Scoreboard nmsScoreboard = MinecraftServer.getServer().getScoreboard();
+        PlayerTeam team = nmsScoreboard.getPlayerTeam(teamName);
         if (team != null) return team;
-        return new net.minecraft.world.scores.PlayerTeam(nmsScoreboard, teamName);
+        return new PlayerTeam(nmsScoreboard, teamName);
     }
 }
-

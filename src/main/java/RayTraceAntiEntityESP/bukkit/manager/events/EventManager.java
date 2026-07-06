@@ -1,9 +1,10 @@
 package RayTraceAntiEntityESP.bukkit.manager.events;
 
-import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.engine.DebugVertexRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
-import RayTraceAntiEntityESP.bukkit.engine.DebugVertexRenderer;
+import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
@@ -11,14 +12,25 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
+import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Team;
 
+import java.util.List;
 import java.util.UUID;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
@@ -33,22 +45,24 @@ public class EventManager {
         UUID playerUUID = event.getPlayer().getUniqueId();
         int viewerEntityId = event.getPlayer().getEntityId();
 
-        for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer sp : MinecraftServer.getServer().getPlayerList().getPlayers()) {
             if (sp.getUUID().equals(playerUUID)) continue;
 
             if (VisibilityUtils.isHidden(sp.getId(), viewerEntityId)) {
-                sp.connection.send(new net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket(java.util.List.of(playerUUID)));
+                sp.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(playerUUID)));
             }
             PacketManager.removeHiddenBypass(sp.getUUID(), playerUUID);
         }
         PacketManager.clearBypassForViewer(playerUUID);
         PacketManager.belowNameObjective.remove(playerUUID);
         PacketManager.objectiveScores.remove(playerUUID);
+        PacketManager.glowingEntities.remove(playerUUID);
+        TeamUtils.clearViewerOverrides(playerUUID);
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
-        RayTraceEngine.clearViewerCache(((org.bukkit.craftbukkit.entity.CraftPlayer) event.getPlayer()).getHandle().getId());
+        RayTraceEngine.clearViewerCache(((CraftPlayer) event.getPlayer()).getHandle().getId());
     }
 
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
@@ -64,44 +78,40 @@ public class EventManager {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
         injectPlayer(player);
-        org.bukkit.scoreboard.Objective obj =
-                Bukkit.getScoreboardManager().getMainScoreboard()
-                        .getObjective(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
+
+        Objective obj = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(DisplaySlot.BELOW_NAME);
         if (obj != null) {
             PacketManager.belowNameObjective.put(playerUUID, obj.getName());
         }
-        net.minecraft.server.level.ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
-        net.minecraft.world.scores.Scoreboard nmsScoreboard =
-                net.minecraft.server.MinecraftServer.getServer().getScoreboard();
-        for (org.bukkit.scoreboard.Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
+
+        ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
+        Scoreboard nmsScoreboard = MinecraftServer.getServer().getScoreboard();
+
+        for (Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
             String teamName = team.getName();
             try {
-                net.kyori.adventure.text.format.TextColor textColor = team.color();
-                if (textColor instanceof net.kyori.adventure.text.format.NamedTextColor namedColor) {
-                    RayTraceAntiEntityESP.bukkit.utils.TeamUtils.teamColors.put(teamName, namedColor);
+                TextColor textColor = team.color();
+                if (textColor instanceof NamedTextColor namedColor) {
+                    TeamUtils.teamColors.put(teamName, namedColor);
                 }
             } catch (IllegalStateException ignored) {
             }
-            RayTraceAntiEntityESP.bukkit.utils.TeamUtils.teamPrefixes.put(teamName, team.prefix());
-            RayTraceAntiEntityESP.bukkit.utils.TeamUtils.teamVisibilities.put(teamName,
-                    team.getOption(org.bukkit.scoreboard.Team.Option.NAME_TAG_VISIBILITY));
+            TeamUtils.teamPrefixes.put(teamName, team.prefix());
+            TeamUtils.teamVisibilities.put(teamName, team.getOption(Team.Option.NAME_TAG_VISIBILITY));
             for (String entry : team.getEntries()) {
-                RayTraceAntiEntityESP.bukkit.utils.TeamUtils.entryToTeam.put(entry, teamName);
+                TeamUtils.entryToTeam.put(entry, teamName);
             }
         }
+
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (org.bukkit.scoreboard.Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
-                net.minecraft.world.scores.PlayerTeam nmsTeam = nmsScoreboard.getPlayerTeam(team.getName());
+            for (Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
+                PlayerTeam nmsTeam = nmsScoreboard.getPlayerTeam(team.getName());
                 if (nmsTeam == null) continue;
-                nmsPlayer.connection.send(
-                        net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(nmsTeam, true)
-                );
+
+                nmsPlayer.connection.send(ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(nmsTeam, true));
                 for (String member : nmsTeam.getPlayers()) {
-                    nmsPlayer.connection.send(
-                            net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.createPlayerPacket(
-                                    nmsTeam, member, net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket.Action.ADD
-                            )
-                    );
+                    nmsPlayer.connection.send(ClientboundSetPlayerTeamPacket.createPlayerPacket(
+                            nmsTeam, member, ClientboundSetPlayerTeamPacket.Action.ADD));
                 }
             }
             if (player.isOnline() && player.hasPermission("raytrace_anti_entity_esp.admin")) {
@@ -142,5 +152,4 @@ public class EventManager {
         ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
         return nmsPlayer.connection.connection.channel;
     }
-
 }

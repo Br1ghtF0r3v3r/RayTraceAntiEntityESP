@@ -12,6 +12,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -35,8 +37,8 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
 
         for (Entry entry : original) {
-            net.minecraft.server.level.ServerPlayer nmsTarget =
-                    net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayer(entry.profileId());
+            ServerPlayer nmsTarget =
+                    MinecraftServer.getServer().getPlayerList().getPlayer(entry.profileId());
 
             if (nmsTarget == null) {
                 modified.add(entry);
