@@ -106,7 +106,7 @@ public class VisibilityUtils {
         return (visibility == Team.OptionStatus.FOR_OWN_TEAM) == onSameTeam;
     }
 
-    private static PlayerTeam getOrBuildNmsTeam(String teamName) {
+    public static PlayerTeam getOrBuildNmsTeam(String teamName) {
         Scoreboard nmsScoreboard = MinecraftServer.getServer().getScoreboard();
         PlayerTeam team = nmsScoreboard.getPlayerTeam(teamName);
         if (team != null) return team;
