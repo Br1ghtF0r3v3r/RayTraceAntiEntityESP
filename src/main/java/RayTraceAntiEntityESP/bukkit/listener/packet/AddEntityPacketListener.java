@@ -84,6 +84,8 @@ public class AddEntityPacketListener extends PacketListener {
             return true;
         }
 
+        VisibilityUtils.clearExternallyHidden(viewer.getEntityId(), entityId);
+
         if (PacketManager.isBypassed(viewer.getUniqueId())) {
             ctx.write(msg, promise);
             return true;
