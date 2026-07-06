@@ -109,6 +109,7 @@ public class ExcludeBypassManager {
             save();
             PacketManager.addBypass(uuid);
             forceUnhideAllForViewer(uuid);
+            RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer.removeDisplay(uuid);
         }
         return added;
     }
