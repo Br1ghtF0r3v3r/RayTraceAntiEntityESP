@@ -89,61 +89,165 @@ public class CommandsHandler implements CommandExecutor {
                 saveAndReload("anti_mode", mode);
                 sender.sendMessage(StringFormat.formatToString(sender, "&aSet anti_mode to &e" + mode));
             }
-            case "anti_entities" -> {
-                if (args.length < 2) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove|list|clear> [type]"));
-                    return true;
-                }
-
-                switch (args[1].toLowerCase()) {
-                    case "add", "remove" -> {
-                        if (args.length < 3) {
-                            sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: anti_entities <add|remove> <type>"));
-                            return true;
-                        }
-                        String type = args[2].toLowerCase();
+            case "anti_entities" -> handleListCommand(sender, args, "anti_entities", "entity type",
+                    raw -> {
+                        String type = raw.toLowerCase();
                         try {
                             EntityType.valueOf(type.toUpperCase());
                         } catch (IllegalArgumentException e) {
-                            sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &cis not a valid entity type."));
-                            return true;
+                            return null;
                         }
-                        boolean isAdd = args[1].equalsIgnoreCase("add");
-                        boolean exists = Config.antiEntities.contains(type);
-                        if ((isAdd && exists) || (!isAdd && !exists)) {
-                            sender.sendMessage(StringFormat.formatToString(sender, "&e" + type + " &c" + (isAdd ? "is already in the list." : "not found.")));
-                        } else {
-                            if (isAdd) Config.antiEntities.add(type);
-                            else Config.antiEntities.remove(type);
-                            saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
-                            sender.sendMessage(StringFormat.formatToString(sender, "&a" + (isAdd ? "Added" : "Removed") + " &e" + type));
-                        }
-                    }
-                    case "list" -> {
-                        if (Config.antiEntities.isEmpty()) {
-                            sender.sendMessage(StringFormat.formatToString(sender, "&7Anti entities list is empty."));
-                        } else {
-                            sender.sendMessage(StringFormat.formatToString(sender, "&6--- Anti Entities (" + Config.antiEntities.size() + ") ---"));
-                            sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", Config.antiEntities)));
-                        }
-                    }
-                    case "clear" -> {
-                        if (Config.antiEntities.isEmpty()) {
-                            sender.sendMessage(StringFormat.formatToString(sender, "&7Anti entities list is already empty."));
-                        } else {
-                            int count = Config.antiEntities.size();
+                        return type;
+                    },
+                    type -> type,
+                    type -> {
+                        if (!Config.antiEntities.add(type)) return false;
+                        saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                        return true;
+                    },
+                    type -> {
+                        if (!Config.antiEntities.remove(type)) return false;
+                        saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                        return true;
+                    },
+                    () -> Config.antiEntities,
+                    () -> {
+                        int count = Config.antiEntities.size();
+                        if (count > 0) {
                             Config.antiEntities.clear();
                             saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
-                            sender.sendMessage(StringFormat.formatToString(sender, "&aCleared &e" + count + " &aentities."));
                         }
-                    }
-                    default ->
-                            sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
-                }
-            }
+                        return count;
+                    },
+                    "&aAdded &e%s",
+                    "&aRemoved &e%s");
+            case "exclude" -> handleListCommand(sender, args, "exclude", "player name or entity uuid",
+                    CommandsHandler::resolveExcludeTarget,
+                    CommandsHandler::displayExcludeTarget,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::addExclude,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::removeExclude,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::listExclude,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::clearExclude,
+                    "&aAll viewers can now always see &e%s",
+                    "&e%s &ccan be seen by everyone again");
+            case "bypass" -> handleListCommand(sender, args, "bypass", "player",
+                    CommandsHandler::resolvePlayerUUID,
+                    CommandsHandler::displayPlayerName,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::addBypass,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::removeBypass,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::listBypass,
+                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::clearBypass,
+                    "&e%s &acan now see all entities",
+                    "&e%s &cno longer bypasses ESP checking");
             default -> sendHelp(sender);
         }
         return true;
+    }
+
+    private static <T> void handleListCommand(CommandSender sender, String[] args, String label, String itemNoun,
+                                              java.util.function.Function<String, T> resolver,
+                                              java.util.function.Function<T, String> display,
+                                              java.util.function.Predicate<T> add,
+                                              java.util.function.Predicate<T> remove,
+                                              java.util.function.Supplier<? extends java.util.Collection<T>> list,
+                                              java.util.function.Supplier<Integer> clear,
+                                              String addedMsgFmt, String removedMsgFmt) {
+        if (args.length < 2) {
+            sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " <add|remove|list|clear> [" + itemNoun + "]"));
+            return;
+        }
+
+        switch (args[1].toLowerCase()) {
+            case "add", "remove" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " " + args[1].toLowerCase() + " <" + itemNoun + ">"));
+                    return;
+                }
+                String raw = args[2];
+                T value = resolver.apply(raw);
+                if (value == null) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&e" + raw + " &cis not a valid " + itemNoun + "."));
+                    return;
+                }
+                String name = display.apply(value);
+                boolean isAdd = args[1].equalsIgnoreCase("add");
+                boolean changed = isAdd ? add.test(value) : remove.test(value);
+                if (!changed) {
+                    sender.sendMessage(StringFormat.formatToString(sender,
+                            isAdd ? "&e" + name + " &cis already on the " + label + " list."
+                                    : "&e" + name + " &cis not on the " + label + " list."));
+                } else {
+                    sender.sendMessage(StringFormat.formatToString(sender,
+                            String.format(isAdd ? addedMsgFmt : removedMsgFmt, name)));
+                }
+            }
+            case "list" -> {
+                java.util.Collection<T> entries = list.get();
+                if (entries.isEmpty()) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&7" + label + " list is empty."));
+                } else {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&6--- " + label + " (" + entries.size() + ") ---"));
+                    java.util.List<String> names = new java.util.ArrayList<>();
+                    for (T value : entries) names.add(display.apply(value));
+                    sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", names)));
+                }
+            }
+            case "clear" -> {
+                int count = clear.get();
+                if (count == 0) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&7" + label + " list is already empty."));
+                } else {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&aCleared &e" + count + " &aentries from " + label + "."));
+                }
+            }
+            default -> sender.sendMessage(StringFormat.formatToString(sender,
+                    "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
+        }
+    }
+
+    private static java.util.UUID tryParseUUID(String raw) {
+        try {
+            return java.util.UUID.fromString(raw);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static java.util.UUID resolvePlayerUUID(String name) {
+        java.util.UUID parsed = tryParseUUID(name);
+        if (parsed != null) {
+            org.bukkit.OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(parsed);
+            return (offline.hasPlayedBefore() || offline.isOnline()) ? parsed : null;
+        }
+        org.bukkit.entity.Player online = org.bukkit.Bukkit.getPlayerExact(name);
+        if (online != null) return online.getUniqueId();
+        org.bukkit.OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(name);
+        if (offline.hasPlayedBefore() || offline.isOnline()) return offline.getUniqueId();
+        return null;
+    }
+
+    private static String displayPlayerName(java.util.UUID uuid) {
+        String name = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+        return name != null ? name : uuid.toString();
+    }
+
+    private static java.util.UUID resolveExcludeTarget(String raw) {
+        java.util.UUID parsed = tryParseUUID(raw);
+        if (parsed != null) {
+            if (org.bukkit.Bukkit.getEntity(parsed) != null) return parsed;
+            org.bukkit.OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(parsed);
+            if (offline.hasPlayedBefore() || offline.isOnline()) return parsed;
+            return null;
+        }
+        return resolvePlayerUUID(raw);
+    }
+
+    private static String displayExcludeTarget(java.util.UUID uuid) {
+        org.bukkit.entity.Entity entity = org.bukkit.Bukkit.getEntity(uuid);
+        if (entity != null && !(entity instanceof org.bukkit.entity.Player)) {
+            return entity.getType().name().toLowerCase() + " (" + uuid.toString().substring(0, 8) + ")";
+        }
+        return displayPlayerName(uuid);
     }
 
     private static void saveAndReload(String key, Object val) {
@@ -195,6 +299,8 @@ public class CommandsHandler implements CommandExecutor {
                 "&e/rtaee debug enabled <true|false> &7- Toggle debug mode",
                 "&e/rtaee anti_mode <whitelist|blacklist> &7- Switch filter mode",
                 "&e/rtaee anti_entities <add|remove|list|clear> [type] &7- Edit entity list",
+                "&e/rtaee exclude <add|remove|list|clear> [player name | entity uuid] &7- Let everyone see this player/entity, always",
+                "&e/rtaee bypass <add|remove|list|clear> [player] &7- Let a player see everyone, always",
                 "&e/rtaee help &7- Show help information"
         };
         for (String msg : help) sender.sendMessage(StringFormat.formatToString(sender, msg));

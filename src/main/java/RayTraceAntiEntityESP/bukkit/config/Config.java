@@ -13,7 +13,7 @@ import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
 
-    public static final int CONFIG_VERSION = 2;
+    public static final int CONFIG_VERSION = 3;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -34,7 +34,6 @@ public class Config {
     public static java.util.Set<String> antiEntities;
     public static String antiMode;
     public static boolean isBlacklist;
-    public static String excludeEntityTag;
 
     public static void migrateConfigIfNeeded() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
@@ -102,8 +101,8 @@ public class Config {
         perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
 
         isDisplayNameEnabled = config.getBoolean("display_name.enabled", true);
-        displayNameOffSetY = config.getDouble("display_name.offset_y", 0);
         displayNameLookaheadTicks = config.getDouble("display_name.lookahead_ticks", 3.0);
+        displayNameOffSetY = config.getDouble("display_name.offset_y", 0);
 
         boolean prevDebugEnabled = isDebugEnabled;
         isDebugEnabled = config.getBoolean("debug.enabled", false);
@@ -115,7 +114,6 @@ public class Config {
         }
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
-        excludeEntityTag = config.getString("exclude_entity_tag", "raytrace_anti_entity_esp_excluded");
 
         RayTraceEngine.clearAntiEntityCache();
 
@@ -212,6 +210,5 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
         sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));
-        sender.sendMessage(formatToString(sender, "&eexclude_entity_tag: &f" + cfg.getString("exclude_entity_tag", "raytrace_anti_entity_esp_excluded")));
     }
 }

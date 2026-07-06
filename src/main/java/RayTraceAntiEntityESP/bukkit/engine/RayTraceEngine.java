@@ -82,11 +82,6 @@ public class RayTraceEngine {
 
     private static final it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache =
             new it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<>();
-    private static final it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap excludeTagCache =
-            new it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap();
-    private static final it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap prevExcludeTagCache =
-            new it.unimi.dsi.fastutil.ints.Int2BooleanOpenHashMap();
-    private static int excludeTagCacheTick = 0;
 
     public static void clearViewerCache(int entityId) {
         viewerCaches.remove(entityId);
@@ -94,8 +89,6 @@ public class RayTraceEngine {
 
     public static void clearAntiEntityCache() {
         antiEntityTypeCache.clear();
-        excludeTagCache.clear();
-        prevExcludeTagCache.clear();
     }
 
     public static void invalidateBlockAt(int x, int y, int z) {
@@ -107,8 +100,6 @@ public class RayTraceEngine {
         worldEntityCache.clear();
         blockCache.clear();
         antiEntityTypeCache.clear();
-        excludeTagCache.clear();
-        prevExcludeTagCache.clear();
     }
 
     private static long blockKey(int x, int y, int z) {
@@ -301,30 +292,8 @@ public class RayTraceEngine {
         return entries.contains(entry);
     }
 
-    private static boolean hasExcludeTag(Entity entity) {
-        if (Config.excludeEntityTag.isEmpty()) return false;
-        int eid = entity.getEntityId();
-        if (excludeTagCache.containsKey(eid)) return excludeTagCache.get(eid);
-        boolean result = entity.getScoreboardTags().contains(Config.excludeEntityTag);
-        excludeTagCache.put(eid, result);
-        if (prevExcludeTagCache.containsKey(eid)) {
-            boolean prev = prevExcludeTagCache.get(eid);
-            if (prev != result) {
-                for (ViewerCache cache : viewerCaches.values()) {
-                    cache.entityIndexMap.remove(eid);
-                }
-                if (result) {
-                    for (Player viewer : Bukkit.getOnlinePlayers()) {
-                        int vid = ((CraftPlayer) viewer).getHandle().getId();
-                        if (VisibilityUtils.isHidden(vid, eid)) {
-                            VisibilityUtils.setNotHidden(viewer, entity);
-                        }
-                    }
-                }
-            }
-        }
-        prevExcludeTagCache.put(eid, result);
-        return result;
+    private static boolean isExcluded(Entity entity) {
+        return RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager.isExcluded(entity.getUniqueId());
     }
 
     private static boolean isAntiEntityType(Entity entity) {
@@ -337,7 +306,7 @@ public class RayTraceEngine {
     }
 
     public static boolean isAntiEntity(Entity entity) {
-        if (hasExcludeTag(entity)) return false;
+        if (isExcluded(entity)) return false;
         EntityType type = entity.getType();
         if (antiEntityTypeCache.containsKey(type)) return antiEntityTypeCache.getBoolean(type);
         boolean listed = Config.antiEntities.contains(type.name().toLowerCase());
@@ -432,12 +401,6 @@ public class RayTraceEngine {
         killTask();
         task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             AddEntityPacketListener.drainPendingHides();
-
-
-            if (++excludeTagCacheTick > 2) {
-                excludeTagCache.clear();
-                excludeTagCacheTick = 0;
-            }
 
             if (++blockCacheTtlTick > BLOCK_CACHE_TTL_TICKS) {
                 blockCache.clear();
