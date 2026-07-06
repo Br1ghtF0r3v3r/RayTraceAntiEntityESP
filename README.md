@@ -13,12 +13,11 @@ blocks are concealed at the packet level, meaning clients never receive data for
 <summary>View</summary>
 
 ### Without Xray
-
-<img width="720" height="405" alt="=Without Xray" src="https://github.com/user-attachments/assets/f8c1979e-fa92-4a03-91ba-458b5f6a2f8d" />
+<img width="720" height="405" alt="=Without Xray" src="https://github.com/user-attachments/assets/f8c1979e-fa92-4a03-91ba-458b5f6a2f8d"/>
 
 ### With Xray
+<img width="720" height="405" alt="With Xray" src="https://github.com/user-attachments/assets/3061f724-cf3d-49a5-a8ad-ae32cccea742"/>
 
-<img width="720" height="405" alt="With Xray" src="https://github.com/user-attachments/assets/3061f724-cf3d-49a5-a8ad-ae32cccea742" />
 </details>
 
 ---
@@ -31,14 +30,13 @@ blocks are concealed at the packet level, meaning clients never receive data for
 1. **Download** the latest `.jar` from [Download Link](https://modrinth.com/plugin/raytraceantientityesp/versions).
 2. **Drop** the `.jar` into your server's `/plugins` folder.
 3. **Restart** your server (do not use `/reload`).
-4. **Edit** the generated [config.yml](src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to
-   your liking.
+4. **Edit** the generated [config.yml](src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to your liking.
 5. **Run** `/rtaee reload` in-game to apply config changes without restarting.
 
 > ⚠️ **Requirements:** Paper **1.21.x**.
+>
+> ⚠️ Do not enable, disable or reload this plugin using plugin managers or `/reload`. It will not work properly and may cause issues.
 
-> ⚠️ Do not enable, disable or reload this plugin using plugin managers or `/reload`. It will not work properly and may
-cause issues.
 </details>
 
 ---
