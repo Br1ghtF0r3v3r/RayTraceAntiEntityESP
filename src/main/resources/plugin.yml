@@ -6,17 +6,15 @@ version: ${version}
 author: ${author}
 description: ${description}
 
-softdepend: [PlaceholderAPI]
+softdepend: [ PlaceholderAPI ]
 
 permissions:
   raytrace_anti_entity_esp.admin:
     default: op
-  raytrace_anti_entity_esp.bypass:
-    default: false
 
 commands:
   raytrace_anti_entity_esp:
     permission: raytrace_anti_entity_esp.admin
-    aliases: [rtaee, raytraceantientityesp]
+    aliases: [ rtaee, raytraceantientityesp ]
     description: Main command for RayTraceAntiEntityESP plugin
     usage: /<command>

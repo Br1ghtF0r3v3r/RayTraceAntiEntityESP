@@ -66,9 +66,6 @@ public class EventManager {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
         injectPlayer(player);
-        if (player.hasPermission("raytrace_anti_entity_esp.bypass")) {
-            PacketManager.addBypass(playerUUID);
-        }
         org.bukkit.scoreboard.Objective obj =
                 Bukkit.getScoreboardManager().getMainScoreboard()
                         .getObjective(org.bukkit.scoreboard.DisplaySlot.BELOW_NAME);
