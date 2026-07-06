@@ -41,14 +41,27 @@ public class PacketManager {
         return set != null && set.remove(entityUUID);
     }
 
+    private static final ConcurrentHashMap<UUID, Set<Integer>> destroyBypass = new ConcurrentHashMap<>();
+
+    public static void addDestroyBypass(UUID viewerUUID, int entityId) {
+        destroyBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityId);
+    }
+
+    public static boolean consumeDestroyBypass(UUID viewerUUID, int entityId) {
+        Set<Integer> set = destroyBypass.get(viewerUUID);
+        return set != null && set.remove(entityId);
+    }
+
     public static void clearBypassForViewer(UUID viewerUUID) {
         showBypass.remove(viewerUUID);
         hiddenBypass.remove(viewerUUID);
+        destroyBypass.remove(viewerUUID);
     }
 
     public static void clearAllBypasses() {
         showBypass.clear();
         hiddenBypass.clear();
+        destroyBypass.clear();
     }
 
     private static volatile Set<UUID> bypassPlayers = new HashSet<>();
@@ -115,6 +128,7 @@ public class PacketManager {
 
     private static final List<PacketListener> checkingListeners = List.of(
             new AddEntityPacketListener(),
+            new RemoveEntitiesPacketListener(),
             new PlayerInfoRemovePacketListener(),
             new SetEntityDataPacketListener(),
             new SetDisplayObjectivePacketListener(),
