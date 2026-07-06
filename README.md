@@ -13,9 +13,11 @@ blocks are concealed at the packet level, meaning clients never receive data for
 <summary>View</summary>
 
 ### Without Xray
+
 <img width="720" height="405" alt="=Without Xray" src="https://github.com/user-attachments/assets/f8c1979e-fa92-4a03-91ba-458b5f6a2f8d" />
 
 ### With Xray
+
 <img width="720" height="405" alt="With Xray" src="https://github.com/user-attachments/assets/3061f724-cf3d-49a5-a8ad-ae32cccea742" />
 </details>
 
@@ -51,7 +53,7 @@ checking:
   enabled: true
   period_ticks: 1        # How often to run the check loop in ticks (recommended: 1 when using stagger_groups)
   stagger_groups: 3      # Divide entities into N groups, checking 1 group per tick for smooth CPU usage (1 = disabled)
-  distance_override: 10   # Entities within this many blocks are always shown (0 to disable)
+  distance_override: 10  # Entities within this many blocks are always shown (0 to disable)
   bounding_box_extra_value: 0  # Expand entity bounding box for more lenient detection
   vertices_layers: 4     # Sample points per entity (min 2, higher = more accurate)
 perspective_checking:
@@ -59,13 +61,14 @@ perspective_checking:
   distances_from_head: 4 # Simulated third-person camera distance in blocks
 display_name:
   enabled: true          # Show a fake name tag above hidden entities
+  lookahead_ticks: 3     # Extrapolate the fake nametag's position this many ticks ahead to compensate
+  # for vanilla's client-side smoothing (0 disables extrapolation)
   offset_y: 0            # Vertical offset of the name tag above the entity's head
 debug:
   enabled: false         # Show block markers at raytrace vertices (testing only)
 anti_entities:
   - player
 anti_mode: whitelist     # whitelist = only listed types | blacklist = all except listed
-exclude_entity_tag: raytrace_anti_entity_esp_excluded  # Tag an entity with this to always show it
 ```
 
 </details>
@@ -79,22 +82,19 @@ exclude_entity_tag: raytrace_anti_entity_esp_excluded  # Tag an entity with this
 
 All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alias: `/rtaee`
 
-| Command                                                              | Description                     |
-|----------------------------------------------------------------------|---------------------------------|
-| `/rtaee reload`                                                      | Reload config from disk         |
-| `/rtaee config_value`                                                | Print all current config values |
-| `/rtaee enabled <true\|false>`                                       | Enable or disable the plugin    |
-| `/rtaee checking_period_ticks <value>`                               | Set check frequency             |
-| `/rtaee checking_stagger_groups <value>`                             | Set entity check stagger groups |
-| `/rtaee checking_distance_override <value>`                          | Set always-show range           |
-| `/rtaee bounding_box_extra_value <value>`                            | Set bounding box expansion      |
-| `/rtaee vertices_layers <value>`                                     | Set vertex sample count         |
-| `/rtaee perspective_checking <enabled\|distances_from_head> <value>` | Perspective options             |
-| `/rtaee display_name <enabled\|offset_y> <value>`                   | Name tag options                |
-| `/rtaee debug enabled <true\|false>`                                 | Toggle debug mode               |
-| `/rtaee anti_entities <add\|remove\|list\|clear> [type]`            | Edit entity list                |
-| `/rtaee anti_mode <whitelist\|blacklist>`                            | Switch filter mode              |
-| `/rtaee help`                                                        | Show help information           |
+| Command                                                                                                                         | Description                                        |
+|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------|
+| `/rtaee reload`                                                                                                                 | Reload config from disk                            |
+| `/rtaee config_value`                                                                                                           | Print all current config values                    |
+| `/rtaee checking <enabled\|period_ticks\|stagger_groups\|distance_override\|bounding_box_extra_value\|vertices_layers> <value>` | Checking options                |
+| `/rtaee perspective_checking <enabled\|distances_from_head> <value>`                                                            | Perspective options                                |
+| `/rtaee display_name <enabled\|offset_y\|lookahead_ticks> <value>`                                                              | Name tag options                                   |
+| `/rtaee debug enabled <true\|false>`                                                                                            | Toggle debug mode                                  |
+| `/rtaee anti_mode <whitelist\|blacklist>`                                                                                       | Switch filter mode                                 |
+| `/rtaee anti_entities <add\|remove\|list\|clear> [type]`                                                                        | Edit entity list                                   |
+| `/rtaee exclude <add\|remove\|list\|clear> [player_name\|entity_uuid]`                                                          | Let everyone always see this player/entity, ESP-proof or not |
+| `/rtaee bypass <add\|remove\|list\|clear> [player]`                                                                             | Let a player always see everyone, walls or not     |
+| `/rtaee help`                                                                                                                   | Show help information                              |
 
 </details>
 
