@@ -12,8 +12,10 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
 import net.minecraft.server.MinecraftServer;
@@ -40,10 +42,17 @@ import static RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled;
 public class EventManager {
 
     private static final String HANDLER_NAME = "anti_esp_handler";
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+
+    private static boolean isEmptyComponent(Component c) {
+        if (c == null) return true;
+        return PLAIN.serialize(c).isEmpty();
+    }
 
     public static void playerQuitHandler(PlayerQuitEvent event) {
-        UUID playerUUID = event.getPlayer().getUniqueId();
-        int viewerEntityId = event.getPlayer().getEntityId();
+        Player player = event.getPlayer();
+        UUID playerUUID = player.getUniqueId();
+        int viewerEntityId = player.getEntityId();
 
         for (ServerPlayer sp : MinecraftServer.getServer().getPlayerList().getPlayers()) {
             if (sp.getUUID().equals(playerUUID)) continue;
@@ -62,7 +71,7 @@ public class EventManager {
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
-        RayTraceEngine.clearViewerCache(((CraftPlayer) event.getPlayer()).getHandle().getId());
+        RayTraceEngine.clearViewerCache(((CraftPlayer) player).getHandle().getId());
     }
 
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
@@ -92,14 +101,21 @@ public class EventManager {
             try {
                 TextColor textColor = team.color();
                 if (textColor instanceof NamedTextColor namedColor) {
-                    TeamUtils.teamColors.put(teamName, namedColor);
+                    TeamUtils.teamColors.putIfAbsent(teamName, namedColor);
                 }
             } catch (IllegalStateException ignored) {
             }
-            TeamUtils.teamPrefixes.put(teamName, team.prefix());
-            TeamUtils.teamVisibilities.put(teamName, team.getOption(Team.Option.NAME_TAG_VISIBILITY));
+            Component prefix = team.prefix();
+            if (!isEmptyComponent(prefix)) {
+                TeamUtils.teamPrefixes.putIfAbsent(teamName, prefix);
+            }
+            Component suffix = team.suffix();
+            if (!isEmptyComponent(suffix)) {
+                TeamUtils.teamSuffixes.putIfAbsent(teamName, suffix);
+            }
+            TeamUtils.teamVisibilities.putIfAbsent(teamName, team.getOption(Team.Option.NAME_TAG_VISIBILITY));
             for (String entry : team.getEntries()) {
-                TeamUtils.entryToTeam.put(entry, teamName);
+                TeamUtils.entryToTeam.putIfAbsent(entry, teamName);
             }
         }
 
