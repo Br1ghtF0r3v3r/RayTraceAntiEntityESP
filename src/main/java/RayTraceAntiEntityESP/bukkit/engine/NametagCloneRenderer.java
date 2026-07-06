@@ -9,10 +9,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -22,17 +26,16 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class NametagCloneRenderer {
 
-    private static final ConcurrentHashMap<UUID, Map<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
-    private static final double CLONE_MOVE_EPSILON_SQ = 0.001 * 0.001;
-
+    private static final ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<UUID, double[]> velocityTrackers = new ConcurrentHashMap<>();
+    private static final double CLONE_MOVE_EPSILON_SQ = 0.001 * 0.001;
 
     private static double[] extrapolatedPos(Entity entity) {
         double ex = entity.getX(), ey = entity.getY(), ez = entity.getZ();
         double lookahead = Config.displayNameLookaheadTicks;
         if (lookahead <= 0) return new double[]{ex, ey, ez};
 
-        int tick = org.bukkit.Bukkit.getCurrentTick();
+        int tick = Bukkit.getCurrentTick();
         double[] tracker = velocityTrackers.computeIfAbsent(entity.getUniqueId(),
                 k -> new double[]{ex, ey, ez, tick, 0, 0, 0});
 
@@ -62,7 +65,7 @@ public class NametagCloneRenderer {
         if (!entity.isValid()) return false;
 
         int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
-        int targetEntityId = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getId();
+        int targetEntityId = ((CraftEntity) entity).getHandle().getId();
         if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
 
         Boolean cachedInvisible = SetEntityDataPacketListener.invisibleCache.get(targetEntityId);
@@ -92,22 +95,23 @@ public class NametagCloneRenderer {
             removeDisplay(viewerUUID, entityUUID, outbox);
             return;
         }
-        Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
+
+        ConcurrentHashMap<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) {
             inner = new ConcurrentHashMap<>();
-            Map<UUID, NametagCloneUtils> existing = clones.putIfAbsent(viewerUUID, inner);
-            if (existing != null) inner = existing;
+            ConcurrentHashMap<UUID, NametagCloneUtils> existingInner = clones.putIfAbsent(viewerUUID, inner);
+            if (existingInner != null) inner = existingInner;
         }
-        ConcurrentHashMap<UUID, NametagCloneUtils> innerMap = (ConcurrentHashMap<UUID, NametagCloneUtils>) inner;
-        NametagCloneUtils existing = innerMap.get(entityUUID);
+
+        NametagCloneUtils existing = inner.get(entityUUID);
         if (existing != null) {
             if (!existing.isSpawned()) {
-                innerMap.remove(entityUUID);
+                inner.remove(entityUUID);
                 despawnClone(existing, outbox);
             } else {
                 existing.setOutbox(outbox);
                 try {
-                    existing.setName(getName(entity));
+                    existing.setName(getName(viewer, entity));
                     double[] pos = extrapolatedPos(entity);
                     existing.teleport(pos[0], clonePosY(pos[1], entity), pos[2]);
                 } finally {
@@ -116,18 +120,19 @@ public class NametagCloneRenderer {
                 return;
             }
         }
+
         try {
             NametagCloneUtils clone = new NametagCloneUtils(viewer);
             clone.setOutbox(outbox);
             try {
-                clone.setName(getName(entity));
+                clone.setName(getName(viewer, entity));
                 double[] pos = extrapolatedPos(entity);
                 clone.setPos(pos[0], clonePosY(pos[1], entity), pos[2]);
                 clone.spawn();
             } finally {
                 clone.setOutbox(null);
             }
-            innerMap.put(entityUUID, clone);
+            inner.put(entityUUID, clone);
         } catch (Throwable t) {
             plugin.getLogger().warning("Failed to spawn display for " + viewer.getName() + " -> " + entity.getName() + ": " + t);
         }
@@ -142,11 +147,13 @@ public class NametagCloneRenderer {
             applyDisplay(viewer, entity, outbox);
             return;
         }
+
         NametagCloneUtils existing = inner.get(entityUUID);
         if (existing == null || !existing.isSpawned()) {
             applyDisplay(viewer, entity, outbox);
             return;
         }
+
         if (!shouldShowFast(viewer, entity)) {
             inner.remove(entityUUID);
             despawnClone(existing, outbox);
@@ -160,7 +167,7 @@ public class NametagCloneRenderer {
 
         existing.setOutbox(outbox);
         try {
-            existing.setName(getName(entity));
+            existing.setName(getName(viewer, entity));
             if (entityMoved) existing.teleport(nx, ny, nz);
         } finally {
             existing.setOutbox(null);
@@ -199,7 +206,7 @@ public class NametagCloneRenderer {
         Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
         inner.entrySet().removeIf(entry -> {
-            Entity entity = org.bukkit.Bukkit.getEntity(entry.getKey());
+            Entity entity = Bukkit.getEntity(entry.getKey());
             if (entity == null || !shouldShowFast(viewer, entity)) {
                 despawnClone(entry.getValue(), outbox);
                 return true;
@@ -211,19 +218,17 @@ public class NametagCloneRenderer {
     public static void removeAllDisplays() {
         clones.forEach((viewerUUID, inner) -> {
             if (inner == null) return;
-            Player viewer = org.bukkit.Bukkit.getPlayer(viewerUUID);
+            Player viewer = Bukkit.getPlayer(viewerUUID);
             if (viewer == null) {
                 inner.values().forEach(c -> despawnClone(c, null));
                 return;
             }
-            java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox
-                    = new java.util.ArrayList<>(inner.size());
+            List<Packet<? super ClientGamePacketListener>> outbox = new ArrayList<>(inner.size());
             for (NametagCloneUtils clone : inner.values()) {
                 despawnClone(clone, outbox);
             }
             if (!outbox.isEmpty()) {
-                ((org.bukkit.craftbukkit.entity.CraftPlayer) viewer).getHandle().connection
-                        .send(new net.minecraft.network.protocol.game.ClientboundBundlePacket(outbox));
+                ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(outbox));
             }
         });
         clones.clear();
@@ -243,16 +248,19 @@ public class NametagCloneRenderer {
         }
     }
 
-    private static Component getName(Entity entity) {
-        Component name;
+    private static Component getName(Player viewer, Entity entity) {
         Component custom = entity.customName();
-        name = (!(entity instanceof Player) && custom != null) ? custom : Component.text(entity.getName());
-        NamedTextColor teamColor = TeamUtils.getTeamColor(entity);
+        Component name = (!(entity instanceof Player) && custom != null) ? custom : Component.text(entity.getName());
+
+        NamedTextColor teamColor = TeamUtils.getTeamColor(viewer, entity);
         if (teamColor != null) name = name.color(teamColor);
-        Component teamPrefix = TeamUtils.getTeamPrefix(entity);
+
+        Component teamPrefix = TeamUtils.getTeamPrefix(viewer, entity);
         if (teamPrefix != null) name = teamPrefix.append(name);
-        Component teamSuffix = TeamUtils.getTeamSuffix(entity);
+
+        Component teamSuffix = TeamUtils.getTeamSuffix(viewer, entity);
         if (teamSuffix != null) name = name.append(teamSuffix);
+
         return name;
     }
 }
