@@ -1,14 +1,29 @@
 package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.listener.packet.AddEntityPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
+import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.*;
 import org.bukkit.craftbukkit.CraftWorld;
+import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -24,8 +39,8 @@ public class RayTraceEngine {
 
     private static BukkitTask task;
 
-    private static final it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap blockCache =
-            new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(4096);
+    private static final Long2ByteOpenHashMap blockCache =
+            new Long2ByteOpenHashMap(4096);
     private static final byte CACHE_MISS = 0, CACHE_TRUE = 1, CACHE_FALSE = 2;
 
     private static int blockCacheTtlTick = 0;
@@ -40,8 +55,8 @@ public class RayTraceEngine {
     private static final double AABB_REFRESH_MOVE_SQ = 16.0;
     private static final double AABB_QUERY_MARGIN = 4.0;
 
-    private static final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ViewerCache> viewerCaches =
-            new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>();
+    private static final Int2ObjectOpenHashMap<ViewerCache> viewerCaches =
+            new Int2ObjectOpenHashMap<>();
 
     private static class WorldEntitySnapshot {
         net.minecraft.world.entity.Entity[] entities = new net.minecraft.world.entity.Entity[128];
@@ -50,8 +65,8 @@ public class RayTraceEngine {
         int age;
     }
 
-    private static final java.util.IdentityHashMap<ServerLevel, WorldEntitySnapshot> worldEntityCache =
-            new java.util.IdentityHashMap<>();
+    private static final IdentityHashMap<ServerLevel, WorldEntitySnapshot> worldEntityCache =
+            new IdentityHashMap<>();
 
     private static class ViewerCache {
         boolean initialized = false;
@@ -59,29 +74,29 @@ public class RayTraceEngine {
         float prevYaw, prevPitch;
         float accumYaw = 0f, accumPitch = 0f;
 
-        final it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap entityIndexMap =
-                new it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap();
+        final Int2IntOpenHashMap entityIndexMap =
+                new Int2IntOpenHashMap();
         double[] cachedX = new double[64];
         double[] cachedY = new double[64];
         double[] cachedZ = new double[64];
         boolean[] cachedVisible = new boolean[64];
         int cachedCount = 0;
 
-        org.bukkit.entity.Entity[] snapshotBuffer = new org.bukkit.entity.Entity[64];
+        Entity[] snapshotBuffer = new Entity[64];
         int[] entityIdBuffer = new int[64];
         boolean[] clientVisBuffer = new boolean[64];
         boolean[] asyncResults = new boolean[64];
 
-        java.util.ArrayList<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>>
-                outboxBuffer = new java.util.ArrayList<>(32);
-        java.util.ArrayList<org.bukkit.entity.Entity> pendingShowsBuffer = new java.util.ArrayList<>(16);
+        ArrayList<Packet<? super ClientGamePacketListener>>
+                outboxBuffer = new ArrayList<>(32);
+        ArrayList<Entity> pendingShowsBuffer = new ArrayList<>(16);
     }
 
     private static final ThreadLocal<ArrayList<Vector>> vertexBuffer =
             ThreadLocal.withInitial(() -> new ArrayList<>(32));
 
-    private static final it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache =
-            new it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap<>();
+    private static final Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache =
+            new Object2BooleanOpenHashMap<>();
 
     public static void clearViewerCache(int entityId) {
         viewerCaches.remove(entityId);
@@ -112,12 +127,12 @@ public class RayTraceEngine {
         if (cached != CACHE_MISS) return cached == CACHE_TRUE;
         boolean result;
         try {
-            net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkIfLoaded(x >> 4, z >> 4);
+            LevelChunk chunk = level.getChunkIfLoaded(x >> 4, z >> 4);
             if (chunk == null) {
                 result = false;
             } else {
                 int si = level.getSectionIndex(y);
-                net.minecraft.world.level.chunk.LevelChunkSection[] s = chunk.getSections();
+                LevelChunkSection[] s = chunk.getSections();
                 result = (si >= 0 && si < s.length) && s[si].getBlockState(x & 15, y & 15, z & 15).isSolidRender();
             }
         } catch (Throwable t) {
@@ -212,7 +227,7 @@ public class RayTraceEngine {
             return visible;
         }
 
-        net.minecraft.world.phys.AABB box = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getBoundingBox();
+        AABB box = ((CraftEntity) entity).getHandle().getBoundingBox();
         double centerX = (box.minX + box.maxX) * 0.5;
         double centerY = (box.minY + box.maxY) * 0.5;
         double centerZ = (box.minZ + box.maxZ) * 0.5;
@@ -293,7 +308,7 @@ public class RayTraceEngine {
     }
 
     private static boolean isExcluded(Entity entity) {
-        return RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager.isExcluded(entity.getUniqueId());
+        return ExcludeBypassManager.isExcluded(entity.getUniqueId());
     }
 
     private static boolean isAntiEntityType(Entity entity) {
@@ -319,7 +334,7 @@ public class RayTraceEngine {
         if (Config.checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
         ArrayList<Vector> vertices = vertexBuffer.get();
         vertices.clear();
-        net.minecraft.world.phys.AABB box = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle().getBoundingBox();
+        AABB box = ((CraftEntity) entity).getHandle().getBoundingBox();
         double minX = box.minX, minY = box.minY, minZ = box.minZ;
         double maxX = box.maxX, maxY = box.maxY, maxZ = box.maxZ;
         double midX = (minX + maxX) * 0.5, midZ = (minZ + maxZ) * 0.5;
@@ -331,7 +346,7 @@ public class RayTraceEngine {
         else scaledSampleLayers = Math.max(2, (int) Math.round(Config.checkingVerticesLayers * (1.0 - ratio * 0.5)));
         boolean includeCorners = ratio < 0.25;
         for (int i = 0; i < scaledSampleLayers; i++) {
-            double y = RayTraceAntiEntityESP.bukkit.misc.Math.lerp(minY, maxY, ((double) i) / (scaledSampleLayers - 1));
+            double y = Mth.lerp(((double) i) / (scaledSampleLayers - 1), minY, maxY);
             vertices.add(new Vector(midX, y, midZ));
             if (includeCorners) {
                 if (Config.checkingBoundingBoxExtraValue > 0) {
@@ -360,7 +375,7 @@ public class RayTraceEngine {
     }
 
     public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer, boolean visibleClient,
-                                              java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox) {
+                                              List<Packet<? super ClientGamePacketListener>> outbox) {
         if (visibleServer && !visibleClient) {
             VisibilityUtils.setNotHidden(viewer, entity);
             if (Config.isDisplayNameEnabled)
@@ -409,8 +424,8 @@ public class RayTraceEngine {
 
             staggerTick++;
 
-            List<net.minecraft.server.level.ServerPlayer> serverPlayers =
-                    net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers();
+            List<ServerPlayer> serverPlayers =
+                    MinecraftServer.getServer().getPlayerList().getPlayers();
             if (serverPlayers.isEmpty()) return;
 
             int playerCount = serverPlayers.size();
@@ -432,7 +447,7 @@ public class RayTraceEngine {
             int[] worldMaxY = new int[playerCount];
 
             int vi = 0;
-            for (net.minecraft.server.level.ServerPlayer sp : serverPlayers) {
+            for (ServerPlayer sp : serverPlayers) {
                 if (PacketManager.isBypassed(sp.getUUID())) continue;
                 Player viewer = sp.getBukkitEntity();
                 ServerLevel nmsWorld = sp.level();
@@ -469,7 +484,7 @@ public class RayTraceEngine {
                         Entity bukkit = e.getBukkitEntity();
                         if (!isAntiEntityType(bukkit)) return;
                         if (snap.entityCount >= snap.entities.length)
-                            snap.entities = java.util.Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
+                            snap.entities = Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
                         snap.entities[snap.entityCount++] = e;
                     });
                     snap.centerX = vx;
@@ -485,7 +500,7 @@ public class RayTraceEngine {
 
                 if (cache.snapshotBuffer.length < aabbCount) {
                     int nl = aabbCount + 16;
-                    cache.snapshotBuffer = new org.bukkit.entity.Entity[nl];
+                    cache.snapshotBuffer = new Entity[nl];
                     cache.entityIdBuffer = new int[nl];
                     cache.clientVisBuffer = new boolean[nl];
                     cache.asyncResults = new boolean[nl];
@@ -535,7 +550,7 @@ public class RayTraceEngine {
                 cache.prevPitch = pitch;
 
                 boolean[] clientVis = cache.clientVisBuffer;
-                it.unimi.dsi.fastutil.ints.IntSet hiddenSet = VisibilityUtils.getHiddenSet(vid);
+                IntSet hiddenSet = VisibilityUtils.getHiddenSet(vid);
                 for (int ci = 0; ci < count; ci++)
                     clientVis[ci] = hiddenSet == null || !hiddenSet.contains(entityIds[ci]);
 
@@ -571,7 +586,7 @@ public class RayTraceEngine {
                 for (int j = 0; j < count; j++) {
                     Entity entity = snapshots[i][j];
                     int eid = entityIdSnapshots[i][j];
-                    net.minecraft.world.entity.Entity nmsEnt = ((org.bukkit.craftbukkit.entity.CraftEntity) entity).getHandle();
+                    net.minecraft.world.entity.Entity nmsEnt = ((CraftEntity) entity).getHandle();
                     double ex = nmsEnt.getX(), ey = nmsEnt.getY(), ez = nmsEnt.getZ();
                     int idx = cache.entityIndexMap.getOrDefault(eid, -1);
 
@@ -615,9 +630,9 @@ public class RayTraceEngine {
                 int count = entityCounts[i];
                 Player viewer = viewers[i];
                 ViewerCache vcache = caches[i];
-                java.util.ArrayList<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox = vcache.outboxBuffer;
+                ArrayList<Packet<? super ClientGamePacketListener>> outbox = vcache.outboxBuffer;
                 outbox.clear();
-                java.util.ArrayList<Entity> pendingShows = vcache.pendingShowsBuffer;
+                ArrayList<Entity> pendingShows = vcache.pendingShowsBuffer;
                 pendingShows.clear();
                 for (int j = 0; j < count; j++) {
                     boolean visServer = vcache.asyncResults[j], visClient = clientVisible[i][j];
@@ -630,13 +645,13 @@ public class RayTraceEngine {
                 }
                 int vid = ((CraftPlayer) viewer).getHandle().getId();
                 for (Entity e : pendingShows) {
-                    if (VisibilityUtils.isHidden(vid, ((org.bukkit.craftbukkit.entity.CraftEntity) e).getHandle().getId()))
+                    if (VisibilityUtils.isHidden(vid, ((CraftEntity) e).getHandle().getId()))
                         updateRayTraceChecking(viewer, e, true, false, outbox);
                 }
                 if (Config.isDisplayNameEnabled) NametagCloneRenderer.cleanupStaleClones(outbox, viewer);
                 if (!outbox.isEmpty())
                     ((CraftPlayer) viewer).getHandle().connection
-                            .send(new net.minecraft.network.protocol.game.ClientboundBundlePacket(outbox));
+                            .send(new ClientboundBundlePacket(outbox));
             }
         }, 0L, Config.checkingPeriodTicks);
     }

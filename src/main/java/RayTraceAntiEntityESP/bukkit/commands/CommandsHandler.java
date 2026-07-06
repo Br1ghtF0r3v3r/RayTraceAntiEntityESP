@@ -1,13 +1,26 @@
 package RayTraceAntiEntityESP.bukkit.commands;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager;
 import RayTraceAntiEntityESP.bukkit.misc.StringFormat;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
@@ -102,12 +115,12 @@ public class CommandsHandler implements CommandExecutor {
                     type -> type,
                     type -> {
                         if (!Config.antiEntities.add(type)) return false;
-                        saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                        saveAndReload("anti_entities", new ArrayList<>(Config.antiEntities));
                         return true;
                     },
                     type -> {
                         if (!Config.antiEntities.remove(type)) return false;
-                        saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                        saveAndReload("anti_entities", new ArrayList<>(Config.antiEntities));
                         return true;
                     },
                     () -> Config.antiEntities,
@@ -115,7 +128,7 @@ public class CommandsHandler implements CommandExecutor {
                         int count = Config.antiEntities.size();
                         if (count > 0) {
                             Config.antiEntities.clear();
-                            saveAndReload("anti_entities", new java.util.ArrayList<>(Config.antiEntities));
+                            saveAndReload("anti_entities", new ArrayList<>(Config.antiEntities));
                         }
                         return count;
                     },
@@ -124,19 +137,19 @@ public class CommandsHandler implements CommandExecutor {
             case "exclude" -> handleListCommand(sender, args, "exclude", "player name or entity uuid",
                     CommandsHandler::resolveExcludeTarget,
                     CommandsHandler::displayExcludeTarget,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::addExclude,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::removeExclude,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::listExclude,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::clearExclude,
+                    ExcludeBypassManager::addExclude,
+                    ExcludeBypassManager::removeExclude,
+                    ExcludeBypassManager::listExclude,
+                    ExcludeBypassManager::clearExclude,
                     "&aAll viewers can now always see &e%s",
                     "&e%s &ccan be seen by everyone again");
             case "bypass" -> handleListCommand(sender, args, "bypass", "player",
                     CommandsHandler::resolvePlayerUUID,
                     CommandsHandler::displayPlayerName,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::addBypass,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::removeBypass,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::listBypass,
-                    RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager::clearBypass,
+                    ExcludeBypassManager::addBypass,
+                    ExcludeBypassManager::removeBypass,
+                    ExcludeBypassManager::listBypass,
+                    ExcludeBypassManager::clearBypass,
                     "&e%s &acan now see all entities",
                     "&e%s &cno longer bypasses ESP checking");
             default -> sendHelp(sender);
@@ -145,12 +158,12 @@ public class CommandsHandler implements CommandExecutor {
     }
 
     private static <T> void handleListCommand(CommandSender sender, String[] args, String label, String itemNoun,
-                                              java.util.function.Function<String, T> resolver,
-                                              java.util.function.Function<T, String> display,
-                                              java.util.function.Predicate<T> add,
-                                              java.util.function.Predicate<T> remove,
-                                              java.util.function.Supplier<? extends java.util.Collection<T>> list,
-                                              java.util.function.Supplier<Integer> clear,
+                                              Function<String, T> resolver,
+                                              Function<T, String> display,
+                                              Predicate<T> add,
+                                              Predicate<T> remove,
+                                              Supplier<? extends Collection<T>> list,
+                                              Supplier<Integer> clear,
                                               String addedMsgFmt, String removedMsgFmt) {
         if (args.length < 2) {
             sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " <add|remove|list|clear> [" + itemNoun + "]"));
@@ -182,12 +195,12 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "list" -> {
-                java.util.Collection<T> entries = list.get();
+                Collection<T> entries = list.get();
                 if (entries.isEmpty()) {
                     sender.sendMessage(StringFormat.formatToString(sender, "&7" + label + " list is empty."));
                 } else {
                     sender.sendMessage(StringFormat.formatToString(sender, "&6--- " + label + " (" + entries.size() + ") ---"));
-                    java.util.List<String> names = new java.util.ArrayList<>();
+                    List<String> names = new ArrayList<>();
                     for (T value : entries) names.add(display.apply(value));
                     sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", names)));
                 }
@@ -205,46 +218,46 @@ public class CommandsHandler implements CommandExecutor {
         }
     }
 
-    private static java.util.UUID tryParseUUID(String raw) {
+    private static UUID tryParseUUID(String raw) {
         try {
-            return java.util.UUID.fromString(raw);
+            return UUID.fromString(raw);
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 
-    private static java.util.UUID resolvePlayerUUID(String name) {
-        java.util.UUID parsed = tryParseUUID(name);
+    private static UUID resolvePlayerUUID(String name) {
+        UUID parsed = tryParseUUID(name);
         if (parsed != null) {
-            org.bukkit.OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(parsed);
+            OfflinePlayer offline = Bukkit.getOfflinePlayer(parsed);
             return (offline.hasPlayedBefore() || offline.isOnline()) ? parsed : null;
         }
-        org.bukkit.entity.Player online = org.bukkit.Bukkit.getPlayerExact(name);
+        Player online = Bukkit.getPlayerExact(name);
         if (online != null) return online.getUniqueId();
-        org.bukkit.OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(name);
+        OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
         if (offline.hasPlayedBefore() || offline.isOnline()) return offline.getUniqueId();
         return null;
     }
 
-    private static String displayPlayerName(java.util.UUID uuid) {
-        String name = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+    private static String displayPlayerName(UUID uuid) {
+        String name = Bukkit.getOfflinePlayer(uuid).getName();
         return name != null ? name : uuid.toString();
     }
 
-    private static java.util.UUID resolveExcludeTarget(String raw) {
-        java.util.UUID parsed = tryParseUUID(raw);
+    private static UUID resolveExcludeTarget(String raw) {
+        UUID parsed = tryParseUUID(raw);
         if (parsed != null) {
-            if (org.bukkit.Bukkit.getEntity(parsed) != null) return parsed;
-            org.bukkit.OfflinePlayer offline = org.bukkit.Bukkit.getOfflinePlayer(parsed);
+            if (Bukkit.getEntity(parsed) != null) return parsed;
+            OfflinePlayer offline = Bukkit.getOfflinePlayer(parsed);
             if (offline.hasPlayedBefore() || offline.isOnline()) return parsed;
             return null;
         }
         return resolvePlayerUUID(raw);
     }
 
-    private static String displayExcludeTarget(java.util.UUID uuid) {
-        org.bukkit.entity.Entity entity = org.bukkit.Bukkit.getEntity(uuid);
-        if (entity != null && !(entity instanceof org.bukkit.entity.Player)) {
+    private static String displayExcludeTarget(UUID uuid) {
+        Entity entity = Bukkit.getEntity(uuid);
+        if (entity != null && !(entity instanceof Player)) {
             return entity.getType().name().toLowerCase() + " (" + uuid.toString().substring(0, 8) + ")";
         }
         return displayPlayerName(uuid);
@@ -256,7 +269,7 @@ public class CommandsHandler implements CommandExecutor {
         plugin.reloadConfigAll();
     }
 
-    public static <T> void set(CommandSender sender, String key, String[] args, int argIndex, java.util.function.Function<String, T> parser) {
+    public static <T> void set(CommandSender sender, String key, String[] args, int argIndex, Function<String, T> parser) {
         if (args.length <= argIndex) {
             sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key));
             return;
@@ -270,7 +283,7 @@ public class CommandsHandler implements CommandExecutor {
         }
     }
 
-    public static <T extends Comparable<T>> void setWithMin(CommandSender sender, String key, String[] args, int argIndex, java.util.function.Function<String, T> parser, T min) {
+    public static <T extends Comparable<T>> void setWithMin(CommandSender sender, String key, String[] args, int argIndex, Function<String, T> parser, T min) {
         if (args.length <= argIndex) {
             sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key));
             return;

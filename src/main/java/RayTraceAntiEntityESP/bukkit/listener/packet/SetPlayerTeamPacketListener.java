@@ -11,15 +11,21 @@ import io.netty.channel.ChannelPromise;
 import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
+import net.minecraft.server.level.ServerPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 
 import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.mapVisibility;
 
@@ -33,7 +39,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         ClientboundSetPlayerTeamPacket.Action teamAction = packet.getTeamAction();
         ClientboundSetPlayerTeamPacket.Action playerAction = packet.getPlayerAction();
 
-        List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox = new ArrayList<>();
+        List<Packet<? super ClientGamePacketListener>> outbox = new ArrayList<>();
 
         packet.getParameters().ifPresent(params -> {
             NamedTextColor color = StringFormat.chatFormattingToNamedTextColor(params.getColor());
@@ -45,11 +51,11 @@ public class SetPlayerTeamPacketListener extends PacketListener {
             TeamUtils.teamVisibilities.put(teamName, mapVisibility(params.getNametagVisibility()));
 
             if (Config.isDisplayNameEnabled) {
-                net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
+                ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
                 int viewerEntityId = nmsViewer.getId();
                 for (String entry : TeamUtils.entryToTeam.entrySet().stream()
                         .filter(e -> e.getValue().equals(teamName))
-                        .map(java.util.Map.Entry::getKey)
+                        .map(Map.Entry::getKey)
                         .toList()) {
                     Player target = Bukkit.getPlayerExact(entry);
                     if (target == null) continue;
@@ -67,7 +73,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         if (playerAction == ClientboundSetPlayerTeamPacket.Action.REMOVE) {
             for (String entry : packet.getPlayers()) TeamUtils.entryToTeam.remove(entry);
 
-            net.minecraft.server.level.ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
+            ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
             int viewerEntityId = nmsViewer.getId();
 
             for (String entry : packet.getPlayers()) {
@@ -77,10 +83,10 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                 int targetEntityId = ((CraftPlayer) target).getHandle().getId();
                 boolean isHidden = VisibilityUtils.isHidden(viewerEntityId, targetEntityId);
 
-                net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
-                outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
-                        java.util.EnumSet.of(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
-                        java.util.List.of(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry(
+                ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
+                outbox.add(new ClientboundPlayerInfoUpdatePacket(
+                        EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
+                        List.of(new ClientboundPlayerInfoUpdatePacket.Entry(
                                 nmsTarget.getUUID(),
                                 nmsTarget.getGameProfile(),
                                 true,
@@ -121,11 +127,11 @@ public class SetPlayerTeamPacketListener extends PacketListener {
             Collection<String> entries = packet.getPlayers().isEmpty()
                     ? TeamUtils.entryToTeam.entrySet().stream()
                     .filter(e -> e.getValue().equals(teamName))
-                    .map(java.util.Map.Entry::getKey)
+                    .map(Map.Entry::getKey)
                     .toList()
                     : packet.getPlayers();
 
-            net.minecraft.server.level.ServerPlayer nmsViewerForAdd = ((CraftPlayer) viewer).getHandle();
+            ServerPlayer nmsViewerForAdd = ((CraftPlayer) viewer).getHandle();
             int viewerEntityIdForAdd = nmsViewerForAdd.getId();
 
             for (String entry : entries) {
@@ -140,10 +146,10 @@ public class SetPlayerTeamPacketListener extends PacketListener {
                 if (teamPrefix != null) displayName = teamPrefix.append(displayName);
                 if (teamSuffix != null) displayName = displayName.append(teamSuffix);
 
-                net.minecraft.server.level.ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
-                outbox.add(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket(
-                        java.util.EnumSet.of(net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
-                        java.util.List.of(new net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry(
+                ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
+                outbox.add(new ClientboundPlayerInfoUpdatePacket(
+                        EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME),
+                        List.of(new ClientboundPlayerInfoUpdatePacket.Entry(
                                 nmsTarget.getUUID(),
                                 nmsTarget.getGameProfile(),
                                 true,
@@ -164,7 +170,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
 
     private static void flushOutbox(
             Player viewer,
-            List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> outbox
+            List<Packet<? super ClientGamePacketListener>> outbox
     ) {
         if (outbox.isEmpty()) return;
         ((CraftPlayer) viewer).getHandle().connection

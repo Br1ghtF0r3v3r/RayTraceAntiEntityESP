@@ -1,6 +1,8 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -15,12 +17,8 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class DebugVertexUtils {
-
-    private static final int ID_MIN = 4_000_000;
-    private static final int ID_MAX = 5_000_000;
 
     private static final BlockState BLOCK_STATE_VISIBLE = Blocks.LIME_WOOL.defaultBlockState();
     private static final BlockState BLOCK_STATE_NOT_VISIBLE = Blocks.RED_WOOL.defaultBlockState();
@@ -38,12 +36,11 @@ public class DebugVertexUtils {
 
     public DebugVertexUtils(Player viewer) {
         this.viewer = viewer;
-        this.entityId = ThreadLocalRandom.current().nextInt(ID_MIN, ID_MAX);
+        this.entityId = PacketManager.allocateFakeEntityId();
         this.entityUuid = UUID.randomUUID();
-        RayTraceAntiEntityESP.bukkit.listener.PacketManager.registerFakeEntity(entityId);
     }
 
-    private void send(net.minecraft.network.protocol.Packet<?> packet) {
+    private void send(Packet<?> packet) {
         ((CraftPlayer) viewer).getHandle().connection.send(packet);
     }
 
@@ -126,7 +123,7 @@ public class DebugVertexUtils {
         if (!spawned) return;
         send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
-        RayTraceAntiEntityESP.bukkit.listener.PacketManager.unregisterFakeEntity(entityId);
+        PacketManager.unregisterFakeEntity(entityId);
     }
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata(BlockState blockState) {

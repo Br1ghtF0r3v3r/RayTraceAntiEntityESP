@@ -1,5 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.config;
 
+import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import it.unimi.dsi.fastutil.ints.IntSet;
@@ -109,7 +110,7 @@ public class ExcludeBypassManager {
             save();
             PacketManager.addBypass(uuid);
             forceUnhideAllForViewer(uuid);
-            RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer.removeDisplay(uuid);
+            NametagCloneRenderer.removeDisplay(uuid);
         }
         return added;
     }

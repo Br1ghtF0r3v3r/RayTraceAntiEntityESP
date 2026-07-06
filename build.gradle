@@ -1,5 +1,3 @@
-import proguard.gradle.ProGuardTask
-
 buildscript {
     repositories {
         mavenCentral()
@@ -37,6 +35,8 @@ allprojects {
     repositories {
         mavenCentral()
         gradlePluginPortal()
+        maven{url "https://repo.codemc.io/repository/maven-releases/"}
+        maven{url "https://repo.codemc.io/repository/maven-snapshots/"}
         maven{url "https://repo.papermc.io/repository/maven-public/"}
         maven{url "https://repo.extendedclip.com/releases/"}
         maven{url "https://maven.respark.dev/releases"}
@@ -46,6 +46,7 @@ allprojects {
 dependencies {
     compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
     compileOnly "me.clip:placeholderapi:2.12.2"
+    compileOnly "com.github.retrooper:packetevents-spigot:2.13.0"
     paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
 }
 

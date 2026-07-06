@@ -80,5 +80,4 @@ public class StringFormat {
     public static void debug(String text) {
         Bukkit.broadcast(Component.text(text));
     }
-
 }
