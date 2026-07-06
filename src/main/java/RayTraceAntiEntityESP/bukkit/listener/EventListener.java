@@ -112,5 +112,6 @@ public class EventListener implements Listener {
 
     private static void invalidate(Block block) {
         RayTraceEngine.invalidateBlockAt(block.getX(), block.getY(), block.getZ());
+        RayTraceEngine.clearAllCaches();
     }
 }

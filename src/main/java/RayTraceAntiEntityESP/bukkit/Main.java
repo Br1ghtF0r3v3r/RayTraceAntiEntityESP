@@ -18,7 +18,6 @@ public final class Main extends JavaPlugin {
     @Override
     public void onLoad() {
         plugin = this;
-        PacketEventsBridge.registerIfAvailable();
     }
 
     @Override
@@ -26,6 +25,7 @@ public final class Main extends JavaPlugin {
         reloadConfigAll();
 
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
+        PacketEventsBridge.registerIfAvailable();
         registerCommands();
         VersionChecker.check();
         getLogger().info("RayTraceEntityESP enabled.");

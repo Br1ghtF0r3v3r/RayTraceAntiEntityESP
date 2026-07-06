@@ -5,6 +5,7 @@ import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.utils.EntityIdentityCache;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -12,6 +13,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
+import net.minecraft.world.entity.EntityType;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
@@ -79,6 +81,9 @@ public class AddEntityPacketListener extends PacketListener {
         }
 
         UUID entityUUID = packet.getUUID();
+
+        EntityIdentityCache.register(entityId, entityUUID, packet.getType() == EntityType.PLAYER);
+
         if (viewer.getUniqueId().equals(entityUUID)) {
             ctx.write(msg, promise);
             return true;

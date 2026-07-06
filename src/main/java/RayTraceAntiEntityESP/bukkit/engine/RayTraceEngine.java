@@ -169,8 +169,8 @@ public class RayTraceEngine {
         int endX = (int) Math.floor(ex2), endY = (int) Math.floor(ey2), endZ = (int) Math.floor(ez2);
         int maxSteps = (int) (distance + 2) * 3;
         for (int s = 0; s < maxSteps; s++) {
-            if (posX == endX && posY == endY && posZ == endZ) return false;
             if (posY >= minY && posY <= maxY && isOccluding(level, posX, posY, posZ)) return true;
+            if (posX == endX && posY == endY && posZ == endZ) return false;
             if (tMX < tMY && tMX < tMZ) {
                 posX += stepX;
                 tMX += tDX;
@@ -592,38 +592,36 @@ public class RayTraceEngine {
                     int idx = cache.entityIndexMap.getOrDefault(eid, -1);
 
                     boolean forceCheck = idx < 0 || vMoved || Config.isDebugEnabled;
-                    if (!forceCheck && (eid % groups) != currentGroup) {
-                        results[j] = cache.cachedVisible[idx];
-                        continue;
-                    }
 
-                    if (idx >= 0 && !vMoved && !Config.isDebugEnabled) {
+                    boolean entityMoved = false;
+                    if (idx >= 0 && !forceCheck) {
                         double dxe = ex - cache.cachedX[idx], dye = ey - cache.cachedY[idx], dze = ez - cache.cachedZ[idx];
-                        if ((dxe * dxe + dye * dye + dze * dze) <= ENTITY_POS_EPSILON_SQ) {
-                            results[j] = cache.cachedVisible[idx];
-                            continue;
-                        }
+                        entityMoved = (dxe * dxe + dye * dye + dze * dze) > ENTITY_POS_EPSILON_SQ;
                     }
 
-                    boolean visible = isEntityInSight(viewers[i], entity, ex, ey, ez,
-                            eyePositions[i], lookDirs[i], negLookDirs[i],
-                            vxArr[i], vyArr[i], vzArr[i], levels[i], worldMinY[i], worldMaxY[i]);
-                    results[j] = visible;
-                    if (idx < 0) {
-                        idx = cache.cachedCount++;
-                        if (idx >= cache.cachedX.length) {
-                            int nl = (idx + 1) * 2;
-                            cache.cachedX = Arrays.copyOf(cache.cachedX, nl);
-                            cache.cachedY = Arrays.copyOf(cache.cachedY, nl);
-                            cache.cachedZ = Arrays.copyOf(cache.cachedZ, nl);
-                            cache.cachedVisible = Arrays.copyOf(cache.cachedVisible, nl);
+                    if (forceCheck || entityMoved || (eid % groups) == currentGroup) {
+                        boolean visible = isEntityInSight(viewers[i], entity, ex, ey, ez,
+                                eyePositions[i], lookDirs[i], negLookDirs[i],
+                                vxArr[i], vyArr[i], vzArr[i], levels[i], worldMinY[i], worldMaxY[i]);
+                        results[j] = visible;
+                        if (idx < 0) {
+                            idx = cache.cachedCount++;
+                            if (idx >= cache.cachedX.length) {
+                                int nl = (idx + 1) * 2;
+                                cache.cachedX = Arrays.copyOf(cache.cachedX, nl);
+                                cache.cachedY = Arrays.copyOf(cache.cachedY, nl);
+                                cache.cachedZ = Arrays.copyOf(cache.cachedZ, nl);
+                                cache.cachedVisible = Arrays.copyOf(cache.cachedVisible, nl);
+                            }
+                            cache.entityIndexMap.put(eid, idx);
                         }
-                        cache.entityIndexMap.put(eid, idx);
+                        cache.cachedX[idx] = ex;
+                        cache.cachedY[idx] = ey;
+                        cache.cachedZ[idx] = ez;
+                        cache.cachedVisible[idx] = visible;
+                    } else {
+                        results[j] = cache.cachedVisible[idx];
                     }
-                    cache.cachedX[idx] = ex;
-                    cache.cachedY[idx] = ey;
-                    cache.cachedZ[idx] = ez;
-                    cache.cachedVisible[idx] = visible;
                 }
             }
 
