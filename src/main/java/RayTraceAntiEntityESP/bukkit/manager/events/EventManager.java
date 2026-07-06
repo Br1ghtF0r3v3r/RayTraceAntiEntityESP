@@ -33,8 +33,6 @@ public class EventManager {
         UUID playerUUID = event.getPlayer().getUniqueId();
         int viewerEntityId = event.getPlayer().getEntityId();
 
-        PacketManager.removeBypass(playerUUID);
-
         for (ServerPlayer sp : net.minecraft.server.MinecraftServer.getServer().getPlayerList().getPlayers()) {
             if (sp.getUUID().equals(playerUUID)) continue;
 
