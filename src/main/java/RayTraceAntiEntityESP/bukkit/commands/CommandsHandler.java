@@ -299,7 +299,7 @@ public class CommandsHandler implements CommandExecutor {
                 "&e/rtaee debug enabled <true|false> &7- Toggle debug mode",
                 "&e/rtaee anti_mode <whitelist|blacklist> &7- Switch filter mode",
                 "&e/rtaee anti_entities <add|remove|list|clear> [type] &7- Edit entity list",
-                "&e/rtaee exclude <add|remove|list|clear> [player name | entity uuid] &7- Let everyone see this player/entity, always",
+                "&e/rtaee exclude <add|remove|list|clear> [player_name|entity_uuid] &7- Let everyone see this player/entity, always",
                 "&e/rtaee bypass <add|remove|list|clear> [player] &7- Let a player see everyone, always",
                 "&e/rtaee help &7- Show help information"
         };
