@@ -36,6 +36,7 @@ public final class Main extends JavaPlugin {
         Config.migrateConfigIfNeeded();
         reloadConfig();
         Config.setConfig();
+        RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager.load();
     }
 
     @SuppressWarnings("deprecation")
