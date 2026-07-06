@@ -4,13 +4,18 @@ import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.manager.events.EventManager;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.event.*;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.StructureGrowEvent;
+
+import java.util.List;
 
 public class EventListener implements Listener {
 
@@ -55,7 +60,7 @@ public class EventListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onEntityExplode(org.bukkit.event.entity.EntityExplodeEvent event) {
+    public void onEntityExplode(EntityExplodeEvent event) {
         for (Block block : event.blockList()) invalidate(block);
     }
 
@@ -81,7 +86,7 @@ public class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onStructureGrow(StructureGrowEvent event) {
-        for (org.bukkit.block.BlockState state : event.getBlocks()) {
+        for (BlockState state : event.getBlocks()) {
             RayTraceEngine.invalidateBlockAt(state.getX(), state.getY(), state.getZ());
         }
     }
@@ -96,7 +101,7 @@ public class EventListener implements Listener {
         invalidatePiston(event.getBlock(), event.getDirection(), event.getBlocks());
     }
 
-    private static void invalidatePiston(Block pistonBlock, org.bukkit.block.BlockFace direction, java.util.List<Block> movedBlocks) {
+    private static void invalidatePiston(Block pistonBlock, BlockFace direction, List<Block> movedBlocks) {
         invalidate(pistonBlock);
         invalidate(pistonBlock.getRelative(direction));
         for (Block block : movedBlocks) {

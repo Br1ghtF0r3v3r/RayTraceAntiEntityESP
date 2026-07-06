@@ -1,22 +1,31 @@
 package RayTraceAntiEntityESP.bukkit.commands;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
+import RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.util.RayTraceResult;
 import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class TabCompletion implements TabCompleter {
+
     @Override
     public List<String> onTabComplete(@NonNull CommandSender sender, Command command, @NonNull String alias, String @NonNull [] args) {
         if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return null;
+
         if (args.length == 1) {
             return filter(args[0], List.of("config_value", "reload", "checking", "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "exclude", "bypass", "help"));
         }
+
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
                 case "checking" ->
@@ -29,6 +38,7 @@ public class TabCompletion implements TabCompleter {
                 default -> null;
             };
         }
+
         if (args.length == 3) {
             return switch (args[0].toLowerCase()) {
                 case "checking" -> switch (args[1].toLowerCase()) {
@@ -68,11 +78,11 @@ public class TabCompletion implements TabCompleter {
                 case "exclude", "bypass" -> switch (args[1].toLowerCase()) {
                     case "add" -> {
                         List<String> names = new ArrayList<>();
-                        for (org.bukkit.entity.Player p : org.bukkit.Bukkit.getOnlinePlayers()) {
+                        for (Player p : Bukkit.getOnlinePlayers()) {
                             names.add(p.getName());
                         }
-                        if (args[0].equalsIgnoreCase("exclude") && sender instanceof org.bukkit.entity.Player self) {
-                            org.bukkit.util.RayTraceResult trace = self.getWorld().rayTraceEntities(
+                        if (args[0].equalsIgnoreCase("exclude") && sender instanceof Player self) {
+                            RayTraceResult trace = self.getWorld().rayTraceEntities(
                                     self.getEyeLocation(), self.getEyeLocation().getDirection(), 100,
                                     e -> e != self);
                             if (trace != null && trace.getHitEntity() != null) {
@@ -82,12 +92,12 @@ public class TabCompletion implements TabCompleter {
                         yield filter(args[2], names);
                     }
                     case "remove" -> {
-                        java.util.Set<java.util.UUID> entries = args[0].equalsIgnoreCase("exclude")
-                                ? RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager.listExclude()
-                                : RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager.listBypass();
+                        Set<UUID> entries = args[0].equalsIgnoreCase("exclude")
+                                ? ExcludeBypassManager.listExclude()
+                                : ExcludeBypassManager.listBypass();
                         List<String> names = new ArrayList<>();
-                        for (java.util.UUID uuid : entries) {
-                            String name = org.bukkit.Bukkit.getOfflinePlayer(uuid).getName();
+                        for (UUID uuid : entries) {
+                            String name = Bukkit.getOfflinePlayer(uuid).getName();
                             names.add(name != null ? name : uuid.toString());
                         }
                         yield filter(args[2], names);
@@ -97,6 +107,7 @@ public class TabCompletion implements TabCompleter {
                 default -> null;
             };
         }
+
         return null;
     }
 
