@@ -511,6 +511,7 @@ public class RayTraceEngine {
                 for (int ei = 0; ei < aabbCount; ei++) {
                     net.minecraft.world.entity.Entity nmsEntity = worldSnap.entities[ei];
                     if (nmsEntity.getId() == vid) continue;
+                    if (VisibilityUtils.isExternallyHidden(vid, nmsEntity.getId())) continue;
                     double ex = nmsEntity.getX(), ey = nmsEntity.getY(), ez = nmsEntity.getZ();
                     double dxe = ex - vx, dye = ey - vy, dze = ez - vz;
                     if ((dxe * dxe + dye * dye + dze * dze) > rangeSq) continue;

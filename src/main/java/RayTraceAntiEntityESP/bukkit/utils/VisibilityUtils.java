@@ -20,6 +20,7 @@ import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getTeamVisibility;
 public class VisibilityUtils {
 
     private static final Int2ObjectOpenHashMap<IntSet> hiddenByViewer = new Int2ObjectOpenHashMap<>();
+    private static final Int2ObjectOpenHashMap<IntSet> externallyHidden = new Int2ObjectOpenHashMap<>();
 
     private static IntSet getOrCreate(int viewerId) {
         return hiddenByViewer.computeIfAbsent(viewerId, k -> new IntOpenHashSet());
@@ -31,6 +32,7 @@ public class VisibilityUtils {
         getOrCreate(viewerId).add(entityId);
         PacketManager.addHiddenBypass(player.getUniqueId(), entity.getUniqueId());
         PacketManager.cancelShowBypass(player.getUniqueId(), entity.getUniqueId());
+        PacketManager.addDestroyBypass(player.getUniqueId(), entityId);
         player.hideEntity(plugin, entity);
     }
 
@@ -57,6 +59,11 @@ public class VisibilityUtils {
         }
     }
 
+    public static void setNotHiddenSilently(int viewerId, int entityId) {
+        IntSet set = hiddenByViewer.get(viewerId);
+        if (set != null) set.remove(entityId);
+    }
+
     public static boolean isHidden(int viewerId, int targetId) {
         IntSet set = hiddenByViewer.get(viewerId);
         return set != null && set.contains(targetId);
@@ -68,6 +75,21 @@ public class VisibilityUtils {
 
     public static void clearViewer(int viewerEntityId) {
         hiddenByViewer.remove(viewerEntityId);
+        externallyHidden.remove(viewerEntityId);
+    }
+
+    public static void markExternallyHidden(int viewerId, int entityId) {
+        externallyHidden.computeIfAbsent(viewerId, k -> new IntOpenHashSet()).add(entityId);
+    }
+
+    public static void clearExternallyHidden(int viewerId, int entityId) {
+        IntSet set = externallyHidden.get(viewerId);
+        if (set != null) set.remove(entityId);
+    }
+
+    public static boolean isExternallyHidden(int viewerId, int entityId) {
+        IntSet set = externallyHidden.get(viewerId);
+        return set != null && set.contains(entityId);
     }
 
     public static boolean isNameVisible(Player viewer, Entity entity) {
