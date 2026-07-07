@@ -41,10 +41,7 @@ public class CommandsHandler implements CommandExecutor {
                 sender.sendMessage(StringFormat.formatToString(sender, "&aReloaded!"));
             }
             case "checking" -> {
-                if (args.length < 3) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
-                    return true;
-                }
+                if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "checking.enabled", args, 2, Boolean::parseBoolean);
                     case "period_ticks" -> setWithMin(sender, "checking.period_ticks", args, 2, Long::parseLong, 1L);
@@ -59,10 +56,7 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "perspective_checking" -> {
-                if (args.length < 3) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
-                    return true;
-                }
+                if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "perspective_checking.enabled", args, 2, Boolean::parseBoolean);
                     case "distances_from_head" ->
@@ -71,10 +65,7 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "display_name" -> {
-                if (args.length < 3) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
-                    return true;
-                }
+                if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "display_name.enabled", args, 2, Boolean::parseBoolean);
                     case "offset_y" -> set(sender, "display_name.offset_y", args, 2, Double::parseDouble);
@@ -83,10 +74,7 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "debug" -> {
-                if (args.length < 3) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing option and value."));
-                    return true;
-                }
+                if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 if (args[1].equalsIgnoreCase("enabled")) {
                     set(sender, "debug.enabled", args, 2, Boolean::parseBoolean);
                 } else {
@@ -94,10 +82,7 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             case "anti_mode" -> {
-                if (args.length < 2) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value."));
-                    return true;
-                }
+                if (requireArgs(sender, args, 2, "&cMissing value.")) return true;
                 String mode = args[1].toLowerCase();
                 saveAndReload("anti_mode", mode);
                 sender.sendMessage(StringFormat.formatToString(sender, "&aSet anti_mode to &e" + mode));
@@ -155,6 +140,14 @@ public class CommandsHandler implements CommandExecutor {
             default -> sendHelp(sender);
         }
         return true;
+    }
+
+    private static boolean requireArgs(CommandSender sender, String[] args, int min, String message) {
+        if (args.length < min) {
+            sender.sendMessage(StringFormat.formatToString(sender, message));
+            return true;
+        }
+        return false;
     }
 
     private static <T> void handleListCommand(CommandSender sender, String[] args, String label, String itemNoun,

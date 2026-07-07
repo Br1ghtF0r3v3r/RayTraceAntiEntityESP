@@ -80,6 +80,7 @@ public class TeamUtils {
 
     private static void ensureTeamInfoFromBukkit(String entry) {
         if (entryToTeam.containsKey(entry)) return;
+        if (!Bukkit.isPrimaryThread()) return;
         try {
             Team bukkitTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(entry);
             if (bukkitTeam == null) return;

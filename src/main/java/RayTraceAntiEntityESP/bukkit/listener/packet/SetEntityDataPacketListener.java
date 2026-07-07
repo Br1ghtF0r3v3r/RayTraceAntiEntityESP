@@ -42,4 +42,11 @@ public class SetEntityDataPacketListener extends PacketListener {
         ctx.write(msg, promise);
         return true;
     }
+
+    public static void clearEntity(int entityId) {
+        invisibleCache.remove(entityId);
+        for (Set<Integer> playerSet : glowingEntities.values()) {
+            playerSet.remove(entityId);
+        }
+    }
 }
