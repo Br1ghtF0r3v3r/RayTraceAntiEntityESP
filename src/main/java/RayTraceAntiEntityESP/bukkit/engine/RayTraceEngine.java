@@ -59,7 +59,6 @@ public class RayTraceEngine {
 
     private static final Int2ObjectOpenHashMap<ViewerCache> viewerCaches = new Int2ObjectOpenHashMap<>();
 
-    // ---- Per-tick reusable buffers (main thread only; avoids GC pressure) ----
     private static Player[] viewersBuf = new Player[0];
     private static net.minecraft.world.entity.Entity[][] snapshotsBuf = new net.minecraft.world.entity.Entity[0][];
     private static int[][] entityIdSnapshotsBuf = new int[0][];
@@ -74,12 +73,10 @@ public class RayTraceEngine {
     private static double[] vyBuf = new double[0];
     private static double[] vzBuf = new double[0];
 
-    // ---- Vertex scratch buffer (main thread only) ----
     private static double[] vertexXBuf = new double[128];
     private static double[] vertexYBuf = new double[128];
     private static double[] vertexZBuf = new double[128];
 
-    // ---- Third-person position scratch (main thread only) ----
     private static final double[] thirdPersonScratch = new double[3];
 
     private static class WorldEntitySnapshot {
@@ -146,25 +143,43 @@ public class RayTraceEngine {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (y & 0xFFF) << 26) | (z & 0x3FFFFFF);
     }
 
-    private static boolean isOccluding(ServerLevel level, int x, int y, int z) {
+    private static boolean isOccluding(int x, int y, int z, LevelChunkSection section) {
         long key = blockKey(x, y, z);
         byte cached = blockCache.get(key);
         if (cached != CACHE_MISS) return cached == CACHE_TRUE;
         boolean result;
         try {
-            LevelChunk chunk = level.getChunkIfLoaded(x >> 4, z >> 4);
-            if (chunk == null) {
-                result = false;
-            } else {
-                int si = level.getSectionIndex(y);
-                LevelChunkSection[] s = chunk.getSections();
-                result = (si >= 0 && si < s.length) && s[si].getBlockState(x & 15, y & 15, z & 15).isSolidRender();
-            }
+            result = section.getBlockState(x & 15, y & 15, z & 15).isSolidRender();
         } catch (Throwable t) {
             result = false;
         }
         blockCache.put(key, result ? CACHE_TRUE : CACHE_FALSE);
         return result;
+    }
+
+    private static final class SectionCursor {
+        int chunkX = Integer.MIN_VALUE, chunkZ = Integer.MIN_VALUE, sectionIdx = Integer.MIN_VALUE;
+        LevelChunk chunk = null;
+        LevelChunkSection section = null;
+
+        boolean resolve(ServerLevel level, int x, int y, int z) {
+            int cx = x >> 4, cz = z >> 4;
+            if (cx != chunkX || cz != chunkZ) {
+                chunk = level.getChunkIfLoaded(cx, cz);
+                chunkX = cx;
+                chunkZ = cz;
+                sectionIdx = Integer.MIN_VALUE;
+                section = null;
+            }
+            if (chunk == null) return false;
+            int si = level.getSectionIndex(y);
+            if (si != sectionIdx) {
+                LevelChunkSection[] secs = chunk.getSections();
+                section = (si >= 0 && si < secs.length) ? secs[si] : null;
+                sectionIdx = si;
+            }
+            return section != null && !section.hasOnlyAir();
+        }
     }
 
     public static boolean hitsBlock(ServerLevel level, int minY, int maxY,
@@ -187,8 +202,11 @@ public class RayTraceEngine {
         double tMZ = dirZ == 0 ? Double.MAX_VALUE : Math.abs((stepZ > 0 ? (posZ + 1 - oz) : (oz - posZ)) / dirZ);
         int endX = (int) Math.floor(ex2), endY = (int) Math.floor(ey2), endZ = (int) Math.floor(ez2);
         int maxSteps = (int) (distance + 2) * 3;
+        SectionCursor cursor = hitsBlockCursor;
         for (int s = 0; s < maxSteps; s++) {
-            if (posY >= minY && posY <= maxY && isOccluding(level, posX, posY, posZ)) return true;
+            if (posY >= minY && posY <= maxY
+                    && cursor.resolve(level, posX, posY, posZ)
+                    && isOccluding(posX, posY, posZ, cursor.section)) return true;
             if (posX == endX && posY == endY && posZ == endZ) return false;
             if (tMX < tMY && tMX < tMZ) {
                 posX += stepX;
@@ -203,6 +221,8 @@ public class RayTraceEngine {
         }
         return false;
     }
+
+    private static final SectionCursor hitsBlockCursor = new SectionCursor();
 
     public static boolean isEntityGlowing(Player player, Entity entity) {
         if (entity.isGlowing()) return true;
@@ -290,6 +310,8 @@ public class RayTraceEngine {
         return !hitsBlock(level, minY, maxY, thirdFrontX, thirdFrontY, thirdFrontZ, endX, endY, endZ);
     }
 
+    private static final SectionCursor thirdPersonCursor = new SectionCursor();
+
     private static void computeThirdPersonPos(ServerLevel level, int minY, int maxY,
                                               double ox, double oy, double oz,
                                               double dirX, double dirY, double dirZ,
@@ -315,9 +337,12 @@ public class RayTraceEngine {
         double tMZ = dirZ == 0 ? Double.MAX_VALUE : Math.abs((stepZ > 0 ? (posZ + 1 - oz) : (oz - posZ)) / dirZ);
         int maxSteps = (int) (maxDistance + 2) * 3;
         double curT = 0;
+        SectionCursor cursor = thirdPersonCursor;
         for (int s = 0; s < maxSteps; s++) {
             if (curT >= maxDistance) break;
-            if (posY >= minY && posY <= maxY && isOccluding(level, posX, posY, posZ)) {
+            if (posY >= minY && posY <= maxY
+                    && cursor.resolve(level, posX, posY, posZ)
+                    && isOccluding(posX, posY, posZ, cursor.section)) {
                 double t = Math.max(0, curT - 0.1);
                 thirdPersonScratch[0] = ox + dirX * t;
                 thirdPersonScratch[1] = oy + dirY * t;
@@ -377,10 +402,6 @@ public class RayTraceEngine {
         return result;
     }
 
-    /**
-     * Fills the static vertex buffers with sampling points along the entity's bounding box.
-     * Returns the number of vertices written. Reuses the same arrays across calls (main thread only).
-     */
     private static int fillEntityVertices(double distance, double checkingRange,
                                           double minX, double minY, double minZ,
                                           double maxX, double maxY, double maxZ) {
