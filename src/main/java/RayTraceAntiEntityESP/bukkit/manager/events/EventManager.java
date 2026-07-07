@@ -63,9 +63,6 @@ public class EventManager {
             PacketManager.removeHiddenBypass(sp.getUUID(), playerUUID);
         }
         PacketManager.clearBypassForViewer(playerUUID);
-        PacketManager.belowNameObjective.remove(playerUUID);
-        PacketManager.objectiveScores.remove(playerUUID);
-        PacketManager.glowingEntities.remove(playerUUID);
         TeamUtils.clearViewerOverrides(playerUUID);
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
