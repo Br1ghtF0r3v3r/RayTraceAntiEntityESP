@@ -22,7 +22,7 @@ public class SetEntityDataPacketListener extends PacketListener {
                 int entityId, List<SynchedEntityData.DataValue<?>> packedItems
         ))) return false;
 
-        boolean isPluginOwnedEntity = isFakeEntity(entityId);
+        boolean isPluginOwnedEntity = isSyntheticEntity(entityId);
 
         if (!isPluginOwnedEntity) {
             for (SynchedEntityData.DataValue<?> data : packedItems) {
