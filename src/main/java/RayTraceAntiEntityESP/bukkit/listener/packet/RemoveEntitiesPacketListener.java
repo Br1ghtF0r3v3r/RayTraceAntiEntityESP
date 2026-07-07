@@ -30,7 +30,7 @@ public class RemoveEntitiesPacketListener extends PacketListener {
         List<Packet<? super ClientGamePacketListener>> outbox = null;
 
         for (int entityId : packet.getEntityIds()) {
-            if (PacketManager.isFakeEntity(entityId)) continue;
+            if (PacketManager.isSyntheticEntity(entityId)) continue;
             if (entityId == viewerId) continue;
 
             if (PacketManager.consumeDestroyBypass(viewer.getUniqueId(), entityId)) {

@@ -88,27 +88,27 @@ public class PacketManager {
         return !players.isEmpty() && players.contains(uuid);
     }
 
-    private static final Set<Integer> fakeEntityIds = ConcurrentHashMap.newKeySet();
+    private static final Set<Integer> syntheticEntityIds = ConcurrentHashMap.newKeySet();
 
-    private static final AtomicInteger nextFakeEntityId =
+    private static final AtomicInteger nextSyntheticEntityId =
             new AtomicInteger(Integer.MAX_VALUE - 1);
 
-    public static int allocateFakeEntityId() {
-        int id = nextFakeEntityId.getAndDecrement();
-        registerFakeEntity(id);
+    public static int allocateSyntheticEntityId() {
+        int id = nextSyntheticEntityId.getAndDecrement();
+        registerSyntheticEntity(id);
         return id;
     }
 
-    public static void registerFakeEntity(int entityId) {
-        fakeEntityIds.add(entityId);
+    public static void registerSyntheticEntity(int entityId) {
+        syntheticEntityIds.add(entityId);
     }
 
-    public static void unregisterFakeEntity(int entityId) {
-        fakeEntityIds.remove(entityId);
+    public static void unregisterSyntheticEntity(int entityId) {
+        syntheticEntityIds.remove(entityId);
     }
 
-    public static boolean isFakeEntity(int entityId) {
-        return fakeEntityIds.contains(entityId);
+    public static boolean isSyntheticEntity(int entityId) {
+        return syntheticEntityIds.contains(entityId);
     }
 
     public static final ConcurrentHashMap<UUID, Set<Integer>> glowingEntities = new ConcurrentHashMap<>();
