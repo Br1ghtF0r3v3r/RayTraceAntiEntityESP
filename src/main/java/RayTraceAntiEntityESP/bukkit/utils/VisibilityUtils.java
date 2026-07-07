@@ -46,7 +46,7 @@ public class VisibilityUtils {
         player.showEntity(plugin, entity);
 
         if (entity instanceof Player target) {
-            String teamName = TeamUtils.getTeamName(target);
+            String teamName = TeamUtils.getEntryTeamName(target);
             if (teamName != null) {
                 ClientboundSetPlayerTeamPacket teamsPacket =
                         ClientboundSetPlayerTeamPacket.createPlayerPacket(
