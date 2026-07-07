@@ -4,11 +4,14 @@ import RayTraceAntiEntityESP.bukkit.commands.CommandsHandler;
 import RayTraceAntiEntityESP.bukkit.compatibility.PacketEventsBridge;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager;
+import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
+import RayTraceAntiEntityESP.bukkit.manager.events.EventManager;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class Main extends JavaPlugin {
@@ -33,7 +36,10 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-
+        RayTraceEngine.killTask();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            EventManager.uninjectPlayer(player);
+        }
         getLogger().info("RayTraceEntityESP disabled.");
     }
 
