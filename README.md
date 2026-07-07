@@ -100,14 +100,14 @@ All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alia
 
 ## License
 
-> This project is licensed under the GPL-3.0 License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GPL-3.0 License**. See the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## Support
 
-> If you have any questions, issues, or suggestions, please open an issue on the [Issues](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/issues).
->
-> Or join the [Discord](https://discord.gg/x8KkZPXXHR) for support and discussion.
+If you have any questions, issues, or suggestions, please open an issue on [Issues](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/issues).
+
+Or join the [Discord](https://discord.gg/x8KkZPXXHR) for support and discussion.
 
 ---
