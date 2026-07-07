@@ -56,12 +56,18 @@ public class PacketManager {
         showBypass.remove(viewerUUID);
         hiddenBypass.remove(viewerUUID);
         destroyBypass.remove(viewerUUID);
+        glowingEntities.remove(viewerUUID);
+        belowNameObjective.remove(viewerUUID);
+        objectiveScores.remove(viewerUUID);
     }
 
     public static void clearAllBypasses() {
         showBypass.clear();
         hiddenBypass.clear();
         destroyBypass.clear();
+        glowingEntities.clear();
+        belowNameObjective.clear();
+        objectiveScores.clear();
     }
 
     private static volatile Set<UUID> bypassPlayers = new HashSet<>();

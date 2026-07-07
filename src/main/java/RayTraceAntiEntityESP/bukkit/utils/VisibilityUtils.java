@@ -1,9 +1,9 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import it.unimi.dsi.fastutil.ints.IntSets;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.scores.PlayerTeam;
@@ -13,17 +13,19 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getEntryTeamName;
 import static RayTraceAntiEntityESP.bukkit.utils.TeamUtils.getTeamVisibility;
 
 public class VisibilityUtils {
 
-    private static final Int2ObjectOpenHashMap<IntSet> hiddenByViewer = new Int2ObjectOpenHashMap<>();
-    private static final Int2ObjectOpenHashMap<IntSet> externallyHidden = new Int2ObjectOpenHashMap<>();
+    private static final ConcurrentHashMap<Integer, IntSet> hiddenByViewer = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Integer, IntSet> externallyHidden = new ConcurrentHashMap<>();
 
     private static IntSet getOrCreate(int viewerId) {
-        return hiddenByViewer.computeIfAbsent(viewerId, k -> new IntOpenHashSet());
+        return hiddenByViewer.computeIfAbsent(viewerId, k -> IntSets.synchronize(new IntOpenHashSet()));
     }
 
     public static void setHidden(Player player, Entity entity) {

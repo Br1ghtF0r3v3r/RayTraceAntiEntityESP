@@ -94,10 +94,8 @@ public class RayTraceEngine {
         float prevYaw, prevPitch;
         float accumYaw = 0f, accumPitch = 0f;
 
-        // Cached eye position (updated every tick)
         double eyeX, eyeY, eyeZ;
 
-        // Cached third-person positions (valid only when perspectiveValid)
         boolean perspectiveValid = false;
         double thirdBackX, thirdBackY, thirdBackZ;
         double thirdFrontX, thirdFrontY, thirdFrontZ;
@@ -202,11 +200,10 @@ public class RayTraceEngine {
         double tMZ = dirZ == 0 ? Double.MAX_VALUE : Math.abs((stepZ > 0 ? (posZ + 1 - oz) : (oz - posZ)) / dirZ);
         int endX = (int) Math.floor(ex2), endY = (int) Math.floor(ey2), endZ = (int) Math.floor(ez2);
         int maxSteps = (int) (distance + 2) * 3;
-        SectionCursor cursor = hitsBlockCursor;
         for (int s = 0; s < maxSteps; s++) {
             if (posY >= minY && posY <= maxY
-                    && cursor.resolve(level, posX, posY, posZ)
-                    && isOccluding(posX, posY, posZ, cursor.section)) return true;
+                    && hitsBlockCursor.resolve(level, posX, posY, posZ)
+                    && isOccluding(posX, posY, posZ, hitsBlockCursor.section)) return true;
             if (posX == endX && posY == endY && posZ == endZ) return false;
             if (tMX < tMY && tMX < tMZ) {
                 posX += stepX;
@@ -337,12 +334,11 @@ public class RayTraceEngine {
         double tMZ = dirZ == 0 ? Double.MAX_VALUE : Math.abs((stepZ > 0 ? (posZ + 1 - oz) : (oz - posZ)) / dirZ);
         int maxSteps = (int) (maxDistance + 2) * 3;
         double curT = 0;
-        SectionCursor cursor = thirdPersonCursor;
         for (int s = 0; s < maxSteps; s++) {
             if (curT >= maxDistance) break;
             if (posY >= minY && posY <= maxY
-                    && cursor.resolve(level, posX, posY, posZ)
-                    && isOccluding(posX, posY, posZ, cursor.section)) {
+                    && thirdPersonCursor.resolve(level, posX, posY, posZ)
+                    && isOccluding(posX, posY, posZ, thirdPersonCursor.section)) {
                 double t = Math.max(0, curT - 0.1);
                 thirdPersonScratch[0] = ox + dirX * t;
                 thirdPersonScratch[1] = oy + dirY * t;
@@ -394,12 +390,7 @@ public class RayTraceEngine {
 
     public static boolean isAntiEntity(Entity entity) {
         if (isExcluded(entity)) return false;
-        EntityType type = entity.getType();
-        if (antiEntityTypeCache.containsKey(type)) return antiEntityTypeCache.getBoolean(type);
-        boolean listed = Config.antiEntities.contains(type.name().toLowerCase());
-        boolean result = Config.isBlacklist != listed;
-        antiEntityTypeCache.put(type, result);
-        return result;
+        return isAntiEntityType(entity);
     }
 
     private static int fillEntityVertices(double distance, double checkingRange,

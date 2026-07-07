@@ -35,6 +35,7 @@ public class RemoveEntitiesPacketListener extends PacketListener {
 
             if (PacketManager.consumeDestroyBypass(viewer.getUniqueId(), entityId)) {
                 EntityIdentityCache.remove(entityId);
+                SetEntityDataPacketListener.clearEntity(entityId);
                 continue;
             }
 
@@ -43,7 +44,15 @@ public class RemoveEntitiesPacketListener extends PacketListener {
             if (EntityIdentityCache.isPlayer(entityId)) {
                 Player target = entityUUID != null ? Bukkit.getPlayer(entityUUID) : null;
                 if (target == null || !target.isOnline()) {
+                    if (VisibilityUtils.isHidden(viewerId, entityId)) {
+                        VisibilityUtils.setNotHiddenSilently(viewerId, entityId);
+                        if (Config.isDisplayNameEnabled && entityUUID != null) {
+                            if (outbox == null) outbox = new ArrayList<>();
+                            NametagCloneRenderer.removeDisplay(viewer.getUniqueId(), entityUUID, outbox);
+                        }
+                    }
                     EntityIdentityCache.remove(entityId);
+                    SetEntityDataPacketListener.clearEntity(entityId);
                     continue;
                 }
             }
@@ -57,6 +66,7 @@ public class RemoveEntitiesPacketListener extends PacketListener {
             }
             VisibilityUtils.markExternallyHidden(viewerId, entityId);
             EntityIdentityCache.remove(entityId);
+            SetEntityDataPacketListener.clearEntity(entityId);
         }
 
         if (outbox != null && !outbox.isEmpty()) {
