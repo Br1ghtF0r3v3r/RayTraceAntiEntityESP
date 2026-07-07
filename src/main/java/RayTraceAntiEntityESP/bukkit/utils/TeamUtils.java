@@ -9,21 +9,23 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class TeamUtils {
 
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
 
-    // ---- Global team state, derived from packets + Bukkit scoreboard fallback ----
     public static final ConcurrentHashMap<String, NamedTextColor> teamColors = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamPrefixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamSuffixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, String> entryToTeam = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Team.OptionStatus> teamVisibilities = new ConcurrentHashMap<>();
 
-    // ---- Per-viewer overrides (e.g. PacketEvents bridge) ----
     private static final class ViewerTeamState {
         final ConcurrentHashMap<String, String> entryToTeam = new ConcurrentHashMap<>();
         final ConcurrentHashMap<String, NamedTextColor> teamColors = new ConcurrentHashMap<>();
@@ -83,50 +85,39 @@ public class TeamUtils {
             if (bukkitTeam == null) return;
             String teamName = bukkitTeam.getName();
             entryToTeam.put(entry, teamName);
+
             if (!teamColors.containsKey(teamName)) {
-                try {
-                    TextColor textColor = bukkitTeam.color();
-                    if (textColor instanceof NamedTextColor namedColor) {
-                        teamColors.put(teamName, namedColor);
-                    }
-                } catch (Exception ignored) {
-                }
+                TextColor color = safeGet(bukkitTeam::color);
+                if (color instanceof NamedTextColor named) teamColors.put(teamName, named);
             }
             if (isEmptyComponent(teamPrefixes.get(teamName))) {
-                try {
-                    Component prefix = bukkitTeam.prefix();
-                    if (!isEmptyComponent(prefix)) {
-                        teamPrefixes.put(teamName, prefix);
-                    }
-                } catch (Exception ignored) {
-                }
+                Component prefix = safeGet(bukkitTeam::prefix);
+                if (!isEmptyComponent(prefix)) teamPrefixes.put(teamName, prefix);
             }
             if (isEmptyComponent(teamSuffixes.get(teamName))) {
-                try {
-                    Component suffix = bukkitTeam.suffix();
-                    if (!isEmptyComponent(suffix)) {
-                        teamSuffixes.put(teamName, suffix);
-                    }
-                } catch (Exception ignored) {
-                }
+                Component suffix = safeGet(bukkitTeam::suffix);
+                if (!isEmptyComponent(suffix)) teamSuffixes.put(teamName, suffix);
             }
         } catch (Exception ignored) {
         }
     }
 
-    public static Team.OptionStatus getTeamVisibility(Entity entity) {
-        String teamName = entryToTeam.get(entity.getScoreboardEntryName());
-        if (teamName == null) {
-            ensureTeamInfoFromBukkit(entity.getScoreboardEntryName());
-            teamName = entryToTeam.get(entity.getScoreboardEntryName());
+    private static <T> T safeGet(Callable<T> supplier) {
+        try {
+            return supplier.call();
+        } catch (Exception e) {
+            return null;
         }
+    }
+
+    public static Team.OptionStatus getTeamVisibility(Entity entity) {
+        String teamName = getEntryTeamName(entity);
         if (teamName == null) return Team.OptionStatus.ALWAYS;
         Team.OptionStatus status = teamVisibilities.get(teamName);
         return status != null ? status : Team.OptionStatus.ALWAYS;
     }
 
-    public static String getEntryTeamName(Entity entity) {
-        String entry = entity.getScoreboardEntryName();
+    public static String getEntryTeamName(String entry) {
         String teamName = entryToTeam.get(entry);
         if (teamName == null) {
             ensureTeamInfoFromBukkit(entry);
@@ -135,72 +126,45 @@ public class TeamUtils {
         return teamName;
     }
 
+    public static String getEntryTeamName(Entity entity) {
+        return getEntryTeamName(entity.getScoreboardEntryName());
+    }
+
     public static NamedTextColor getTeamColor(Player viewer, Entity entity) {
-        String entry = entity.getScoreboardEntryName();
-        UUID viewerId = viewer.getUniqueId();
-
-        ViewerTeamState state = viewerOverrides.get(viewerId);
-        if (state != null) {
-            String team = state.entryToTeam.get(entry);
-            if (team != null) {
-                NamedTextColor color = state.teamColors.get(team);
-                if (color != null) return color;
-            }
-        }
-
-        ensureTeamInfoFromBukkit(entry);
-        String teamName = entryToTeam.get(entry);
-        if (teamName != null) {
-            return teamColors.get(teamName);
-        }
-        return null;
+        return resolveTeamValue(viewer, entity, s -> s.teamColors, teamColors, Objects::nonNull);
     }
 
     public static Component getTeamPrefix(Player viewer, Entity entity) {
-        String entry = entity.getScoreboardEntryName();
-        UUID viewerId = viewer.getUniqueId();
-
-        ViewerTeamState state = viewerOverrides.get(viewerId);
-        if (state != null) {
-            String team = state.entryToTeam.get(entry);
-            if (team != null) {
-                Component prefix = state.teamPrefixes.get(team);
-                if (!isEmptyComponent(prefix)) return prefix;
-            }
-        }
-
-        ensureTeamInfoFromBukkit(entry);
-        String teamName = entryToTeam.get(entry);
-        if (teamName != null) {
-            Component prefix = teamPrefixes.get(teamName);
-            if (!isEmptyComponent(prefix)) return prefix;
-        }
-        return null;
+        return resolveTeamValue(viewer, entity, s -> s.teamPrefixes, teamPrefixes, c -> !isEmptyComponent(c));
     }
 
     public static Component getTeamSuffix(Player viewer, Entity entity) {
-        String entry = entity.getScoreboardEntryName();
-        UUID viewerId = viewer.getUniqueId();
+        return resolveTeamValue(viewer, entity, s -> s.teamSuffixes, teamSuffixes, c -> !isEmptyComponent(c));
+    }
 
-        ViewerTeamState state = viewerOverrides.get(viewerId);
+    private static <T> T resolveTeamValue(
+            Player viewer,
+            Entity entity,
+            Function<ViewerTeamState, ConcurrentHashMap<String, T>> viewerMap,
+            ConcurrentHashMap<String, T> globalMap,
+            Predicate<T> isUsable
+    ) {
+        String entry = entity.getScoreboardEntryName();
+
+        ViewerTeamState state = viewerOverrides.get(viewer.getUniqueId());
         if (state != null) {
             String team = state.entryToTeam.get(entry);
             if (team != null) {
-                Component suffix = state.teamSuffixes.get(team);
-                if (!isEmptyComponent(suffix)) return suffix;
+                T value = viewerMap.apply(state).get(team);
+                if (isUsable.test(value)) return value;
             }
         }
 
-        ensureTeamInfoFromBukkit(entry);
-        String teamName = entryToTeam.get(entry);
+        String teamName = getEntryTeamName(entry);
         if (teamName != null) {
-            Component suffix = teamSuffixes.get(teamName);
-            if (!isEmptyComponent(suffix)) return suffix;
+            T value = globalMap.get(teamName);
+            if (isUsable.test(value)) return value;
         }
         return null;
-    }
-
-    public static String getTeamName(Entity entity) {
-        return getEntryTeamName(entity);
     }
 }
