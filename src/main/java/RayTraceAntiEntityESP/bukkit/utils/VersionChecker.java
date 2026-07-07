@@ -13,10 +13,8 @@ import java.net.URI;
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 
 public class VersionChecker {
-
     private static final String GITHUB_REPO = "Br1ghtF0r3v3r/RayTraceAntiEntityESP";
     private static final String API_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases";
-
     private static volatile String currentVersion = null;
     private static volatile String latestVersion = null;
     private static volatile boolean updateAvailable = false;
@@ -30,20 +28,15 @@ public class VersionChecker {
                 conn.setRequestProperty("User-Agent", "RayTraceAntiEntityESP-UpdateChecker");
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
-
                 if (conn.getResponseCode() != 200) return;
-
                 JsonArray releases = JsonParser.parseReader(
                         new InputStreamReader(conn.getInputStream())
                 ).getAsJsonArray();
-
                 if (releases.isEmpty()) return;
-
                 latestVersion = releases.get(0).getAsJsonObject()
                         .get("tag_name").getAsString()
                         .replace("v", "").trim();
                 currentVersion = plugin.getPluginMeta().getVersion().trim();
-
                 if (!currentVersion.equals(latestVersion)) {
                     updateAvailable = true;
                     plugin.getLogger().warning("=================================");

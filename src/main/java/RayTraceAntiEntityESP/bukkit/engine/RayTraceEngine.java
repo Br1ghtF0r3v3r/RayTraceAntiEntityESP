@@ -7,8 +7,10 @@ import RayTraceAntiEntityESP.bukkit.listener.packet.AddEntityPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -20,7 +22,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -48,16 +49,27 @@ public class RayTraceEngine {
     private static int blockCacheTtlTick = 0;
     private static final int BLOCK_CACHE_TTL_TICKS = 200;
 
+    private static int globalTick = 0;
+    private static int bucketEvictSweepTick = 0;
+    private static final int BUCKET_EVICT_SWEEP_INTERVAL_TICKS = 200;
+    private static final int BUCKET_IDLE_EVICT_TICKS = 6000;
+
     private static int staggerTick = 0;
 
     private static final double VIEWER_POS_EPSILON_SQ = 0.01 * 0.01;
     private static final double ENTITY_POS_EPSILON_SQ = 0.01 * 0.01;
     private static final float ROT_EPSILON = 0.5f;
     private static final int AABB_REFRESH_TICKS = 4;
-    private static final double AABB_REFRESH_MOVE_SQ = 16.0;
-    private static final double AABB_QUERY_MARGIN = 4.0;
+    private static final double AABB_QUERY_MARGIN = 4;
+
+    private static final double BUCKET_SIZE_XZ = 64;
+
+    private static final double BELOW_NAME_RANGE_BLOCKS = 10;
 
     private static final Int2ObjectOpenHashMap<ViewerCache> viewerCaches = new Int2ObjectOpenHashMap<>();
+
+    private static final Int2ObjectOpenHashMap<IntSet> distanceOverrideActive = new Int2ObjectOpenHashMap<>();
+    private static final Int2ObjectOpenHashMap<IntSet> belowNameRangeActive = new Int2ObjectOpenHashMap<>();
 
     private static Player[] viewersBuf = new Player[0];
     private static net.minecraft.world.entity.Entity[][] snapshotsBuf = new net.minecraft.world.entity.Entity[0][];
@@ -82,11 +94,28 @@ public class RayTraceEngine {
     private static class WorldEntitySnapshot {
         net.minecraft.world.entity.Entity[] entities = new net.minecraft.world.entity.Entity[128];
         int entityCount = 0;
-        double centerX, centerY, centerZ;
         int age;
+        int lastAccessTick;
     }
 
-    private static final IdentityHashMap<ServerLevel, WorldEntitySnapshot> worldEntityCache = new IdentityHashMap<>();
+    private static final IdentityHashMap<ServerLevel, Long2ObjectOpenHashMap<WorldEntitySnapshot>> worldEntityCache =
+            new IdentityHashMap<>();
+
+    private static int bucketCoord(double v) {
+        return (int) Math.floor(v / BUCKET_SIZE_XZ);
+    }
+
+    private static long bucketKey(int bx, int bz) {
+        return (((long) bx) << 32) | (bz & 0xFFFFFFFFL);
+    }
+
+    private static void evictIdleBuckets() {
+        for (Long2ObjectOpenHashMap<WorldEntitySnapshot> buckets : worldEntityCache.values()) {
+            if (buckets.isEmpty()) continue;
+            buckets.long2ObjectEntrySet().removeIf(entry ->
+                    (globalTick - entry.getValue().lastAccessTick) > BUCKET_IDLE_EVICT_TICKS);
+        }
+    }
 
     private static class ViewerCache {
         boolean initialized = false;
@@ -120,6 +149,8 @@ public class RayTraceEngine {
 
     public static void clearViewerCache(int entityId) {
         viewerCaches.remove(entityId);
+        distanceOverrideActive.remove(entityId);
+        belowNameRangeActive.remove(entityId);
     }
 
     public static void clearAntiEntityCache() {
@@ -135,6 +166,8 @@ public class RayTraceEngine {
         worldEntityCache.clear();
         blockCache.clear();
         antiEntityTypeCache.clear();
+        distanceOverrideActive.clear();
+        belowNameRangeActive.clear();
     }
 
     private static long blockKey(int x, int y, int z) {
@@ -227,6 +260,29 @@ public class RayTraceEngine {
         return s != null && s.contains(entity.getEntityId());
     }
 
+    private static boolean applyProximityDebounce(Int2ObjectOpenHashMap<IntSet> stateMap, int viewerId, int entityId, double distSq, double thresholdDist) {
+        IntSet set = stateMap.get(viewerId);
+
+        boolean nowActive = distSq < thresholdDist * thresholdDist;
+
+        if (nowActive) {
+            stateMap.computeIfAbsent(viewerId, k -> new IntOpenHashSet()).add(entityId);
+        } else if (set != null) {
+            set.remove(entityId);
+        }
+        return nowActive;
+    }
+
+    private static boolean isWithinDistanceOverride(int viewerId, int entityId, double distSq) {
+        if (Config.checkingDistanceOverride <= 0) return false;
+        return applyProximityDebounce(distanceOverrideActive, viewerId, entityId, distSq, Config.checkingDistanceOverride);
+    }
+
+    private static boolean isWithinBelowNameRange(Player viewer, Entity entity, int viewerId, int entityId, double distSq) {
+        if (!hasBelowNameScore(viewer, entity)) return false;
+        return applyProximityDebounce(belowNameRangeActive, viewerId, entityId, distSq, BELOW_NAME_RANGE_BLOCKS);
+    }
+
     private static boolean isEntityInSight(
             Player viewer,
             net.minecraft.world.entity.Entity nmsEntity, Entity entity,
@@ -242,10 +298,15 @@ public class RayTraceEngine {
         double horizDistSq = dx * dx + dz * dz, distSq = horizDistSq + dy * dy;
         double distance = Math.sqrt(distSq);
 
+        int viewerId = viewer.getEntityId();
+        int entityId = entity.getEntityId();
+        boolean withinDistanceOverride = isWithinDistanceOverride(viewerId, entityId, distSq);
+        boolean withinBelowNameRange = isWithinBelowNameRange(viewer, entity, viewerId, entityId, distSq);
+
         if (!isAntiEntity(entity) || isEntityGlowing(viewer, entity)
                 || horizDistSq > range * range
-                || (Config.checkingDistanceOverride > 0 && distSq < Config.checkingDistanceOverride * Config.checkingDistanceOverride)
-                || (hasBelowNameScore(viewer, entity) && distSq <= 100)) {
+                || withinDistanceOverride
+                || withinBelowNameRange) {
             if (Config.isDebugEnabled) DebugVertexRenderer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
@@ -531,6 +592,8 @@ public class RayTraceEngine {
         AddEntityPacketListener.pendingHides.clear();
         viewerCaches.clear();
         worldEntityCache.clear();
+        distanceOverrideActive.clear();
+        belowNameRangeActive.clear();
     }
 
     public static void startTask() {
@@ -541,6 +604,12 @@ public class RayTraceEngine {
             if (++blockCacheTtlTick > BLOCK_CACHE_TTL_TICKS) {
                 blockCache.clear();
                 blockCacheTtlTick = 0;
+            }
+
+            globalTick++;
+            if (++bucketEvictSweepTick > BUCKET_EVICT_SWEEP_INTERVAL_TICKS) {
+                evictIdleBuckets();
+                bucketEvictSweepTick = 0;
             }
 
             staggerTick++;
@@ -584,38 +653,38 @@ public class RayTraceEngine {
 
                 double r = Config.getMaxTrackingRange(), rangeSq = r * r;
 
-                WorldEntitySnapshot worldSnap = worldEntityCache.get(nmsWorld);
-                boolean refreshWorld;
-                if (worldSnap == null) {
-                    refreshWorld = true;
-                } else {
-                    double ddx = vx - worldSnap.centerX, ddy = vy - worldSnap.centerY, ddz = vz - worldSnap.centerZ;
-                    refreshWorld = worldSnap.age >= AABB_REFRESH_TICKS ||
-                            (ddx * ddx + ddy * ddy + ddz * ddz) > AABB_REFRESH_MOVE_SQ;
-                }
+                int bx = bucketCoord(vx), bz = bucketCoord(vz);
+                long bucket = bucketKey(bx, bz);
+                Long2ObjectOpenHashMap<WorldEntitySnapshot> worldBuckets =
+                        worldEntityCache.computeIfAbsent(nmsWorld, k -> new Long2ObjectOpenHashMap<>());
+                WorldEntitySnapshot worldSnap = worldBuckets.get(bucket);
+                boolean refreshWorld = worldSnap == null || worldSnap.age >= AABB_REFRESH_TICKS;
+
                 if (refreshWorld) {
                     if (worldSnap == null) {
                         worldSnap = new WorldEntitySnapshot();
-                        worldEntityCache.put(nmsWorld, worldSnap);
+                        worldBuckets.put(bucket, worldSnap);
                     }
-                    final WorldEntitySnapshot snap = worldSnap;
+                    WorldEntitySnapshot snap = worldSnap;
                     snap.entityCount = 0;
-                    double queryDiameter = (r + AABB_QUERY_MARGIN) * 2;
-                    nmsWorld.getEntities().get(AABB.ofSize(new Vec3(vx, vy, vz), queryDiameter, queryDiameter, queryDiameter), e -> {
-                        if (e.getId() == vid) return;
+
+                    double pad = r + AABB_QUERY_MARGIN;
+                    double cellMinX = bx * BUCKET_SIZE_XZ - pad, cellMaxX = (bx + 1) * BUCKET_SIZE_XZ + pad;
+                    double cellMinZ = bz * BUCKET_SIZE_XZ - pad, cellMaxZ = (bz + 1) * BUCKET_SIZE_XZ + pad;
+                    int worldMinY = viewer.getWorld().getMinHeight(), worldMaxY = viewer.getWorld().getMaxHeight();
+
+                    nmsWorld.getEntities().get(new AABB(cellMinX, worldMinY, cellMinZ, cellMaxX, worldMaxY, cellMaxZ), e -> {
                         Entity bukkit = e.getBukkitEntity();
                         if (!isAntiEntityType(bukkit)) return;
                         if (snap.entityCount >= snap.entities.length)
                             snap.entities = Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
                         snap.entities[snap.entityCount++] = e;
                     });
-                    snap.centerX = vx;
-                    snap.centerY = vy;
-                    snap.centerZ = vz;
                     snap.age = 0;
                 } else {
                     worldSnap.age++;
                 }
+                worldSnap.lastAccessTick = globalTick;
 
                 int aabbCount = worldSnap.entityCount;
                 if (aabbCount == 0) continue;
