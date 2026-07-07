@@ -161,6 +161,16 @@ public class EventManager {
         });
     }
 
+    public static void uninjectPlayer(Player player) {
+        Channel channel = getChannel(player);
+        if (channel.pipeline().get(HANDLER_NAME) == null) return;
+        channel.eventLoop().execute(() -> {
+            if (channel.pipeline().get(HANDLER_NAME) != null) {
+                channel.pipeline().remove(HANDLER_NAME);
+            }
+        });
+    }
+
     private static Channel getChannel(Player player) {
         ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
         return nmsPlayer.connection.connection.channel;
