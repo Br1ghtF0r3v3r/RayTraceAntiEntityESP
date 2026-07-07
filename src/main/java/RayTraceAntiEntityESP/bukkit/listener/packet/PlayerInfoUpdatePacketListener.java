@@ -105,7 +105,10 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         fakePlayerHookResolved = true;
         try {
             Plugin plugin = Bukkit.getPluginManager().getPlugin("FakePlayerPlugin");
-            if (plugin == null || !plugin.isEnabled()) return;
+            if (plugin == null || !plugin.isEnabled()) {
+                fakePlayerHookResolved = false;
+                return;
+            }
 
             Class<?> pluginClass = Class.forName("me.bill.fakePlayerPlugin.FakePlayerPlugin");
             Class<?> managerClass = Class.forName("me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager");

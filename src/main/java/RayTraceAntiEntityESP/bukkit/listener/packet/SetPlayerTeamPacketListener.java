@@ -42,6 +42,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
             Component prefix = StringFormat.LEGACY_SERIALIZER.deserialize(params.getPlayerPrefix().getString());
             Component suffix = StringFormat.LEGACY_SERIALIZER.deserialize(params.getPlayerSuffix().getString());
             if (color != null) TeamUtils.teamColors.put(teamName, color);
+            else TeamUtils.teamColors.remove(teamName);
             TeamUtils.teamPrefixes.put(teamName, prefix);
             TeamUtils.teamSuffixes.put(teamName, suffix);
             TeamUtils.teamVisibilities.put(teamName, mapVisibility(params.getNametagVisibility()));

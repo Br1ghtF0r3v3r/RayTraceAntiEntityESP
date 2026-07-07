@@ -96,12 +96,7 @@ public class NametagCloneRenderer {
             return;
         }
 
-        ConcurrentHashMap<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
-        if (inner == null) {
-            inner = new ConcurrentHashMap<>();
-            ConcurrentHashMap<UUID, NametagCloneUtils> existingInner = clones.putIfAbsent(viewerUUID, inner);
-            if (existingInner != null) inner = existingInner;
-        }
+        ConcurrentHashMap<UUID, NametagCloneUtils> inner = clones.computeIfAbsent(viewerUUID, k -> new ConcurrentHashMap<>());
 
         NametagCloneUtils existing = inner.get(entityUUID);
         if (existing != null) {
