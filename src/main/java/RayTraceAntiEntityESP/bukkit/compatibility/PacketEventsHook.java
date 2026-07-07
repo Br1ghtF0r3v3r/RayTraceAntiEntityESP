@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.compatibility;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
@@ -21,6 +22,7 @@ import static RayTraceAntiEntityESP.bukkit.Main.plugin;
 final class PacketEventsHook {
 
     private static final int GLOW_BIT = 0x40;
+    private static final int INVISIBLE_BIT = 0x20;
     private static boolean installed = false;
 
     private PacketEventsHook() {
@@ -32,7 +34,7 @@ final class PacketEventsHook {
 
         PacketEvents.getAPI().getEventManager().registerListener(new BridgeListener());
         installed = true;
-        plugin.getLogger().info("PacketEvents detected - enabled team-color/glow compatibility bridge.");
+        plugin.getLogger().info("PacketEvents detected - enabled team-color/glow/invisibility compatibility bridge.");
     }
 
     private static final class BridgeListener extends PacketListenerAbstract {
@@ -113,6 +115,8 @@ final class PacketEventsHook {
                     if (!(entityData.getValue() instanceof Byte flags)) continue;
 
                     boolean glowing = (flags & GLOW_BIT) != 0;
+                    boolean invisible = (flags & INVISIBLE_BIT) != 0;
+
                     Set<Integer> glowingForViewer = PacketManager.glowingEntities
                             .computeIfAbsent(viewer, k -> ConcurrentHashMap.newKeySet());
 
@@ -121,6 +125,8 @@ final class PacketEventsHook {
                     } else {
                         glowingForViewer.remove(entityId);
                     }
+
+                    SetEntityDataPacketListener.invisibleCache.put(entityId, invisible);
                     break;
                 }
             } catch (Throwable ignored) {

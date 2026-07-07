@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class PacketManager {
 
     private static final ConcurrentHashMap<UUID, Set<UUID>> showBypass = new ConcurrentHashMap<>();
-
     private static final ConcurrentHashMap<UUID, Set<UUID>> hiddenBypass = new ConcurrentHashMap<>();
 
     public static void addShowBypass(UUID viewerUUID, UUID entityUUID) {
