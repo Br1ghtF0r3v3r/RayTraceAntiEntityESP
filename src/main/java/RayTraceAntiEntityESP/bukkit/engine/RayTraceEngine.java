@@ -56,9 +56,8 @@ public class RayTraceEngine {
 
     private static int staggerTick = 0;
 
-    private static final double VIEWER_POS_EPSILON_SQ = 0.01 * 0.01;
-    private static final double ENTITY_POS_EPSILON_SQ = 0.01 * 0.01;
-    private static final float ROT_EPSILON = 0.5f;
+    private static final double POS_EPSILON_SQ = 0.01 * 0.01;
+    private static final float ROT_EPSILON = 1;
     private static final int AABB_REFRESH_TICKS = 4;
     private static final double AABB_QUERY_MARGIN = 4;
 
@@ -728,7 +727,7 @@ public class RayTraceEngine {
                     double ddx = vx - cache.prevX, ddy = vy - cache.prevY, ddz = vz - cache.prevZ;
                     cache.accumYaw += Math.abs(yaw - cache.prevYaw);
                     cache.accumPitch += Math.abs(pitch - cache.prevPitch);
-                    moved = (ddx * ddx + ddy * ddy + ddz * ddz) > VIEWER_POS_EPSILON_SQ
+                    moved = (ddx * ddx + ddy * ddy + ddz * ddz) > POS_EPSILON_SQ
                             || cache.accumYaw > ROT_EPSILON || cache.accumPitch > ROT_EPSILON;
                 }
                 if (moved) {
@@ -821,7 +820,7 @@ public class RayTraceEngine {
                     boolean entityMoved = false;
                     if (idx >= 0 && !forceCheck) {
                         double dxe = ex - cache.cachedX[idx], dye = ey - cache.cachedY[idx], dze = ez - cache.cachedZ[idx];
-                        entityMoved = (dxe * dxe + dye * dye + dze * dze) > ENTITY_POS_EPSILON_SQ;
+                        entityMoved = (dxe * dxe + dye * dye + dze * dze) > POS_EPSILON_SQ;
                     }
 
                     if (forceCheck || entityMoved || (eid % groups) == currentGroup) {

@@ -28,7 +28,7 @@ public class NametagCloneRenderer {
 
     private static final ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<UUID, double[]> velocityTrackers = new ConcurrentHashMap<>();
-    private static final double CLONE_MOVE_EPSILON_SQ = 0.001 * 0.001;
+    private static final double CLONE_MOVE_EPSILON_SQ = 0.01 * 0.01;
 
     private static double[] extrapolatedPos(Entity entity) {
         double ex = entity.getX(), ey = entity.getY(), ez = entity.getZ();
