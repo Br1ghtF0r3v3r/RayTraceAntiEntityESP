@@ -9,24 +9,15 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.UUID;
 
 public class PlayerInfoUpdatePacketListener extends PacketListener {
 
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
-
-    private static volatile boolean fakePlayerHookResolved = false;
-    private static Method fakePlayerPluginGetInstance;
-    private static Method getFakePlayerManager;
-    private static Method getByUuid;
 
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
@@ -62,7 +53,6 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
 
     private static net.minecraft.network.chat.Component buildForcedDisplayName(ClientboundPlayerInfoUpdatePacket.Entry entry) {
         if (entry.profile() == null) return null;
-        if (!isFakePlayerBot(entry.profileId())) return null;
 
         String profileName = entry.profile().name();
         if (profileName == null || profileName.isEmpty()) return null;
@@ -84,43 +74,6 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         if (hasSuffix) name = name.append(suffix);
 
         return PaperAdventure.asVanilla(name);
-    }
-
-    private static boolean isFakePlayerBot(UUID profileId) {
-        ensureFakePlayerHook();
-        if (getByUuid == null) return false;
-        try {
-            Object pluginInstance = fakePlayerPluginGetInstance.invoke(null);
-            if (pluginInstance == null) return false;
-            Object manager = getFakePlayerManager.invoke(pluginInstance);
-            if (manager == null) return false;
-            return getByUuid.invoke(manager, profileId) != null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private static synchronized void ensureFakePlayerHook() {
-        if (fakePlayerHookResolved) return;
-        fakePlayerHookResolved = true;
-        try {
-            Plugin plugin = Bukkit.getPluginManager().getPlugin("FakePlayerPlugin");
-            if (plugin == null || !plugin.isEnabled()) {
-                fakePlayerHookResolved = false;
-                return;
-            }
-
-            Class<?> pluginClass = Class.forName("me.bill.fakePlayerPlugin.FakePlayerPlugin");
-            Class<?> managerClass = Class.forName("me.bill.fakePlayerPlugin.fakeplayer.FakePlayerManager");
-
-            fakePlayerPluginGetInstance = pluginClass.getMethod("getInstance");
-            getFakePlayerManager = pluginClass.getMethod("getFakePlayerManager");
-            getByUuid = managerClass.getMethod("getByUuid", UUID.class);
-        } catch (Throwable t) {
-            fakePlayerPluginGetInstance = null;
-            getFakePlayerManager = null;
-            getByUuid = null;
-        }
     }
 
     private static boolean isPlainOrUnset(net.minecraft.network.chat.Component displayName, String profileName) {

@@ -75,7 +75,7 @@ public class AddEntityPacketListener extends PacketListener {
 
         int entityId = packet.getId();
 
-        if (PacketManager.isFakeEntity(entityId)) {
+        if (PacketManager.isSyntheticEntity(entityId)) {
             ctx.write(msg, promise);
             return true;
         }

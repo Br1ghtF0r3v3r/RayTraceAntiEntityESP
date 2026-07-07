@@ -36,7 +36,7 @@ public class DebugVertexUtils {
 
     public DebugVertexUtils(Player viewer) {
         this.viewer = viewer;
-        this.entityId = PacketManager.allocateFakeEntityId();
+        this.entityId = PacketManager.allocateSyntheticEntityId();
         this.entityUuid = UUID.randomUUID();
     }
 
@@ -123,7 +123,7 @@ public class DebugVertexUtils {
         if (!spawned) return;
         send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
-        PacketManager.unregisterFakeEntity(entityId);
+        PacketManager.unregisterSyntheticEntity(entityId);
     }
 
     private List<SynchedEntityData.DataValue<?>> buildMetadata(BlockState blockState) {

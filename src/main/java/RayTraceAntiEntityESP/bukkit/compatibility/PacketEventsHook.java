@@ -104,7 +104,7 @@ final class PacketEventsHook {
             }
 
             int entityId = wrapper.getEntityId();
-            if (PacketManager.isFakeEntity(entityId)) return;
+            if (PacketManager.isSyntheticEntity(entityId)) return;
 
             try {
                 List<EntityData<?>> data = wrapper.getEntityMetadata();
