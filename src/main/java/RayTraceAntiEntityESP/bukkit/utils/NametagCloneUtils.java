@@ -37,24 +37,10 @@ public class NametagCloneUtils {
 
     private List<Packet<? super ClientGamePacketListener>> outbox;
 
-    public double getX() {
-        return x;
-    }
-
-    public double getY() {
-        return y;
-    }
-
-    public double getZ() {
-        return z;
-    }
-
-    public boolean isSpawned() {
-        return spawned;
-    }
-
-    public void setOutbox(List<Packet<? super ClientGamePacketListener>> outbox) {
-        this.outbox = outbox;
+    public NametagCloneUtils(Player viewer) {
+        this.viewer = viewer;
+        this.entityId = PacketManager.allocateFakeEntityId();
+        this.entityUuid = UUID.randomUUID();
     }
 
     @SuppressWarnings("unchecked")
@@ -78,22 +64,30 @@ public class NametagCloneUtils {
         ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(list));
     }
 
-    private List<SynchedEntityData.DataValue<?>> buildMetadata() {
-        if (customName == null) return CACHED_METADATA_NO_NAME;
-        if (cachedNamedMetadata == null) cachedNamedMetadata = new ArrayList<>(5);
-        else cachedNamedMetadata.clear();
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(PaperAdventure.asVanilla(customName))));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
-        return cachedNamedMetadata;
+    public double getX() {
+        return x;
     }
 
-    public NametagCloneUtils(Player viewer) {
-        this.viewer = viewer;
-        this.entityId = PacketManager.allocateFakeEntityId();
-        this.entityUuid = UUID.randomUUID();
+    public double getY() {
+        return y;
+    }
+
+    public double getZ() {
+        return z;
+    }
+
+    public boolean isSpawned() {
+        return spawned;
+    }
+
+    public void setOutbox(List<Packet<? super ClientGamePacketListener>> outbox) {
+        this.outbox = outbox;
+    }
+
+    public void setPos(double x, double y, double z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 
     public void setName(Component name) {
@@ -101,12 +95,6 @@ public class NametagCloneUtils {
         this.customName = name;
         this.cachedNamedMetadata = null;
         if (spawned) send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
-    }
-
-    public void setPos(double x, double y, double z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
     }
 
     public void spawn() {
@@ -146,5 +134,17 @@ public class NametagCloneUtils {
         send(new ClientboundRemoveEntitiesPacket(entityId));
         spawned = false;
         PacketManager.unregisterFakeEntity(entityId);
+    }
+
+    private List<SynchedEntityData.DataValue<?>> buildMetadata() {
+        if (customName == null) return CACHED_METADATA_NO_NAME;
+        if (cachedNamedMetadata == null) cachedNamedMetadata = new ArrayList<>(5);
+        else cachedNamedMetadata.clear();
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(PaperAdventure.asVanilla(customName))));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
+        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
+        return cachedNamedMetadata;
     }
 }

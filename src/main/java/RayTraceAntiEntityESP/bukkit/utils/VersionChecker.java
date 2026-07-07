@@ -17,9 +17,9 @@ public class VersionChecker {
     private static final String GITHUB_REPO = "Br1ghtF0r3v3r/RayTraceAntiEntityESP";
     private static final String API_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases";
 
-    private static String currentVersion = null;
-    private static String latestVersion = null;
-    private static boolean updateAvailable = false;
+    private static volatile String currentVersion = null;
+    private static volatile String latestVersion = null;
+    private static volatile boolean updateAvailable = false;
 
     public static void check() {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -27,6 +27,7 @@ public class VersionChecker {
                 HttpURLConnection conn = (HttpURLConnection) new URI(API_URL).toURL().openConnection();
                 conn.setRequestMethod("GET");
                 conn.setRequestProperty("Accept", "application/vnd.github+json");
+                conn.setRequestProperty("User-Agent", "RayTraceAntiEntityESP-UpdateChecker");
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
 

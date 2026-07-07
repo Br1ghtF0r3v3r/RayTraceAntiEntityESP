@@ -24,7 +24,7 @@ public class DebugVertexRenderer {
             removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return;
         }
-        ConcurrentHashMap<UUID, List<DebugVertexUtils>> inner = (ConcurrentHashMap<UUID, List<DebugVertexUtils>>) markers.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
+        Map<UUID, List<DebugVertexUtils>> inner = markers.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
         List<DebugVertexUtils> existing = inner.get(entity.getUniqueId());
         if (existing != null && existing.size() == vertices.size()) {
             for (int i = 0; i < vertices.size(); i++) {
@@ -88,7 +88,8 @@ public class DebugVertexRenderer {
         for (DebugVertexUtils marker : list) {
             try {
                 marker.despawn();
-            } catch (Throwable ignored) {}
+            } catch (Throwable ignored) {
+            }
         }
     }
 }

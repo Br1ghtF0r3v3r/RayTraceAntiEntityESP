@@ -25,7 +25,6 @@ public class Config {
 
     public static final int CONFIG_VERSION = 3;
 
-    // ---- checking.* ----
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
     public static double checkingDistanceOverride;
@@ -33,19 +32,15 @@ public class Config {
     public static int checkingVerticesLayers;
     public static int checkingStaggerGroups;
 
-    // ---- perspective_checking.* ----
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
 
-    // ---- display_name.* ----
     public static boolean isDisplayNameEnabled;
     public static double displayNameOffSetY;
     public static double displayNameLookaheadTicks;
 
-    // ---- debug.* ----
     public static boolean isDebugEnabled;
 
-    // ---- anti_entities / anti_mode ----
     public static Set<String> antiEntities;
     public static String antiMode;
     public static boolean isBlacklist;
@@ -140,8 +135,6 @@ public class Config {
             RayTraceEngine.killTask();
         }
     }
-
-    // ---- Spigot entity-tracking-range mirror (used to size AABB queries / vertex sampling) ----
 
     public static YamlConfiguration spigotConfig;
     public static volatile double maxTrackingRange = 144.0;
