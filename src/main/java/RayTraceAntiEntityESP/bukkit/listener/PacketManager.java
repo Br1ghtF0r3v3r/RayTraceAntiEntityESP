@@ -4,9 +4,7 @@ import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.packet.*;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import net.minecraft.world.scores.Team;
 import org.bukkit.entity.Player;
-import org.bukkit.scoreboard.Team.OptionStatus;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,15 +114,7 @@ public class PacketManager {
 
     public static final ConcurrentHashMap<UUID, Map<String, Set<String>>> objectiveScores = new ConcurrentHashMap<>();
 
-    public static OptionStatus mapVisibility(Team.Visibility v) {
-        if (v == null) return OptionStatus.ALWAYS;
-        return switch (v) {
-            case ALWAYS -> OptionStatus.ALWAYS;
-            case NEVER -> OptionStatus.NEVER;
-            case HIDE_FOR_OTHER_TEAMS -> OptionStatus.FOR_OWN_TEAM;
-            case HIDE_FOR_OWN_TEAM -> OptionStatus.FOR_OTHER_TEAMS;
-        };
-    }
+    public static final ConcurrentHashMap<Integer, Boolean> invisibleCache = new ConcurrentHashMap<>();
 
     private static final List<PacketListener> alwaysOnListeners = List.of(
             new PlayerInfoUpdatePacketListener(),

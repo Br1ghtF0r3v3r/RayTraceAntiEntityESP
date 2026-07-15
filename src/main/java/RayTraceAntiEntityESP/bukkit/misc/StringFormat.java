@@ -2,10 +2,8 @@ package RayTraceAntiEntityESP.bukkit.misc;
 
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.minecraft.ChatFormatting;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -70,11 +68,6 @@ public class StringFormat {
         }
         text = applyColorCodes(text);
         return LEGACY_SERIALIZER.serialize(MINI_MESSAGE.deserialize(text));
-    }
-
-    public static NamedTextColor chatFormattingToNamedTextColor(ChatFormatting formatting) {
-        if (formatting.getColor() == null) return null;
-        return NamedTextColor.namedColor(formatting.getColor());
     }
 
     public static void debug(String text) {

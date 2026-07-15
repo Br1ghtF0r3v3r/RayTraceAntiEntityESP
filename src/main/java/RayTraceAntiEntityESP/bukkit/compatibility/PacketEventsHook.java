@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.bukkit.compatibility;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
-import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
@@ -126,7 +125,7 @@ final class PacketEventsHook {
                         glowingForViewer.remove(entityId);
                     }
 
-                    SetEntityDataPacketListener.invisibleCache.put(entityId, invisible);
+                    PacketManager.invisibleCache.put(entityId, invisible);
                     break;
                 }
             } catch (Throwable ignored) {
