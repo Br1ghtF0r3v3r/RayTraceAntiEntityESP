@@ -2,17 +2,9 @@ package RayTraceAntiEntityESP.bukkit.utils;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.*;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.Vec3;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapter;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import org.bukkit.entity.Player;
-import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +12,6 @@ import java.util.UUID;
 
 public class DebugVertexUtils {
 
-    private static final BlockState BLOCK_STATE_VISIBLE = Blocks.LIME_WOOL.defaultBlockState();
-    private static final BlockState BLOCK_STATE_NOT_VISIBLE = Blocks.RED_WOOL.defaultBlockState();
     private static final float SCALE = 0.05f;
 
     private final Player viewer;
@@ -31,7 +21,7 @@ public class DebugVertexUtils {
     private long lastX, lastY, lastZ;
     private boolean spawned;
 
-    private BlockState currentBlockState = null;
+    private Object currentBlockState = null;
     private float currentScale = -1;
 
     public DebugVertexUtils(Player viewer) {
@@ -40,8 +30,8 @@ public class DebugVertexUtils {
         this.entityUuid = UUID.randomUUID();
     }
 
-    private void send(Packet<?> packet) {
-        ((CraftPlayer) viewer).getHandle().connection.send(packet);
+    private void send(Object packet) {
+        NmsAdapterFactory.get().sendPacket(viewer, packet);
     }
 
     public void setPos(double x, double y, double z) {
@@ -51,14 +41,12 @@ public class DebugVertexUtils {
     }
 
     @SuppressWarnings("unused")
-    public boolean isSpawned() {
-        return spawned;
-    }
+    public boolean isSpawned() { return spawned; }
 
     public void spawn(boolean vertexVisible) {
         if (spawned) return;
-
-        BlockState blockState = vertexVisible ? BLOCK_STATE_VISIBLE : BLOCK_STATE_NOT_VISIBLE;
+        NmsAdapter adapter = NmsAdapterFactory.get();
+        Object blockState = adapter.blockStateForName(vertexVisible ? "LIME_WOOL" : "RED_WOOL");
         currentBlockState = blockState;
         currentScale = SCALE;
 
@@ -66,40 +54,34 @@ public class DebugVertexUtils {
         lastY = (long) (y * 4096);
         lastZ = (long) (z * 4096);
 
-        send(new ClientboundBundlePacket(List.of(
-                new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f,
-                        EntityType.BLOCK_DISPLAY, 0, Vec3.ZERO, 0.0),
-                new ClientboundSetEntityDataPacket(entityId, buildMetadata(blockState))
-        )));
+        List<Object> bundle = new ArrayList<>(2);
+        bundle.add(adapter.buildBlockDisplaySpawnPacket(entityId, entityUuid, x, y, z));
+        bundle.add(adapter.buildSetEntityDataPacket(entityId,
+                adapter.buildBlockDisplayMetadata(blockState, SCALE,
+                        (int) Config.checkingPeriodTicks + 1)));
+        adapter.sendBundled(viewer, bundle);
         spawned = true;
     }
 
     public void updateMeta(boolean vertexVisible) {
         if (!spawned) return;
-
-        BlockState blockState = vertexVisible ? BLOCK_STATE_VISIBLE : BLOCK_STATE_NOT_VISIBLE;
-
+        NmsAdapter adapter = NmsAdapterFactory.get();
+        Object blockState = adapter.blockStateForName(vertexVisible ? "LIME_WOOL" : "RED_WOOL");
         if (blockState == currentBlockState && SCALE == currentScale) return;
-
         currentBlockState = blockState;
         currentScale = SCALE;
-
-        send(new ClientboundSetEntityDataPacket(entityId, buildMetadata(blockState)));
+        send(adapter.buildSetEntityDataPacket(entityId,
+                adapter.buildBlockDisplayMetadata(blockState, SCALE,
+                        (int) Config.checkingPeriodTicks + 1)));
     }
 
     public void teleport(double x, double y, double z) {
         if (!spawned) return;
-
         long newX = (long) (x * 4096);
         long newY = (long) (y * 4096);
         long newZ = (long) (z * 4096);
-
-        long dx = newX - lastX;
-        long dy = newY - lastY;
-        long dz = newZ - lastZ;
-
+        long dx = newX - lastX, dy = newY - lastY, dz = newZ - lastZ;
         if (dx == 0 && dy == 0 && dz == 0) return;
-
         this.x = x;
         this.y = y;
         this.z = z;
@@ -107,31 +89,24 @@ public class DebugVertexUtils {
         this.lastY = newY;
         this.lastZ = newZ;
 
+        NmsAdapter adapter = NmsAdapterFactory.get();
         if (dx < -32768 || dx > 32767 || dy < -32768 || dy > 32767 || dz < -32768 || dz > 32767) {
-            send(new ClientboundBundlePacket(List.of(
-                    new ClientboundRemoveEntitiesPacket(entityId),
-                    new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.BLOCK_DISPLAY, 0, Vec3.ZERO, 0.0),
-                    new ClientboundSetEntityDataPacket(entityId, buildMetadata(currentBlockState))
-            )));
+            List<Object> bundle = new ArrayList<>(3);
+            bundle.add(adapter.buildRemoveEntitiesPacket(entityId));
+            bundle.add(adapter.buildBlockDisplaySpawnPacket(entityId, entityUuid, x, y, z));
+            bundle.add(adapter.buildSetEntityDataPacket(entityId,
+                    adapter.buildBlockDisplayMetadata(currentBlockState, SCALE,
+                            (int) Config.checkingPeriodTicks + 1)));
+            adapter.sendBundled(viewer, bundle);
             return;
         }
-
-        send(new ClientboundMoveEntityPacket.Pos(entityId, (short) dx, (short) dy, (short) dz, true));
+        send(adapter.buildMoveEntityPacket(entityId, (short) dx, (short) dy, (short) dz, true));
     }
 
     public void despawn() {
         if (!spawned) return;
-        send(new ClientboundRemoveEntitiesPacket(entityId));
+        send(NmsAdapterFactory.get().buildRemoveEntitiesPacket(entityId));
         spawned = false;
         PacketManager.unregisterSyntheticEntity(entityId);
-    }
-
-    private List<SynchedEntityData.DataValue<?>> buildMetadata(BlockState blockState) {
-        List<SynchedEntityData.DataValue<?>> metadata = new ArrayList<>();
-        int interpolationTicks = (int) Config.checkingPeriodTicks + 1;
-        metadata.add(new SynchedEntityData.DataValue<>(10, EntityDataSerializers.INT, interpolationTicks));
-        metadata.add(new SynchedEntityData.DataValue<>(12, EntityDataSerializers.VECTOR3, new Vector3f(SCALE, SCALE, SCALE)));
-        metadata.add(new SynchedEntityData.DataValue<>(23, EntityDataSerializers.BLOCK_STATE, blockState));
-        return metadata;
     }
 }

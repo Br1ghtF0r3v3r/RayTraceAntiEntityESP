@@ -1,29 +1,14 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
-import io.papermc.paper.adventure.PaperAdventure;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapter;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import net.kyori.adventure.text.Component;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.*;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.phys.Vec3;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class NametagCloneUtils {
-
-    private static final List<SynchedEntityData.DataValue<?>> CACHED_METADATA_NO_NAME = List.of(
-            new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20),
-            new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true),
-            new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19)
-    );
 
     private final Player viewer;
     private final int entityId;
@@ -33,9 +18,8 @@ public class NametagCloneUtils {
     private boolean spawned;
     private Component customName;
 
-    private List<SynchedEntityData.DataValue<?>> cachedNamedMetadata = null;
-
-    private List<Packet<? super ClientGamePacketListener>> outbox;
+    private List<Object> cachedNamedMetadata = null;
+    private List<Object> outbox;
 
     public NametagCloneUtils(Player viewer) {
         this.viewer = viewer;
@@ -43,46 +27,38 @@ public class NametagCloneUtils {
         this.entityUuid = UUID.randomUUID();
     }
 
-    @SuppressWarnings("unchecked")
-    private void send(Packet<?> packet) {
+    private void send(Object packet) {
         if (outbox != null) {
-            outbox.add((Packet<? super ClientGamePacketListener>) packet);
+            outbox.add(packet);
             return;
         }
-        ((CraftPlayer) viewer).getHandle().connection.send(packet);
+        NmsAdapterFactory.get().sendPacket(viewer, packet);
     }
 
-    @SuppressWarnings("unchecked")
-    private void sendAtomic(Packet<?>... packets) {
+    private void sendAtomic(Object... packets) {
         if (outbox != null) {
-            for (var p : packets)
-                outbox.add((Packet<? super ClientGamePacketListener>) p);
+            Collections.addAll(outbox, packets);
             return;
         }
-        List<Packet<? super ClientGamePacketListener>> list = new ArrayList<>(packets.length);
-        for (var p : packets) list.add((Packet<? super ClientGamePacketListener>) p);
-        ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(list));
+        List<Object> list = new ArrayList<>(packets.length);
+        list.addAll(Arrays.asList(packets));
+        NmsAdapterFactory.get().sendBundled(viewer, list);
     }
 
     public double getX() {
         return x;
     }
-
     public double getY() {
         return y;
     }
-
     public double getZ() {
         return z;
     }
-
     public boolean isSpawned() {
         return spawned;
     }
 
-    public void setOutbox(List<Packet<? super ClientGamePacketListener>> outbox) {
-        this.outbox = outbox;
-    }
+    public void setOutbox(List<Object> outbox) { this.outbox = outbox; }
 
     public void setPos(double x, double y, double z) {
         this.x = x;
@@ -94,7 +70,10 @@ public class NametagCloneUtils {
         if (name != null && name.equals(this.customName)) return;
         this.customName = name;
         this.cachedNamedMetadata = null;
-        if (spawned) send(new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
+        if (spawned) {
+            NmsAdapter adapter = NmsAdapterFactory.get();
+            send(adapter.buildSetEntityDataPacket(entityId, buildMetadata()));
+        }
     }
 
     public void spawn() {
@@ -102,9 +81,10 @@ public class NametagCloneUtils {
         lastX = (long) (x * 4096);
         lastY = (long) (y * 4096);
         lastZ = (long) (z * 4096);
+        NmsAdapter adapter = NmsAdapterFactory.get();
         sendAtomic(
-                new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
-                new ClientboundSetEntityDataPacket(entityId, buildMetadata())
+                adapter.buildArmorStandSpawnPacket(entityId, entityUuid, x, y, z),
+                adapter.buildSetEntityDataPacket(entityId, buildMetadata())
         );
         spawned = true;
     }
@@ -120,31 +100,31 @@ public class NametagCloneUtils {
         lastX = nx;
         lastY = ny;
         lastZ = nz;
+        NmsAdapter adapter = NmsAdapterFactory.get();
         if (dx < -32768 || dx > 32767 || dy < -32768 || dy > 32767 || dz < -32768 || dz > 32767) {
-            sendAtomic(new ClientboundRemoveEntitiesPacket(entityId),
-                    new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, EntityType.ARMOR_STAND, 0, Vec3.ZERO, 0.0),
-                    new ClientboundSetEntityDataPacket(entityId, buildMetadata()));
+            sendAtomic(
+                    adapter.buildRemoveEntitiesPacket(entityId),
+                    adapter.buildArmorStandSpawnPacket(entityId, entityUuid, x, y, z),
+                    adapter.buildSetEntityDataPacket(entityId, buildMetadata()));
             return;
         }
-        send(new ClientboundMoveEntityPacket.Pos(entityId, (short) dx, (short) dy, (short) dz, true));
+        send(adapter.buildMoveEntityPacket(entityId, (short) dx, (short) dy, (short) dz, true));
     }
 
     public void despawn() {
         if (!spawned) return;
-        send(new ClientboundRemoveEntitiesPacket(entityId));
+        send(NmsAdapterFactory.get().buildRemoveEntitiesPacket(entityId));
         spawned = false;
         PacketManager.unregisterSyntheticEntity(entityId);
     }
 
-    private List<SynchedEntityData.DataValue<?>> buildMetadata() {
-        if (customName == null) return CACHED_METADATA_NO_NAME;
-        if (cachedNamedMetadata == null) cachedNamedMetadata = new ArrayList<>(5);
-        else cachedNamedMetadata.clear();
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(0, EntityDataSerializers.BYTE, (byte) 0x20));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(2, EntityDataSerializers.OPTIONAL_COMPONENT, Optional.of(PaperAdventure.asVanilla(customName))));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(3, EntityDataSerializers.BOOLEAN, true));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(5, EntityDataSerializers.BOOLEAN, true));
-        cachedNamedMetadata.add(new SynchedEntityData.DataValue<>(15, EntityDataSerializers.BYTE, (byte) 0x19));
+    private List<Object> buildMetadata() {
+        if (customName == null) {
+            return NmsAdapterFactory.get().buildArmorStandMetadata(null);
+        }
+        if (cachedNamedMetadata == null) {
+            cachedNamedMetadata = NmsAdapterFactory.get().buildArmorStandMetadata(customName);
+        }
         return cachedNamedMetadata;
     }
 }

@@ -1,10 +1,10 @@
 package RayTraceAntiEntityESP.bukkit.listener.packet;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.bukkit.nms.parsed.ParsedSetDisplayObjective;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import net.minecraft.network.protocol.game.ClientboundSetDisplayObjectivePacket;
-import net.minecraft.world.scores.DisplaySlot;
 import org.bukkit.entity.Player;
 
 import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.belowNameObjective;
@@ -12,18 +12,18 @@ import static RayTraceAntiEntityESP.bukkit.listener.PacketManager.belowNameObjec
 public class SetDisplayObjectivePacketListener extends PacketListener {
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        if (msg instanceof ClientboundSetDisplayObjectivePacket packet) {
-            if (packet.getSlot() == DisplaySlot.BELOW_NAME) {
-                String objName = packet.getObjectiveName();
-                if (objName == null || objName.isEmpty()) {
-                    belowNameObjective.remove(viewer.getUniqueId());
-                } else {
-                    belowNameObjective.put(viewer.getUniqueId(), objName);
-                }
+        ParsedSetDisplayObjective parsed = NmsAdapterFactory.get().parseSetDisplayObjective(msg);
+        if (parsed == null) return false;
+
+        if (parsed.slotName().equals("BELOW_NAME")) {
+            String objName = parsed.objectiveName();
+            if (objName == null || objName.isEmpty()) {
+                belowNameObjective.remove(viewer.getUniqueId());
+            } else {
+                belowNameObjective.put(viewer.getUniqueId(), objName);
             }
-            ctx.write(msg, promise);
-            return true;
         }
-        return false;
+        ctx.write(msg, promise);
+        return true;
     }
 }

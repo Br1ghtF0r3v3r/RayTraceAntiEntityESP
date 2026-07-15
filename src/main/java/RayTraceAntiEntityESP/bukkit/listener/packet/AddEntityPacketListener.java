@@ -5,24 +5,20 @@ import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.bukkit.nms.parsed.ParsedAddEntity;
 import RayTraceAntiEntityESP.bukkit.utils.EntityIdentityCache;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-import net.minecraft.network.protocol.game.ClientboundBundlePacket;
-import net.minecraft.world.entity.EntityType;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.bukkit.Main.plugin;
@@ -56,11 +52,10 @@ public class AddEntityPacketListener extends PacketListener {
 
                 VisibilityUtils.setHidden(viewer, entity);
                 if (Config.isCheckingEnabled && Config.isDisplayNameEnabled) {
-                    List<Packet<? super ClientGamePacketListener>> outbox = new ArrayList<>();
+                    List<Object> outbox = new ArrayList<>();
                     NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
                     if (!outbox.isEmpty()) {
-                        ((CraftPlayer) viewer).getHandle().connection
-                                .send(new ClientboundBundlePacket(outbox));
+                        NmsAdapterFactory.get().sendBundled(viewer, outbox);
                     }
                 }
                 return true;
@@ -71,18 +66,18 @@ public class AddEntityPacketListener extends PacketListener {
 
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        if (!(msg instanceof ClientboundAddEntityPacket packet)) return false;
+        ParsedAddEntity parsed = NmsAdapterFactory.get().parseAddEntity(msg);
+        if (parsed == null) return false;
 
-        int entityId = packet.getId();
+        int entityId = parsed.entityId();
 
         if (PacketManager.isSyntheticEntity(entityId)) {
             ctx.write(msg, promise);
             return true;
         }
 
-        UUID entityUUID = packet.getUUID();
-
-        EntityIdentityCache.register(entityId, entityUUID, packet.getType() == EntityType.PLAYER);
+        UUID entityUUID = parsed.uuid();
+        EntityIdentityCache.register(entityId, entityUUID, parsed.isPlayer());
 
         if (viewer.getUniqueId().equals(entityUUID)) {
             ctx.write(msg, promise);
