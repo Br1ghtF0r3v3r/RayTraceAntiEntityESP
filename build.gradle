@@ -1,12 +1,3 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "com.guardsquare:proguard-gradle:7.9.1"
-    }
-}
-
 plugins {
     id "java"
     id "com.gradleup.shadow" version "9.3.0"
@@ -26,7 +17,6 @@ tasks {
     }
     runServer {
         serverJar(file("run/server.jar"))
-        minecraftVersion("")
         systemProperty("com.mojang.eula.agree", true)
     }
 }
