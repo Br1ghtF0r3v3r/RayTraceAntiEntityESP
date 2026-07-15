@@ -4,6 +4,7 @@ import RayTraceAntiEntityESP.bukkit.engine.DebugVertexRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
@@ -16,15 +17,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket;
-import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.Scoreboard;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.*;
@@ -54,21 +47,21 @@ public class EventManager {
         UUID playerUUID = player.getUniqueId();
         int viewerEntityId = player.getEntityId();
 
-        for (ServerPlayer sp : MinecraftServer.getServer().getPlayerList().getPlayers()) {
-            if (sp.getUUID().equals(playerUUID)) continue;
-
-            if (VisibilityUtils.isHidden(sp.getId(), viewerEntityId)) {
-                sp.connection.send(new ClientboundPlayerInfoRemovePacket(List.of(playerUUID)));
+        NmsAdapterFactory.get().forEachServerPlayer(other -> {
+            if (other.getUniqueId().equals(playerUUID)) return;
+            if (VisibilityUtils.isHidden(other.getEntityId(), viewerEntityId)) {
+                NmsAdapterFactory.get().sendPacket(other,
+                        NmsAdapterFactory.get().buildPlayerInfoRemovePacket(List.of(playerUUID)));
             }
-            PacketManager.removeHiddenBypass(sp.getUUID(), playerUUID);
-        }
+            PacketManager.removeHiddenBypass(other.getUniqueId(), playerUUID);
+        });
         PacketManager.clearBypassForViewer(playerUUID);
         TeamUtils.clearViewerOverrides(playerUUID);
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
         if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
         VisibilityUtils.clearViewer(viewerEntityId);
-        RayTraceEngine.clearViewerCache(((CraftPlayer) player).getHandle().getId());
+        RayTraceEngine.clearViewerCache(player.getEntityId());
     }
 
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
@@ -89,9 +82,6 @@ public class EventManager {
         if (obj != null) {
             PacketManager.belowNameObjective.put(playerUUID, obj.getName());
         }
-
-        ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
-        Scoreboard nmsScoreboard = MinecraftServer.getServer().getScoreboard();
 
         for (Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
             String teamName = team.getName();
@@ -117,16 +107,7 @@ public class EventManager {
         }
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (Team team : Bukkit.getScoreboardManager().getMainScoreboard().getTeams()) {
-                PlayerTeam nmsTeam = nmsScoreboard.getPlayerTeam(team.getName());
-                if (nmsTeam == null) continue;
-
-                nmsPlayer.connection.send(ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(nmsTeam, true));
-                for (String member : nmsTeam.getPlayers()) {
-                    nmsPlayer.connection.send(ClientboundSetPlayerTeamPacket.createPlayerPacket(
-                            nmsTeam, member, ClientboundSetPlayerTeamPacket.Action.ADD));
-                }
-            }
+            NmsAdapterFactory.get().resendAllTeamsTo(player);
             if (player.isOnline() && player.hasPermission("raytrace_anti_entity_esp.admin")) {
                 VersionChecker.notifyIfOutdated(player);
             }
@@ -134,7 +115,7 @@ public class EventManager {
     }
 
     public static void entityDeathHandler(EntityDeathEvent event) {
-        Entity entity = event.getEntity();
+        org.bukkit.entity.Entity entity = event.getEntity();
         UUID entityUUID = entity.getUniqueId();
 
         if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(entityUUID);
@@ -143,15 +124,15 @@ public class EventManager {
 
     public static void playerRespawnHandler(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        int entityId = ((CraftPlayer) player).getHandle().getId();
+        int entityId = player.getEntityId();
 
         VisibilityUtils.clearViewer(entityId);
     }
 
     public static void injectPlayer(Player player) {
-        Channel channel = getChannel(player);
-        if (channel.pipeline().get(HANDLER_NAME) != null) return;
-        channel.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
+        Channel ch = NmsAdapterFactory.get().getChannel(player);
+        if (ch.pipeline().get(HANDLER_NAME) != null) return;
+        ch.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
             @Override
             public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
                 if (!PacketManager.onPacketSend(player, msg, ctx, promise)) {
@@ -162,17 +143,12 @@ public class EventManager {
     }
 
     public static void uninjectPlayer(Player player) {
-        Channel channel = getChannel(player);
-        if (channel.pipeline().get(HANDLER_NAME) == null) return;
-        channel.eventLoop().execute(() -> {
-            if (channel.pipeline().get(HANDLER_NAME) != null) {
-                channel.pipeline().remove(HANDLER_NAME);
+        Channel ch = NmsAdapterFactory.get().getChannel(player);
+        if (ch.pipeline().get(HANDLER_NAME) == null) return;
+        ch.eventLoop().execute(() -> {
+            if (ch.pipeline().get(HANDLER_NAME) != null) {
+                ch.pipeline().remove(HANDLER_NAME);
             }
         });
-    }
-
-    private static Channel getChannel(Player player) {
-        ServerPlayer nmsPlayer = ((CraftPlayer) player).getHandle();
-        return nmsPlayer.connection.connection.channel;
     }
 }

@@ -1,19 +1,20 @@
 package RayTraceAntiEntityESP.bukkit.listener.packet;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.bukkit.nms.parsed.ParsedPlayerInfoUpdate;
+import RayTraceAntiEntityESP.bukkit.nms.parsed.PlayerInfoEntry;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.papermc.paper.adventure.PaperAdventure;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class PlayerInfoUpdatePacketListener extends PacketListener {
 
@@ -21,37 +22,33 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
 
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        if (!(msg instanceof ClientboundPlayerInfoUpdatePacket packet)) return false;
+        ParsedPlayerInfoUpdate parsed = NmsAdapterFactory.get().parsePlayerInfoUpdate(msg);
+        if (parsed == null) return false;
 
-        EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions = packet.actions();
-        boolean touchesDisplayName = actions.contains(ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER)
-                || actions.contains(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_DISPLAY_NAME);
+        boolean touchesDisplayName = parsed.actions().contains("ADD_PLAYER")
+                || parsed.actions().contains("UPDATE_DISPLAY_NAME");
 
         if (!touchesDisplayName) {
             ctx.write(msg, promise);
             return true;
         }
 
-        boolean rewritePacket = false;
-        List<ClientboundPlayerInfoUpdatePacket.Entry> updated = new ArrayList<>(packet.entries().size());
+        Map<UUID, Component> forcedDisplayNames = null;
 
-        for (ClientboundPlayerInfoUpdatePacket.Entry entry : packet.entries()) {
-            net.minecraft.network.chat.Component forced = buildForcedDisplayName(entry);
+        for (PlayerInfoEntry entry : parsed.entries()) {
+            Component forced = buildForcedDisplayName(entry);
             if (forced != null) {
-                updated.add(new ClientboundPlayerInfoUpdatePacket.Entry(
-                        entry.profileId(), entry.profile(), entry.listed(), entry.latency(),
-                        entry.gameMode(), forced, entry.showHat(), entry.listOrder(), entry.chatSession()));
-                rewritePacket = true;
-            } else {
-                updated.add(entry);
+                if (forcedDisplayNames == null) forcedDisplayNames = new HashMap<>();
+                forcedDisplayNames.put(entry.profileId(), forced);
             }
         }
 
-        ctx.write(rewritePacket ? new ClientboundPlayerInfoUpdatePacket(actions, updated) : msg, promise);
+        Object rebuilt = NmsAdapterFactory.get().rebuildPlayerInfoUpdate(parsed, forcedDisplayNames);
+        ctx.write(rebuilt, promise);
         return true;
     }
 
-    private static net.minecraft.network.chat.Component buildForcedDisplayName(ClientboundPlayerInfoUpdatePacket.Entry entry) {
+    private static Component buildForcedDisplayName(PlayerInfoEntry entry) {
         if (entry.profile() == null) return null;
 
         String profileName = entry.profile().name();
@@ -73,11 +70,11 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         if (hasPrefix) name = prefix.append(name);
         if (hasSuffix) name = name.append(suffix);
 
-        return PaperAdventure.asVanilla(name);
+        return name;
     }
 
-    private static boolean isPlainOrUnset(net.minecraft.network.chat.Component displayName, String profileName) {
+    private static boolean isPlainOrUnset(Component displayName, String profileName) {
         if (displayName == null) return true;
-        return displayName.getString().equals(profileName);
+        return PLAIN.serialize(displayName).equals(profileName);
     }
 }
