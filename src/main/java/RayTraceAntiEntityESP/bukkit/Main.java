@@ -9,6 +9,7 @@ import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
 import RayTraceAntiEntityESP.bukkit.manager.events.EventManager;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
+import io.github.retrooper.packetevents.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
@@ -32,6 +33,9 @@ public final class Main extends JavaPlugin {
         registerCommands();
         VersionChecker.check();
         getLogger().info("RayTraceEntityESP enabled.");
+
+        int pluginId = 32643;
+        new Metrics(this, pluginId);
     }
 
     @Override
