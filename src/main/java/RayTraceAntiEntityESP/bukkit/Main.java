@@ -1,13 +1,14 @@
 package RayTraceAntiEntityESP.bukkit;
 
 import RayTraceAntiEntityESP.bukkit.commands.CommandsHandler;
+import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
 import RayTraceAntiEntityESP.bukkit.compatibility.PacketEventsBridge;
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.config.ExcludeBypassManager;
 import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
-import RayTraceAntiEntityESP.bukkit.commands.TabCompletion;
 import RayTraceAntiEntityESP.bukkit.manager.events.EventManager;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
@@ -22,6 +23,7 @@ public final class Main extends JavaPlugin {
     @Override
     public void onLoad() {
         plugin = this;
+        NmsAdapterFactory.init();
     }
 
     @Override

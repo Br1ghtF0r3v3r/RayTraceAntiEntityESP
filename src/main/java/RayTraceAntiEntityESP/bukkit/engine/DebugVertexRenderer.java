@@ -1,7 +1,7 @@
 package RayTraceAntiEntityESP.bukkit.engine;
 
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.bukkit.utils.DebugVertexUtils;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
@@ -15,7 +15,7 @@ public class DebugVertexRenderer {
 
     private static boolean shouldShow(Entity entity) {
         if (entity.isDead()) return false;
-        if (entity instanceof Player player && ((CraftPlayer) player).getHandle().hasDisconnected()) return false;
+        if (entity instanceof Player player && NmsAdapterFactory.get().hasDisconnected(player)) return false;
         return entity.isValid();
     }
 

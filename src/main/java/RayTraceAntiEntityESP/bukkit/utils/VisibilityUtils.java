@@ -1,14 +1,10 @@
 package RayTraceAntiEntityESP.bukkit.utils;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
-import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.Scoreboard;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
@@ -25,7 +21,7 @@ public class VisibilityUtils {
     private static final ConcurrentHashMap<Integer, IntSet> externallyHidden = new ConcurrentHashMap<>();
 
     private static IntSet getOrCreate(int viewerId) {
-        return hiddenByViewer.computeIfAbsent(viewerId, k -> IntSets.synchronize(new IntOpenHashSet()));
+        return hiddenByViewer.computeIfAbsent(viewerId, var -> IntSets.synchronize(new IntOpenHashSet()));
     }
 
     public static void setHidden(Player player, Entity entity) {
@@ -41,8 +37,7 @@ public class VisibilityUtils {
     public static void setNotHidden(Player player, Entity entity) {
         int viewerId = player.getEntityId();
         int entityId = entity.getEntityId();
-        IntSet set = hiddenByViewer.get(viewerId);
-        if (set != null) set.remove(entityId);
+        setNotHiddenSilently(viewerId, entityId);
         PacketManager.removeHiddenBypass(player.getUniqueId(), entity.getUniqueId());
         PacketManager.addShowBypass(player.getUniqueId(), entity.getUniqueId());
         player.showEntity(plugin, entity);
@@ -50,13 +45,8 @@ public class VisibilityUtils {
         if (entity instanceof Player target) {
             String teamName = TeamUtils.getEntryTeamName(target);
             if (teamName != null) {
-                ClientboundSetPlayerTeamPacket teamsPacket =
-                        ClientboundSetPlayerTeamPacket.createPlayerPacket(
-                                getOrBuildNmsTeam(teamName),
-                                target.getScoreboardEntryName(),
-                                ClientboundSetPlayerTeamPacket.Action.ADD
-                        );
-                ((CraftPlayer) player).getHandle().connection.send(teamsPacket);
+                Object packet = NmsAdapterFactory.get().buildAddMemberToTeamPacket(teamName, target.getScoreboardEntryName());
+                NmsAdapterFactory.get().sendPacket(player, packet);
             }
         }
     }
@@ -81,7 +71,7 @@ public class VisibilityUtils {
     }
 
     public static void markExternallyHidden(int viewerId, int entityId) {
-        externallyHidden.computeIfAbsent(viewerId, k -> new IntOpenHashSet()).add(entityId);
+        externallyHidden.computeIfAbsent(viewerId, var -> new IntOpenHashSet()).add(entityId);
     }
 
     public static void clearExternallyHidden(int viewerId, int entityId) {
@@ -106,12 +96,5 @@ public class VisibilityUtils {
         String entityTeam = getEntryTeamName(entity);
         boolean onSameTeam = viewerTeam != null && viewerTeam.equals(entityTeam);
         return (visibility == Team.OptionStatus.FOR_OWN_TEAM) == onSameTeam;
-    }
-
-    public static PlayerTeam getOrBuildNmsTeam(String teamName) {
-        Scoreboard nmsScoreboard = MinecraftServer.getServer().getScoreboard();
-        PlayerTeam team = nmsScoreboard.getPlayerTeam(teamName);
-        if (team != null) return team;
-        return new PlayerTeam(nmsScoreboard, teamName);
     }
 }

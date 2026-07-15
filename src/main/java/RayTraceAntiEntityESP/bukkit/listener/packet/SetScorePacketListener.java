@@ -2,10 +2,11 @@ package RayTraceAntiEntityESP.bukkit.listener.packet;
 
 import RayTraceAntiEntityESP.bukkit.listener.PacketListener;
 import RayTraceAntiEntityESP.bukkit.listener.PacketManager;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.bukkit.nms.parsed.ParsedResetScore;
+import RayTraceAntiEntityESP.bukkit.nms.parsed.ParsedSetScore;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import net.minecraft.network.protocol.game.ClientboundResetScorePacket;
-import net.minecraft.network.protocol.game.ClientboundSetScorePacket;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -15,22 +16,24 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SetScorePacketListener extends PacketListener {
     @Override
     public boolean onPacketSend(Player viewer, Object msg, ChannelHandlerContext ctx, ChannelPromise promise) {
-        if (msg instanceof ClientboundSetScorePacket packet) {
+        ParsedSetScore set = NmsAdapterFactory.get().parseSetScore(msg);
+        if (set != null) {
             PacketManager.objectiveScores
                     .computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>())
-                    .computeIfAbsent(packet.objectiveName(), k -> ConcurrentHashMap.newKeySet())
-                    .add(packet.owner());
+                    .computeIfAbsent(set.objectiveName(), k -> ConcurrentHashMap.newKeySet())
+                    .add(set.owner());
             ctx.write(msg, promise);
             return true;
         }
-        if (msg instanceof ClientboundResetScorePacket(String owner, String objectiveName)) {
+        ParsedResetScore reset = NmsAdapterFactory.get().parseResetScore(msg);
+        if (reset != null) {
             Map<String, Set<String>> perObjective = PacketManager.objectiveScores.get(viewer.getUniqueId());
             if (perObjective != null) {
-                if (objectiveName == null) {
-                    for (Set<String> entries : perObjective.values()) entries.remove(owner);
+                if (reset.objectiveName() == null) {
+                    for (Set<String> entries : perObjective.values()) entries.remove(reset.owner());
                 } else {
-                    Set<String> entries = perObjective.get(objectiveName);
-                    if (entries != null) entries.remove(owner);
+                    Set<String> entries = perObjective.get(reset.objectiveName());
+                    if (entries != null) entries.remove(reset.owner());
                 }
             }
             ctx.write(msg, promise);
