@@ -2,17 +2,13 @@ package RayTraceAntiEntityESP.bukkit.engine;
 
 import RayTraceAntiEntityESP.bukkit.config.Config;
 import RayTraceAntiEntityESP.bukkit.listener.packet.SetEntityDataPacketListener;
+import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.bukkit.utils.NametagCloneUtils;
 import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VisibilityUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBundlePacket;
 import org.bukkit.Bukkit;
-import org.bukkit.craftbukkit.entity.CraftEntity;
-import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
@@ -37,7 +33,7 @@ public class NametagCloneRenderer {
 
         int tick = Bukkit.getCurrentTick();
         double[] tracker = velocityTrackers.computeIfAbsent(entity.getUniqueId(),
-                k -> new double[]{ex, ey, ez, tick, 0, 0, 0});
+                var -> new double[]{ex, ey, ez, tick, 0, 0, 0});
 
         int dt = tick - (int) tracker[3];
         if (dt > 0) {
@@ -64,16 +60,16 @@ public class NametagCloneRenderer {
         if (entity.isDead()) return false;
         if (!entity.isValid()) return false;
 
-        int viewerEntityId = ((CraftPlayer) viewer).getHandle().getId();
-        int targetEntityId = ((CraftEntity) entity).getHandle().getId();
+        int viewerEntityId = viewer.getEntityId();
+        int targetEntityId = entity.getEntityId();
         if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
 
-        Boolean cachedInvisible = SetEntityDataPacketListener.invisibleCache.get(targetEntityId);
+        Boolean cachedInvisible = SetEntityDataPacketListener.getInvisible(targetEntityId);
         if (cachedInvisible != null ? cachedInvisible : entity.isInvisible()) return false;
 
         if (entity instanceof Player player) {
             if (player.isSneaking()) return false;
-            return !((CraftPlayer) player).getHandle().hasDisconnected();
+            return !NmsAdapterFactory.get().hasDisconnected(player);
         }
         return true;
     }
@@ -87,7 +83,7 @@ public class NametagCloneRenderer {
         return rawY + entity.getHeight() + Config.displayNameOffSetY;
     }
 
-    public static void applyDisplay(Player viewer, Entity entity, List<Packet<? super ClientGamePacketListener>> outbox) {
+    public static void applyDisplay(Player viewer, Entity entity, List<Object> outbox) {
         UUID viewerUUID = viewer.getUniqueId();
         UUID entityUUID = entity.getUniqueId();
 
@@ -96,7 +92,7 @@ public class NametagCloneRenderer {
             return;
         }
 
-        ConcurrentHashMap<UUID, NametagCloneUtils> inner = clones.computeIfAbsent(viewerUUID, k -> new ConcurrentHashMap<>());
+        ConcurrentHashMap<UUID, NametagCloneUtils> inner = clones.computeIfAbsent(viewerUUID, var -> new ConcurrentHashMap<>());
 
         NametagCloneUtils existing = inner.get(entityUUID);
         if (existing != null) {
@@ -133,7 +129,7 @@ public class NametagCloneRenderer {
         }
     }
 
-    public static void refreshDisplay(Player viewer, Entity entity, List<Packet<? super ClientGamePacketListener>> outbox) {
+    public static void refreshDisplay(Player viewer, Entity entity, List<Object> outbox) {
         UUID viewerUUID = viewer.getUniqueId();
         UUID entityUUID = entity.getUniqueId();
 
@@ -169,7 +165,7 @@ public class NametagCloneRenderer {
         }
     }
 
-    public static void removeDisplay(UUID viewerUUID, UUID entityUUID, List<Packet<? super ClientGamePacketListener>> outbox) {
+    public static void removeDisplay(UUID viewerUUID, UUID entityUUID, List<Object> outbox) {
         Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
         NametagCloneUtils clone = inner.remove(entityUUID);
@@ -196,7 +192,7 @@ public class NametagCloneRenderer {
         clearVelocityTracker(entityUUID);
     }
 
-    public static void cleanupStaleClones(List<Packet<? super ClientGamePacketListener>> outbox, Player viewer) {
+    public static void cleanupStaleClones(List<Object> outbox, Player viewer) {
         UUID viewerUUID = viewer.getUniqueId();
         Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
@@ -218,19 +214,19 @@ public class NametagCloneRenderer {
                 inner.values().forEach(c -> despawnClone(c, null));
                 return;
             }
-            List<Packet<? super ClientGamePacketListener>> outbox = new ArrayList<>(inner.size());
+            List<Object> outbox = new ArrayList<>(inner.size());
             for (NametagCloneUtils clone : inner.values()) {
                 despawnClone(clone, outbox);
             }
             if (!outbox.isEmpty()) {
-                ((CraftPlayer) viewer).getHandle().connection.send(new ClientboundBundlePacket(outbox));
+                NmsAdapterFactory.get().sendBundled(viewer, outbox);
             }
         });
         clones.clear();
         velocityTrackers.clear();
     }
 
-    private static void despawnClone(NametagCloneUtils clone, List<Packet<? super ClientGamePacketListener>> outbox) {
+    private static void despawnClone(NametagCloneUtils clone, List<Object> outbox) {
         if (clone == null) return;
         try {
             clone.setOutbox(outbox);
