@@ -9,6 +9,8 @@ import RayTraceAntiEntityESP.bukkit.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.bukkit.listener.EventListener;
 import RayTraceAntiEntityESP.bukkit.manager.events.EventManager;
 import RayTraceAntiEntityESP.bukkit.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.bukkit.utils.EntityIdentityCache;
+import RayTraceAntiEntityESP.bukkit.utils.TeamUtils;
 import RayTraceAntiEntityESP.bukkit.utils.VersionChecker;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
@@ -46,6 +48,8 @@ public final class Main extends JavaPlugin {
         for (Player player : Bukkit.getOnlinePlayers()) {
             EventManager.uninjectPlayer(player);
         }
+        EntityIdentityCache.clearAll();
+        TeamUtils.clearAll();
         getLogger().info("RayTraceEntityESP disabled.");
     }
 

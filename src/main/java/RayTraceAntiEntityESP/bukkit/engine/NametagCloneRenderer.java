@@ -52,7 +52,10 @@ public class NametagCloneRenderer {
         };
     }
 
-    private static void clearVelocityTracker(UUID entityUUID) {
+    private static void maybeClearVelocityTracker(UUID entityUUID) {
+        for (Map<UUID, NametagCloneUtils> inner : clones.values()) {
+            if (inner != null && inner.containsKey(entityUUID)) return;
+        }
         velocityTrackers.remove(entityUUID);
     }
 
@@ -171,6 +174,7 @@ public class NametagCloneRenderer {
         NametagCloneUtils clone = inner.remove(entityUUID);
         if (clone == null) return;
         despawnClone(clone, outbox);
+        maybeClearVelocityTracker(entityUUID);
     }
 
     public static void removeDisplay(UUID viewerUUID) {
@@ -180,6 +184,7 @@ public class NametagCloneRenderer {
             if (clone == null) continue;
             despawnClone(clone, null);
         }
+        inner.keySet().forEach(NametagCloneRenderer::maybeClearVelocityTracker);
     }
 
     public static void removeDisplayForEntity(UUID entityUUID) {
@@ -189,21 +194,24 @@ public class NametagCloneRenderer {
             if (clone == null) continue;
             despawnClone(clone, null);
         }
-        clearVelocityTracker(entityUUID);
+        velocityTrackers.remove(entityUUID);
     }
 
     public static void cleanupStaleClones(List<Object> outbox, Player viewer) {
         UUID viewerUUID = viewer.getUniqueId();
         Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
+        java.util.List<UUID> removed = new ArrayList<>();
         inner.entrySet().removeIf(entry -> {
             Entity entity = Bukkit.getEntity(entry.getKey());
             if (entity == null || !shouldShowFast(viewer, entity)) {
                 despawnClone(entry.getValue(), outbox);
+                removed.add(entry.getKey());
                 return true;
             }
             return false;
         });
+        for (UUID uuid : removed) maybeClearVelocityTracker(uuid);
     }
 
     public static void removeAllDisplays() {

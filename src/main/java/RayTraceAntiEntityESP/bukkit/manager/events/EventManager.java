@@ -16,7 +16,6 @@ import io.netty.channel.ChannelPromise;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.*;
@@ -35,12 +34,6 @@ import static RayTraceAntiEntityESP.bukkit.config.Config.isDisplayNameEnabled;
 public class EventManager {
 
     private static final String HANDLER_NAME = "anti_esp_handler";
-    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
-
-    private static boolean isEmptyComponent(Component c) {
-        if (c == null) return true;
-        return PLAIN.serialize(c).isEmpty();
-    }
 
     public static void playerQuitHandler(PlayerQuitEvent event) {
         Player player = event.getPlayer();
@@ -100,11 +93,11 @@ public class EventManager {
             } catch (IllegalStateException ignored) {
             }
             Component prefix = team.prefix();
-            if (!isEmptyComponent(prefix)) {
+            if (!TeamUtils.isEmptyComponent(prefix)) {
                 TeamUtils.teamPrefixes.putIfAbsent(teamName, prefix);
             }
             Component suffix = team.suffix();
-            if (!isEmptyComponent(suffix)) {
+            if (!TeamUtils.isEmptyComponent(suffix)) {
                 TeamUtils.teamSuffixes.putIfAbsent(teamName, suffix);
             }
             TeamUtils.teamVisibilities.putIfAbsent(teamName, team.getOption(Team.Option.NAME_TAG_VISIBILITY));
@@ -139,14 +132,22 @@ public class EventManager {
     public static void injectPlayer(Player player) {
         Channel ch = NmsAdapterFactory.get().getChannel(player);
         if (ch.pipeline().get(HANDLER_NAME) != null) return;
-        ch.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
-            @Override
-            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-                if (!PacketManager.onPacketSend(player, msg, ctx, promise)) {
-                    super.write(ctx, msg, promise);
+        Runnable install = () -> {
+            if (ch.pipeline().get(HANDLER_NAME) != null) return;
+            ch.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
+                @Override
+                public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                    if (!PacketManager.onPacketSend(player, msg, ctx, promise)) {
+                        super.write(ctx, msg, promise);
+                    }
                 }
-            }
-        });
+            });
+        };
+        if (ch.eventLoop().inEventLoop()) {
+            install.run();
+        } else {
+            ch.eventLoop().execute(install);
+        }
     }
 
     public static void uninjectPlayer(Player player) {

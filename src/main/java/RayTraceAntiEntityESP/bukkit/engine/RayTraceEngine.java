@@ -99,10 +99,19 @@ public class RayTraceEngine {
     }
 
     private static void evictIdleBuckets() {
-        for (Long2ObjectOpenHashMap<WorldEntitySnapshot> buckets : worldEntityCache.values()) {
-            if (buckets.isEmpty()) continue;
-            buckets.long2ObjectEntrySet().removeIf(entry ->
-                    (globalTick - entry.getValue().lastAccessTick) > BUCKET_IDLE_EVICT_TICKS);
+        var worldIt = worldEntityCache.entrySet().iterator();
+        while (worldIt.hasNext()) {
+            var entry = worldIt.next();
+            Long2ObjectOpenHashMap<WorldEntitySnapshot> buckets = entry.getValue();
+            if (buckets.isEmpty()) {
+                worldIt.remove();
+                continue;
+            }
+            buckets.long2ObjectEntrySet().removeIf(bucket ->
+                    (globalTick - bucket.getValue().lastAccessTick) > BUCKET_IDLE_EVICT_TICKS);
+            if (buckets.isEmpty()) {
+                worldIt.remove();
+            }
         }
     }
 
@@ -142,6 +151,21 @@ public class RayTraceEngine {
         belowNameRangeActive.remove(entityId);
     }
 
+    public static void onEntityRemovedFromViewer(int viewerId, int entityId) {
+        IntSet distSet = distanceOverrideActive.get(viewerId);
+        if (distSet != null) distSet.remove(entityId);
+        IntSet belowSet = belowNameRangeActive.get(viewerId);
+        if (belowSet != null) belowSet.remove(entityId);
+
+        ViewerCache cache = viewerCaches.get(viewerId);
+        if (cache != null) {
+            int idx = cache.entityIndexMap.remove(entityId);
+            if (idx >= 0 && idx < cache.cachedCount) {
+                cache.cachedVisible[idx] = false;
+            }
+        }
+    }
+
     public static void clearAntiEntityCache() {
         antiEntityTypeCache.clear();
     }
@@ -157,6 +181,10 @@ public class RayTraceEngine {
         antiEntityTypeCache.clear();
         distanceOverrideActive.clear();
         belowNameRangeActive.clear();
+    }
+
+    public static void clearWorldCache(org.bukkit.World world) {
+        worldEntityCache.remove(world);
     }
 
     private static long blockKey(int x, int y, int z) {
@@ -501,10 +529,13 @@ public class RayTraceEngine {
         DebugVertexRenderer.removeAllDisplays();
         PacketManager.clearAllBypasses();
         AddEntityPacketListener.pendingHides.clear();
-        viewerCaches.clear();
-        worldEntityCache.clear();
-        distanceOverrideActive.clear();
-        belowNameRangeActive.clear();
+
+        clearAllCaches();
+
+        blockCacheTtlTick = 0;
+        globalTick = 0;
+        bucketEvictSweepTick = 0;
+        staggerTick = 0;
     }
 
     public static void startTask() {
@@ -525,7 +556,6 @@ public class RayTraceEngine {
 
             staggerTick++;
 
-            // Gather viewers via adapter (replaces MinecraftServer.getServer().getPlayerList().getPlayers())
             java.util.List<Player> onlinePlayers = new ArrayList<>();
             NmsAdapterFactory.get().forEachServerPlayer(p -> {
                 if (!PacketManager.isBypassed(p.getUniqueId())) onlinePlayers.add(p);
