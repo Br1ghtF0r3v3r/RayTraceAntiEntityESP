@@ -266,29 +266,13 @@ public final class EntityTypeResolver {
         if (cachedRegistry != null) return cachedRegistry;
 
         Object reg = tryRegistryField("net.minecraft.core.registries.BuiltInRegistries", "ENTITY_TYPE");
+        if (reg == null) reg = tryRegistryField("net.minecraft.core.Registry", "ENTITY_TYPE");
+        if (reg == null) reg = tryRegistryField("net.minecraft.core.IRegistry", "ENTITY_TYPE");
+
         if (reg != null) {
             cachedRegistry = reg;
             return reg;
         }
-
-        reg = tryRegistryField("net.minecraft.core.registries.BuiltInRegistries", "ENTITY_TYPE");
-        if (reg != null) {
-            cachedRegistry = reg;
-            return reg;
-        }
-
-        reg = tryRegistryField("net.minecraft.core.Registry", "ENTITY_TYPE");
-        if (reg != null) {
-            cachedRegistry = reg;
-            return reg;
-        }
-
-        reg = tryRegistryField("net.minecraft.core.IRegistry", "ENTITY_TYPE");
-        if (reg != null) {
-            cachedRegistry = reg;
-            return reg;
-        }
-
         return null;
     }
 

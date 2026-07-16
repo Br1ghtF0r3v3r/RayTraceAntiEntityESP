@@ -65,25 +65,21 @@ public class PacketManager {
         glowingEntities.clear();
         belowNameObjective.clear();
         objectiveScores.clear();
+        invisibleCache.clear();
     }
 
-    private static volatile Set<UUID> bypassPlayers = new HashSet<>();
+    private static final Set<UUID> bypassPlayers = ConcurrentHashMap.newKeySet();
 
     public static void addBypass(UUID uuid) {
-        Set<UUID> next = new HashSet<>(bypassPlayers);
-        next.add(uuid);
-        bypassPlayers = next;
+        bypassPlayers.add(uuid);
     }
 
     public static void removeBypass(UUID uuid) {
-        Set<UUID> next = new HashSet<>(bypassPlayers);
-        next.remove(uuid);
-        bypassPlayers = next;
+        bypassPlayers.remove(uuid);
     }
 
     public static boolean isBypassed(UUID uuid) {
-        Set<UUID> players = bypassPlayers;
-        return !players.isEmpty() && players.contains(uuid);
+        return bypassPlayers.contains(uuid);
     }
 
     private static final Set<Integer> syntheticEntityIds = ConcurrentHashMap.newKeySet();
