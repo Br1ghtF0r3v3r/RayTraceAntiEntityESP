@@ -359,32 +359,15 @@ public final class NmsAdapter_26_x implements NmsAdapter {
     }
 
     private static Component extractPrefix(Object params) {
-        for (String methodName : new String[]{"playerPrefix", "getPlayerPrefix", "prefix"}) {
-            try {
-                java.lang.reflect.Method m = params.getClass().getMethod(methodName);
-                Object result = m.invoke(params);
-                if (result == null) return null;
-                if (result instanceof java.util.Optional<?> opt) {
-                    if (opt.isEmpty()) return null;
-                    result = opt.get();
-                }
-                if (result instanceof net.minecraft.network.chat.Component nmsComponent) {
-                    return PaperAdventure.asAdventure(nmsComponent);
-                }
-                java.lang.reflect.Method getString = result.getClass().getMethod("getString");
-                String text = (String) getString.invoke(result);
-                return LEGACY.deserialize(text);
-            } catch (NoSuchMethodException ignored) {
-            } catch (Throwable ignored) {
-                return null;
-            }
-        }
-        logUnknownParamsShape(loggedUnknownPrefixShape, "Prefix", params);
-        return null;
+        return extractComponentField(params, new String[]{"playerPrefix", "getPlayerPrefix", "prefix"}, loggedUnknownPrefixShape, "Prefix");
     }
 
     private static Component extractSuffix(Object params) {
-        for (String methodName : new String[]{"playerSuffix", "getPlayerSuffix", "suffix"}) {
+        return extractComponentField(params, new String[]{"playerSuffix", "getPlayerSuffix", "suffix"}, loggedUnknownSuffixShape, "Suffix");
+    }
+
+    private static Component extractComponentField(Object params, String[] methodNames, java.util.concurrent.atomic.AtomicBoolean guard, String label) {
+        for (String methodName : methodNames) {
             try {
                 java.lang.reflect.Method m = params.getClass().getMethod(methodName);
                 Object result = m.invoke(params);
@@ -404,7 +387,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 return null;
             }
         }
-        logUnknownParamsShape(loggedUnknownSuffixShape, "Suffix", params);
+        logUnknownParamsShape(guard, label, params);
         return null;
     }
 
