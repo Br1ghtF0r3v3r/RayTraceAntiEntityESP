@@ -37,8 +37,10 @@ public class SetPlayerTeamPacketListener extends PacketListener {
             Component suffix = parsed.suffix();
             if (color != null) TeamUtils.teamColors.put(teamName, color);
             else TeamUtils.teamColors.remove(teamName);
-            TeamUtils.teamPrefixes.put(teamName, prefix);
-            TeamUtils.teamSuffixes.put(teamName, suffix);
+            if (prefix != null) TeamUtils.teamPrefixes.put(teamName, prefix);
+            else TeamUtils.teamPrefixes.remove(teamName);
+            if (suffix != null) TeamUtils.teamSuffixes.put(teamName, suffix);
+            else TeamUtils.teamSuffixes.remove(teamName);
             if (parsed.nametagVisibility() != null) {
                 TeamUtils.teamVisibilities.put(teamName, parsed.nametagVisibility());
             }
