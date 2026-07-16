@@ -53,15 +53,16 @@ public class TeamUtils {
         if (state != null) state.entryToTeam.remove(entry);
     }
 
-    public static void putViewerTeamInfo(UUID viewer, String teamName, NamedTextColor color,
-                                         Component prefix, Component suffix) {
+    public static void putViewerTeamInfo(UUID viewer, String teamName, NamedTextColor color, Component prefix, Component suffix) {
         ViewerTeamState state = viewerState(viewer, true);
-        if (color != null) state.teamColors.put(teamName, color);
-        else state.teamColors.remove(teamName);
-        if (prefix != null) state.teamPrefixes.put(teamName, prefix);
-        else state.teamPrefixes.remove(teamName);
-        if (suffix != null) state.teamSuffixes.put(teamName, suffix);
-        else state.teamSuffixes.remove(teamName);
+        putOrRemove(state.teamColors, teamName, color);
+        putOrRemove(state.teamPrefixes, teamName, prefix);
+        putOrRemove(state.teamSuffixes, teamName, suffix);
+    }
+
+    private static <K, V> void putOrRemove(ConcurrentHashMap<K, V> map, K key, V value) {
+        if (value != null) map.put(key, value);
+        else map.remove(key);
     }
 
     public static void removeViewerTeam(UUID viewer, String teamName) {
