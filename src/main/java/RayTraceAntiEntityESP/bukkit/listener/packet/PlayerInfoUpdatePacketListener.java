@@ -53,7 +53,7 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
 
         String profileName = entry.profile().name();
         if (profileName == null || profileName.isEmpty()) return null;
-        if (!isPlainOrUnset(entry.displayName(), profileName)) return null;
+        if (!isPlainOrUnset(entry.displayNamePlain(), profileName)) return null;
 
         String teamName = TeamUtils.getEntryTeamName(profileName);
         if (teamName == null) return null;
@@ -73,8 +73,8 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         return name;
     }
 
-    private static boolean isPlainOrUnset(Component displayName, String profileName) {
-        if (displayName == null) return true;
-        return PLAIN.serialize(displayName).equals(profileName);
+    private static boolean isPlainOrUnset(String displayNamePlain, String profileName) {
+        if (displayNamePlain == null) return true;
+        return displayNamePlain.equals(profileName);
     }
 }
