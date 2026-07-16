@@ -50,16 +50,22 @@ public class EventManager {
         NmsAdapterFactory.get().forEachServerPlayer(other -> {
             if (other.getUniqueId().equals(playerUUID)) return;
             if (VisibilityUtils.isHidden(other.getEntityId(), viewerEntityId)) {
-                NmsAdapterFactory.get().sendPacket(other,
-                        NmsAdapterFactory.get().buildPlayerInfoRemovePacket(List.of(playerUUID)));
+                NmsAdapterFactory.get().sendPacket(other, NmsAdapterFactory.get().buildPlayerInfoRemovePacket(List.of(playerUUID)));
+                VisibilityUtils.setNotHiddenSilently(other.getEntityId(), viewerEntityId);
             }
             PacketManager.removeHiddenBypass(other.getUniqueId(), playerUUID);
         });
         PacketManager.clearBypassForViewer(playerUUID);
         TeamUtils.clearViewerOverrides(playerUUID);
 
-        if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplayForEntity(playerUUID);
-        if (isDebugEnabled) DebugVertexRenderer.removeDisplayForEntity(playerUUID);
+        if (isDisplayNameEnabled) {
+            NametagCloneRenderer.removeDisplayForEntity(playerUUID);
+            NametagCloneRenderer.removeDisplay(playerUUID);
+        }
+        if (isDebugEnabled) {
+            DebugVertexRenderer.removeDisplayForEntity(playerUUID);
+            DebugVertexRenderer.removeDisplay(playerUUID);
+        }
         VisibilityUtils.clearViewer(viewerEntityId);
         RayTraceEngine.clearViewerCache(player.getEntityId());
     }
@@ -68,6 +74,7 @@ public class EventManager {
         UUID playerUUID = event.getPlayerUniqueId();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
+            if (Bukkit.getPlayer(playerUUID) != null) return;
             if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplay(playerUUID);
             if (isDebugEnabled) DebugVertexRenderer.removeDisplay(playerUUID);
         });
