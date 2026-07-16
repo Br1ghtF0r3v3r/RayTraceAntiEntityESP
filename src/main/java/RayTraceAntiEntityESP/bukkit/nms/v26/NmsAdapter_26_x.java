@@ -159,7 +159,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
 
     @Override
     public ParsedSetEntityData parseSetEntityData(Object msg) {
-        if (!(msg instanceof ClientboundSetEntityDataPacket(int id, List<SynchedEntityData.DataValue<?>> packedItems))) return null;
+        if (!(msg instanceof ClientboundSetEntityDataPacket(int id, List<SynchedEntityData.DataValue<?>> packedItems)))
+            return null;
         List<DataItem> items = new ArrayList<>(packedItems.size());
         for (SynchedEntityData.DataValue<?> dv : packedItems) {
             items.add(new DataItem(dv.id(), dv.value()));
@@ -242,8 +243,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 Object result = m.invoke(params);
                 switch (result) {
                     case net.minecraft.ChatFormatting cf -> {
-                        Integer rgb = cf.getColor();
-                        return rgb == null ? null : NamedTextColor.namedColor(rgb);
+                        net.minecraft.network.chat.TextColor tc = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
+                        return tc == null ? null : NamedTextColor.namedColor(tc.getValue());
                     }
                     case Integer rgb -> {
                         return NamedTextColor.namedColor(rgb);
@@ -252,7 +253,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                         return null;
                     }
                 }
-            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+            } catch (NoSuchMethodException ignored) {
+            } catch (Throwable ignored) {
                 return null;
             }
         }
@@ -268,7 +270,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 java.lang.reflect.Method getString = result.getClass().getMethod("getString");
                 String text = (String) getString.invoke(result);
                 return LEGACY.deserialize(text);
-            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+            } catch (NoSuchMethodException ignored) {
+            } catch (Throwable ignored) {
                 return null;
             }
         }
@@ -284,7 +287,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 java.lang.reflect.Method getString = result.getClass().getMethod("getString");
                 String text = (String) getString.invoke(result);
                 return LEGACY.deserialize(text);
-            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+            } catch (NoSuchMethodException ignored) {
+            } catch (Throwable ignored) {
                 return null;
             }
         }
@@ -308,7 +312,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                     };
                     case null, default -> org.bukkit.scoreboard.Team.OptionStatus.ALWAYS;
                 };
-            } catch (NoSuchMethodException ignored) {} catch (Throwable ignored) {
+            } catch (NoSuchMethodException ignored) {
+            } catch (Throwable ignored) {
                 return org.bukkit.scoreboard.Team.OptionStatus.ALWAYS;
             }
         }
