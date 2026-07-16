@@ -236,23 +236,24 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 color, prefix, suffix, vis);
     }
 
+    // 26.2 changed team color to "match the color names in text components" (Mojang patch notes),
+    // meaning the old ChatFormatting/Integer-only reflection here silently returned null on 26.x —
+    // parsed.color() came back null, so TeamUtils.teamColors.remove(teamName) ran instead of .put(),
+    // and TAB's team color never reached the ESP nametag. This version resolves color from whatever
+    // shape the runtime hands back instead of betting on one exact type.
+    private static final java.util.concurrent.atomic.AtomicBoolean loggedUnknownColorType = new java.util.concurrent.atomic.AtomicBoolean(false);
+
     private static NamedTextColor extractColor(Object params) {
         for (String methodName : new String[]{"getColor", "color"}) {
             try {
                 java.lang.reflect.Method m = params.getClass().getMethod(methodName);
                 Object result = m.invoke(params);
-                switch (result) {
-                    case net.minecraft.ChatFormatting cf -> {
-                        net.minecraft.network.chat.TextColor tc = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
-                        return tc == null ? null : NamedTextColor.namedColor(tc.getValue());
-                    }
-                    case Integer rgb -> {
-                        return NamedTextColor.namedColor(rgb);
-                    }
-                    case null, default -> {
-                        return null;
-                    }
-                }
+                if (result == null) continue;
+                if (result instanceof java.util.Optional<?> opt && opt.isEmpty()) return null;
+                NamedTextColor resolved = resolveColor(result);
+                if (resolved != null) return resolved;
+                logUnknownColorType(result);
+                return null;
             } catch (NoSuchMethodException ignored) {
             } catch (Throwable ignored) {
                 return null;
@@ -261,12 +262,120 @@ public final class NmsAdapter_26_x implements NmsAdapter {
         return null;
     }
 
+    private static NamedTextColor resolveColor(Object result) {
+        switch (result) {
+            case null -> {
+                return null;
+            }
+            case java.util.Optional<?> opt -> {
+                return opt.map(NmsAdapter_26_x::resolveColor).orElse(null);
+            }
+            case net.minecraft.ChatFormatting cf -> {
+                net.minecraft.network.chat.TextColor tc = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
+                return tc == null ? null : NamedTextColor.namedColor(tc.getValue());
+            }
+            case Integer rgb -> {
+                return NamedTextColor.namedColor(rgb);
+            }
+            case net.minecraft.network.chat.TextColor tc -> {
+                return NamedTextColor.namedColor(tc.getValue());
+            }
+            case Enum<?> e -> {
+                NamedTextColor byName = NamedTextColor.NAMES.value(e.name().toLowerCase(java.util.Locale.ROOT));
+                if (byName != null) return byName;
+            }
+            default -> {
+            }
+        }
+
+        if (result instanceof String s) {
+            NamedTextColor byName = NamedTextColor.NAMES.value(s.toLowerCase(java.util.Locale.ROOT));
+            if (byName != null) return byName;
+            net.minecraft.network.chat.TextColor tc = parseTextColor(s);
+            if (tc != null) return NamedTextColor.namedColor(tc.getValue());
+        }
+
+        for (String nested : new String[]{"getColor", "color", "getValue", "value", "toTextColor", "asTextColor", "name"}) {
+            try {
+                java.lang.reflect.Method m = result.getClass().getMethod(nested);
+                Object inner = m.invoke(result);
+                if (inner != null && inner != result) {
+                    NamedTextColor resolved = resolveColor(inner);
+                    if (resolved != null) return resolved;
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        return null;
+    }
+
+    private static net.minecraft.network.chat.TextColor parseTextColor(String s) {
+        com.mojang.serialization.DataResult<net.minecraft.network.chat.TextColor> parsed =
+                net.minecraft.network.chat.TextColor.parseColor(s);
+        return unwrapDataResult(parsed);
+    }
+
+    private static <T> T unwrapDataResult(com.mojang.serialization.DataResult<T> result) {
+        if (result == null) return null;
+        try {
+            java.lang.reflect.Method resultMethod = result.getClass().getMethod("result");
+            Object opt = resultMethod.invoke(result);
+            if (opt instanceof java.util.Optional<?> o && o.isPresent()) {
+                @SuppressWarnings("unchecked")
+                T value = (T) o.get();
+                return value;
+            }
+            return null;
+        } catch (ReflectiveOperationException noResultMethod) {
+            try {
+                java.lang.reflect.Method getOrThrow = result.getClass().getMethod("getOrThrow");
+                @SuppressWarnings("unchecked")
+                T value = (T) getOrThrow.invoke(result);
+                return value;
+            } catch (ReflectiveOperationException | RuntimeException stillFailed) {
+                return null;
+            }
+        }
+    }
+
+    private static void logUnknownColorType(Object result) {
+        if (loggedUnknownColorType.compareAndSet(false, true)) {
+            RayTraceAntiEntityESP.bukkit.Main.plugin.getLogger().warning(
+                    "[RayTraceAntiEntityESP] Team color came back as unrecognized type "
+                            + result.getClass().getName() + " (value=" + result
+                            + ") — nametag color from team packets will be null until resolveColor() "
+                            + "handles this type. Report this class name so extractColor can be patched exactly.");
+        }
+    }
+
+    private static final java.util.concurrent.atomic.AtomicBoolean loggedUnknownPrefixShape = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static final java.util.concurrent.atomic.AtomicBoolean loggedUnknownSuffixShape = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private static void logUnknownParamsShape(java.util.concurrent.atomic.AtomicBoolean guard, String label, Object params) {
+        if (!guard.compareAndSet(false, true)) return;
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (java.lang.reflect.Method m : params.getClass().getMethods()) {
+            if (m.getParameterCount() == 0) names.add(m.getName());
+        }
+        RayTraceAntiEntityESP.bukkit.Main.plugin.getLogger().warning(
+                "[RayTraceAntiEntityESP] Could not locate " + label + " accessor on " + params.getClass()
+                        + " — no-arg methods available: " + names
+                        + ". Report this list so extract" + label + " can be patched with the right name.");
+    }
+
     private static Component extractPrefix(Object params) {
-        for (String methodName : new String[]{"getPlayerPrefix", "prefix"}) {
+        for (String methodName : new String[]{"playerPrefix", "getPlayerPrefix", "prefix"}) {
             try {
                 java.lang.reflect.Method m = params.getClass().getMethod(methodName);
                 Object result = m.invoke(params);
                 if (result == null) return null;
+                if (result instanceof java.util.Optional<?> opt) {
+                    if (opt.isEmpty()) return null;
+                    result = opt.get();
+                }
+                if (result instanceof net.minecraft.network.chat.Component nmsComponent) {
+                    return PaperAdventure.asAdventure(nmsComponent);
+                }
                 java.lang.reflect.Method getString = result.getClass().getMethod("getString");
                 String text = (String) getString.invoke(result);
                 return LEGACY.deserialize(text);
@@ -275,15 +384,23 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 return null;
             }
         }
+        logUnknownParamsShape(loggedUnknownPrefixShape, "Prefix", params);
         return null;
     }
 
     private static Component extractSuffix(Object params) {
-        for (String methodName : new String[]{"getPlayerSuffix", "suffix"}) {
+        for (String methodName : new String[]{"playerSuffix", "getPlayerSuffix", "suffix"}) {
             try {
                 java.lang.reflect.Method m = params.getClass().getMethod(methodName);
                 Object result = m.invoke(params);
                 if (result == null) return null;
+                if (result instanceof java.util.Optional<?> opt) {
+                    if (opt.isEmpty()) return null;
+                    result = opt.get();
+                }
+                if (result instanceof net.minecraft.network.chat.Component nmsComponent) {
+                    return PaperAdventure.asAdventure(nmsComponent);
+                }
                 java.lang.reflect.Method getString = result.getClass().getMethod("getString");
                 String text = (String) getString.invoke(result);
                 return LEGACY.deserialize(text);
@@ -292,11 +409,12 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 return null;
             }
         }
+        logUnknownParamsShape(loggedUnknownSuffixShape, "Suffix", params);
         return null;
     }
 
     private static org.bukkit.scoreboard.Team.OptionStatus extractVisibility(Object params) {
-        for (String methodName : new String[]{"getNametagVisibility", "nametagVisibility"}) {
+        for (String methodName : new String[]{"nameTagVisibility", "getNametagVisibility", "nametagVisibility"}) {
             try {
                 java.lang.reflect.Method m = params.getClass().getMethod(methodName);
                 Object result = m.invoke(params);
