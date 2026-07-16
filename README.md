@@ -1,6 +1,6 @@
 # RayTrace Anti Entity ESP
 
-A Paper plugin that prevents players from seeing entities through walls.
+A Paper plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
 
 It uses a DDA raytrace algorithm to check each entity's visibility per player every tick — entities hidden behind solid
 blocks are concealed at the packet level, meaning clients never receive data for entities they shouldn't see.
