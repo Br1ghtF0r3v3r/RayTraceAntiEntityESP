@@ -25,9 +25,7 @@ public class SetEntityDataPacketListener extends PacketListener {
         int entityId = parsed.entityId();
         List<DataItem> items = parsed.items();
 
-        boolean isPluginOwnedEntity = isSyntheticEntity(entityId);
-
-        if (!isPluginOwnedEntity) {
+        if (!isSyntheticEntity(entityId)) {
             for (DataItem data : items) {
                 if (data.index() == 0 && data.value() instanceof Byte flags) {
                     boolean glowing = (flags & 0x40) != 0;

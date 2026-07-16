@@ -13,6 +13,8 @@ public class EntityIdentityCache {
         idToUuid.put(entityId, uuid);
         if (isPlayer) {
             playerEntityIds.add(entityId);
+        } else {
+            playerEntityIds.remove(entityId);
         }
     }
 
@@ -27,5 +29,10 @@ public class EntityIdentityCache {
     public static void remove(int entityId) {
         idToUuid.remove(entityId);
         playerEntityIds.remove(entityId);
+    }
+
+    public static void clearAll() {
+        idToUuid.clear();
+        playerEntityIds.clear();
     }
 }
