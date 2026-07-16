@@ -236,11 +236,6 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 color, prefix, suffix, vis);
     }
 
-    // 26.2 changed team color to "match the color names in text components" (Mojang patch notes),
-    // meaning the old ChatFormatting/Integer-only reflection here silently returned null on 26.x —
-    // parsed.color() came back null, so TeamUtils.teamColors.remove(teamName) ran instead of .put(),
-    // and TAB's team color never reached the ESP nametag. This version resolves color from whatever
-    // shape the runtime hands back instead of betting on one exact type.
     private static final java.util.concurrent.atomic.AtomicBoolean loggedUnknownColorType = new java.util.concurrent.atomic.AtomicBoolean(false);
 
     private static NamedTextColor extractColor(Object params) {
