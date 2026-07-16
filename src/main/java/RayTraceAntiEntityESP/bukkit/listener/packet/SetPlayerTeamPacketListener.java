@@ -35,9 +35,9 @@ public class SetPlayerTeamPacketListener extends PacketListener {
             NamedTextColor color = parsed.color();
             Component prefix = parsed.prefix();
             Component suffix = parsed.suffix();
-            putOrRemove(TeamUtils.teamColors, teamName, color);
-            putOrRemove(TeamUtils.teamPrefixes, teamName, prefix);
-            putOrRemove(TeamUtils.teamSuffixes, teamName, suffix);
+            TeamUtils.putOrRemove(TeamUtils.teamColors, teamName, color);
+            TeamUtils.putOrRemove(TeamUtils.teamPrefixes, teamName, prefix);
+            TeamUtils.putOrRemove(TeamUtils.teamSuffixes, teamName, suffix);
             if (parsed.nametagVisibility() != null) {
                 TeamUtils.teamVisibilities.put(teamName, parsed.nametagVisibility());
             }
@@ -94,10 +94,5 @@ public class SetPlayerTeamPacketListener extends PacketListener {
     private static void flushOutbox(Player viewer, List<Object> outbox) {
         if (outbox.isEmpty()) return;
         NmsAdapterFactory.get().sendBundled(viewer, outbox);
-    }
-
-    private static <K, V> void putOrRemove(Map<K, V> map, K key, V value) {
-        if (value != null) map.put(key, value);
-        else map.remove(key);
     }
 }

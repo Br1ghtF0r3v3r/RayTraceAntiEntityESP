@@ -60,11 +60,6 @@ public class TeamUtils {
         putOrRemove(state.teamSuffixes, teamName, suffix);
     }
 
-    private static <K, V> void putOrRemove(ConcurrentHashMap<K, V> map, K key, V value) {
-        if (value != null) map.put(key, value);
-        else map.remove(key);
-    }
-
     public static void removeViewerTeam(UUID viewer, String teamName) {
         ViewerTeamState state = viewerState(viewer, false);
         if (state == null) return;
@@ -74,9 +69,22 @@ public class TeamUtils {
         state.entryToTeam.values().removeIf(teamName::equals);
     }
 
-    private static boolean isEmptyComponent(Component c) {
-        if (c == null) return true;
-        return PLAIN.serialize(c).isEmpty();
+    public static boolean isEmptyComponent(Component c) {
+        return c == null || PLAIN.serialize(c).isEmpty();
+    }
+
+    public static <K, V> void putOrRemove(java.util.Map<K, V> map, K key, V value) {
+        if (value != null) map.put(key, value);
+        else map.remove(key);
+    }
+
+    public static void clearAll() {
+        teamColors.clear();
+        teamPrefixes.clear();
+        teamSuffixes.clear();
+        entryToTeam.clear();
+        teamVisibilities.clear();
+        viewerOverrides.clear();
     }
 
     private static void ensureTeamInfoFromBukkit(String entry) {
