@@ -174,11 +174,16 @@ public final class NmsAdapter_1_21_x implements NmsAdapter {
         Set<String> actions = p.actions().stream()
                 .map(Enum::name)
                 .collect(Collectors.toSet());
+        boolean touchesDisplayName = actions.contains("ADD_PLAYER")
+                || actions.contains("UPDATE_DISPLAY_NAME");
         List<PlayerInfoEntry> entries = new ArrayList<>(p.entries().size());
         for (ClientboundPlayerInfoUpdatePacket.Entry e : p.entries()) {
+            String displayNamePlain = (touchesDisplayName && e.displayName() != null)
+                    ? e.displayName().getString()
+                    : null;
             entries.add(new PlayerInfoEntry(
                     e.profileId(), e.profile(), e.listed(), e.latency(), e.gameMode(),
-                    e.displayName() == null ? null : PaperAdventure.asAdventure(e.displayName()),
+                    displayNamePlain,
                     e.showHat(), e.listOrder()));
         }
         return new ParsedPlayerInfoUpdate(actions, entries, p);
