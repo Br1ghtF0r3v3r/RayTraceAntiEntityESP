@@ -23,7 +23,7 @@ import static RayTraceAntiEntityESP.bukkit.misc.StringFormat.formatToString;
 
 public class Config {
 
-    public static final int CONFIG_VERSION = 3;
+    public static final int CONFIG_VERSION = 4;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -44,6 +44,8 @@ public class Config {
     public static Set<String> antiEntities;
     public static String antiMode;
     public static boolean isBlacklist;
+
+    public static Set<String> blacklistedWorlds;
 
     public static void migrateConfigIfNeeded() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
@@ -123,6 +125,11 @@ public class Config {
         antiMode = config.getString("anti_mode", "whitelist");
         isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
 
+        blacklistedWorlds = new HashSet<>();
+        for (String world : config.getStringList("blacklisted_world")) {
+            blacklistedWorlds.add(world.toLowerCase());
+        }
+
         RayTraceEngine.clearAntiEntityCache();
 
         if (prevDebugEnabled != isDebugEnabled) {
@@ -134,6 +141,10 @@ public class Config {
         } else {
             RayTraceEngine.killTask();
         }
+    }
+
+    public static boolean isWorldAllowed(String worldName) {
+        return !blacklistedWorlds.contains(worldName.toLowerCase());
     }
 
     public static YamlConfiguration spigotConfig;
@@ -218,5 +229,6 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
         sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));
+        sender.sendMessage(formatToString(sender, "&eblacklisted_world: &f" + String.join(", ", cfg.getStringList("blacklisted_world"))));
     }
 }
