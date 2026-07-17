@@ -216,7 +216,7 @@ public class CommandsHandler implements CommandExecutor {
                 if (entries.isEmpty()) {
                     sender.sendMessage(StringFormat.formatToString(sender, "&7" + label + " list is empty."));
                 } else {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&6" + label + " (" + entries.size() + ")"));
+                    sender.sendMessage(StringFormat.formatToString(sender, "&6" + label + " (" + entries.size() + "):"));
                     List<String> names = new ArrayList<>();
                     for (T value : entries) names.add(display.apply(value));
                     sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", names)));
