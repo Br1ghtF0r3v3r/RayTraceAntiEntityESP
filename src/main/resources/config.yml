@@ -10,7 +10,7 @@
 # Do not edit this manually - if it's missing or doesn't match the plugin jar's
 # version, your config.yml will be automatically rebuilt on next start/reload
 # (your existing values are carried over; the old file is backed up first).
-config_version: 3
+config_version: 4
 
 # -----------------------------------------------
 # CHECKING
@@ -93,3 +93,11 @@ anti_entities:
 # whitelist: only check entities in the list
 # blacklist: check all entities EXCEPT those in the list
 anti_mode: whitelist
+
+# -----------------------------------------------
+# BLACKLISTED WORLD
+# -----------------------------------------------
+# Worlds where ESP checking never runs, by the viewing player's current
+# world (as shown by /rtaee blacklisted_world). Leave empty to run in
+# every world.
+blacklisted_world: [ ]

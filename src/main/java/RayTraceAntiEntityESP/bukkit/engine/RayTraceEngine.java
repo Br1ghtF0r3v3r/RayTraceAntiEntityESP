@@ -616,7 +616,8 @@ public class RayTraceEngine {
 
             java.util.List<Player> onlinePlayers = new ArrayList<>();
             NmsAdapterFactory.get().forEachServerPlayer(p -> {
-                if (!PacketManager.isBypassed(p.getUniqueId())) onlinePlayers.add(p);
+                if (!PacketManager.isBypassed(p.getUniqueId()) && Config.isWorldAllowed(p.getWorld().getName()))
+                    onlinePlayers.add(p);
             });
             if (onlinePlayers.isEmpty()) return;
 

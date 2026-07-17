@@ -87,7 +87,7 @@ public class CommandsHandler implements CommandExecutor {
                 saveAndReload("anti_mode", mode);
                 sender.sendMessage(StringFormat.formatToString(sender, "&aSet anti_mode to &e" + mode));
             }
-            case "anti_entities" -> handleListCommand(sender, args, "anti_entities", "entity type",
+            case "anti_entities" -> handleListCommand(sender, args, 1, "anti_entities", "entity type",
                     raw -> {
                         String type = raw.toLowerCase();
                         try {
@@ -119,7 +119,7 @@ public class CommandsHandler implements CommandExecutor {
                     },
                     "&aAdded &e%s",
                     "&aRemoved &e%s");
-            case "exclude" -> handleListCommand(sender, args, "exclude", "player name or entity uuid",
+            case "exclude" -> handleListCommand(sender, args, 1, "exclude", "player name or entity uuid",
                     CommandsHandler::resolveExcludeTarget,
                     CommandsHandler::displayExcludeTarget,
                     ExcludeBypassManager::addExclude,
@@ -128,7 +128,7 @@ public class CommandsHandler implements CommandExecutor {
                     ExcludeBypassManager::clearExclude,
                     "&aAll viewers can now always see &e%s",
                     "&e%s &ccan be seen by everyone again");
-            case "bypass" -> handleListCommand(sender, args, "bypass", "player",
+            case "bypass" -> handleListCommand(sender, args, 1, "bypass", "player",
                     CommandsHandler::resolvePlayerUUID,
                     CommandsHandler::displayPlayerName,
                     ExcludeBypassManager::addBypass,
@@ -137,6 +137,30 @@ public class CommandsHandler implements CommandExecutor {
                     ExcludeBypassManager::clearBypass,
                     "&e%s &acan now see all entities",
                     "&e%s &cno longer bypasses ESP checking");
+            case "blacklisted_world" -> handleListCommand(sender, args, 1, "blacklisted_world", "world name",
+                    raw -> Bukkit.getWorld(raw) != null ? raw.toLowerCase() : null,
+                    name -> name,
+                    name -> {
+                        if (!Config.blacklistedWorlds.add(name)) return false;
+                        saveAndReload("blacklisted_world", new ArrayList<>(Config.blacklistedWorlds));
+                        return true;
+                    },
+                    name -> {
+                        if (!Config.blacklistedWorlds.remove(name)) return false;
+                        saveAndReload("blacklisted_world", new ArrayList<>(Config.blacklistedWorlds));
+                        return true;
+                    },
+                    () -> Config.blacklistedWorlds,
+                    () -> {
+                        int count = Config.blacklistedWorlds.size();
+                        if (count > 0) {
+                            Config.blacklistedWorlds.clear();
+                            saveAndReload("blacklisted_world", new ArrayList<>(Config.blacklistedWorlds));
+                        }
+                        return count;
+                    },
+                    "&aAdded &e%s",
+                    "&aRemoved &e%s");
             default -> sendHelp(sender);
         }
         return true;
@@ -150,7 +174,7 @@ public class CommandsHandler implements CommandExecutor {
         return false;
     }
 
-    private static <T> void handleListCommand(CommandSender sender, String[] args, String label, String itemNoun,
+    private static <T> void handleListCommand(CommandSender sender, String[] args, int argIndex, String label, String itemNoun,
                                               Function<String, T> resolver,
                                               Function<T, String> display,
                                               Predicate<T> add,
@@ -158,25 +182,25 @@ public class CommandsHandler implements CommandExecutor {
                                               Supplier<? extends Collection<T>> list,
                                               Supplier<Integer> clear,
                                               String addedMsgFmt, String removedMsgFmt) {
-        if (args.length < 2) {
+        if (args.length <= argIndex) {
             sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " <add|remove|list|clear> [" + itemNoun + "]"));
             return;
         }
 
-        switch (args[1].toLowerCase()) {
+        switch (args[argIndex].toLowerCase()) {
             case "add", "remove" -> {
-                if (args.length < 3) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " " + args[1].toLowerCase() + " <" + itemNoun + ">"));
+                if (args.length <= argIndex + 1) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " " + args[argIndex].toLowerCase() + " <" + itemNoun + ">"));
                     return;
                 }
-                String raw = args[2];
+                String raw = args[argIndex + 1];
                 T value = resolver.apply(raw);
                 if (value == null) {
                     sender.sendMessage(StringFormat.formatToString(sender, "&e" + raw + " &cis not a valid " + itemNoun + "."));
                     return;
                 }
                 String name = display.apply(value);
-                boolean isAdd = args[1].equalsIgnoreCase("add");
+                boolean isAdd = args[argIndex].equalsIgnoreCase("add");
                 boolean changed = isAdd ? add.test(value) : remove.test(value);
                 if (!changed) {
                     sender.sendMessage(StringFormat.formatToString(sender,
@@ -207,7 +231,7 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             default -> sender.sendMessage(StringFormat.formatToString(sender,
-                    "&cUnknown option: " + args[1] + ". Use add, remove, list or clear."));
+                    "&cUnknown option: " + args[argIndex] + ". Use add, remove, list or clear."));
         }
     }
 
@@ -307,6 +331,7 @@ public class CommandsHandler implements CommandExecutor {
                 "&e/rtaee anti_entities <add|remove|list|clear> [type] &7- Edit entity list",
                 "&e/rtaee exclude <add|remove|list|clear> [player_name|entity_uuid] &7- Let everyone see this player/entity, always",
                 "&e/rtaee bypass <add|remove|list|clear> [player] &7- Let a player see everyone, always",
+                "&e/rtaee blacklisted_world <add|remove|list|clear> [world] &7- Worlds where ESP checking never runs",
                 "&e/rtaee help &7- Show help information"
         };
         for (String msg : help) sender.sendMessage(StringFormat.formatToString(sender, msg));
