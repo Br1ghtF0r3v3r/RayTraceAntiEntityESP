@@ -12,9 +12,9 @@
 # (your existing values are carried over; the old file is backed up first).
 config_version: 4
 
-# -----------------------------------------------
+#-----------------------------------------------
 # CHECKING
-# -----------------------------------------------
+#-----------------------------------------------
 checking:
   # Enable or disable the raytrace ESP checking entirely
   enabled: true
@@ -42,9 +42,9 @@ checking:
   # Recommended: 3-7
   vertices_layers: 4
 
-# -----------------------------------------------
+#-----------------------------------------------
 # PERSPECTIVE CHECKING
-# -----------------------------------------------
+#-----------------------------------------------
 perspective_checking:
   # Also check from third-person camera positions
   # Prevents entities showing when player is in third-person view
@@ -53,9 +53,9 @@ perspective_checking:
   # Distance from head to simulate third-person camera (in blocks)
   distances_from_head: 4
 
-# -----------------------------------------------
+#-----------------------------------------------
 # DISPLAY NAME
-# -----------------------------------------------
+#-----------------------------------------------
 display_name:
   # Show a fake name tag above hidden entities so players can still identify them
   enabled: true
@@ -73,17 +73,17 @@ display_name:
   # Set to 0 for default height, negative to lower, positive to raise
   offset_y: 0
 
-# -----------------------------------------------
+#-----------------------------------------------
 # DEBUG
-# -----------------------------------------------
+#-----------------------------------------------
 debug:
   # Show debug block displays at entity vertices and raytrace lines
   # Only use this for testing, disable in production
   enabled: false
 
-# -----------------------------------------------
+#-----------------------------------------------
 # ANTI ENTITIES
-# -----------------------------------------------
+#-----------------------------------------------
 # List of entity types to apply ESP checking to
 # Use entity type names from: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
 anti_entities:
@@ -94,9 +94,9 @@ anti_entities:
 # blacklist: check all entities EXCEPT those in the list
 anti_mode: whitelist
 
-# -----------------------------------------------
+#-----------------------------------------------
 # BLACKLISTED WORLD
-# -----------------------------------------------
+#-----------------------------------------------
 # Worlds where ESP checking never runs, by the viewing player's current
 # world (as shown by /rtaee blacklisted_world). Leave empty to run in
 # every world.
