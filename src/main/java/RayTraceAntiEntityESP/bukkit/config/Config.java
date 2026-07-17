@@ -213,7 +213,7 @@ public class Config {
 
     public static void printConfig(CommandSender sender) {
         var cfg = plugin.getConfig();
-        sender.sendMessage(formatToString(sender, "&6RayTrace Anti Entity ESP Config (File)"));
+        sender.sendMessage(formatToString(sender, "&6RayTrace Anti Entity ESP Config (File):"));
         sender.sendMessage(formatToString(sender, "&econfig_version: &f" + cfg.getInt("config_version", -1) + " &7(jar: " + CONFIG_VERSION + ")"));
         sender.sendMessage(formatToString(sender, "&echecking.enabled: &f" + cfg.getBoolean("checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&echecking.period_ticks: &f" + cfg.getLong("checking.period_ticks", 1)));
