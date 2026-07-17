@@ -216,7 +216,7 @@ public class CommandsHandler implements CommandExecutor {
                 if (entries.isEmpty()) {
                     sender.sendMessage(StringFormat.formatToString(sender, "&7" + label + " list is empty."));
                 } else {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&6--- " + label + " (" + entries.size() + ") ---"));
+                    sender.sendMessage(StringFormat.formatToString(sender, "&6" + label + " (" + entries.size() + ")"));
                     List<String> names = new ArrayList<>();
                     for (T value : entries) names.add(display.apply(value));
                     sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", names)));
@@ -320,7 +320,7 @@ public class CommandsHandler implements CommandExecutor {
 
     public static void sendHelp(CommandSender sender) {
         String[] help = {
-                "&6--- RayTrace Anti Entity ESP ---",
+                "&6RayTrace Anti Entity ESP",
                 "&e/rtaee reload &7- Reload config from disk",
                 "&e/rtaee config_value &7- Print all current config values",
                 "&e/rtaee checking <enabled|period_ticks|stagger_groups|distance_override|bounding_box_extra_value|vertices_layers> <value> &7- Checking options",
