@@ -27,7 +27,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -144,8 +143,10 @@ public final class NmsAdapter_26_x implements NmsAdapter {
 
     @Override
     public Object blockStateForName(String name) {
-        if (name.equals("RED_WOOL")) return Blocks.RED_WOOL.defaultBlockState();
-        return Blocks.LIME_WOOL.defaultBlockState();
+        org.bukkit.Material material = name.equals("RED_WOOL")
+                ? org.bukkit.Material.RED_WOOL
+                : org.bukkit.Material.LIME_WOOL;
+        return ((org.bukkit.craftbukkit.block.data.CraftBlockData) Bukkit.createBlockData(material)).getState();
     }
 
     @Override
@@ -385,6 +386,10 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                     result = opt.get();
                 }
                 if (result instanceof net.minecraft.network.chat.Component nmsComponent) {
+                    String plain = nmsComponent.getString();
+                    if (plain.indexOf('§') >= 0) {
+                        return LEGACY.deserialize(plain);
+                    }
                     return PaperAdventure.asAdventure(nmsComponent);
                 }
                 java.lang.reflect.Method getString = result.getClass().getMethod("getString");
