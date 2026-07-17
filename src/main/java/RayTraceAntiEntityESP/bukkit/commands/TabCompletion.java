@@ -23,7 +23,7 @@ public class TabCompletion implements TabCompleter {
         if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return null;
 
         if (args.length == 1) {
-            return filter(args[0], List.of("config_value", "reload", "checking", "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "exclude", "bypass", "help"));
+            return filter(args[0], List.of("config_value", "reload", "checking", "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "exclude", "bypass", "blacklisted_world", "help"));
         }
 
         if (args.length == 2) {
@@ -34,7 +34,8 @@ public class TabCompletion implements TabCompleter {
                 case "debug" -> filter(args[1], List.of("enabled"));
                 case "display_name" -> filter(args[1], List.of("enabled", "offset_y", "lookahead_ticks"));
                 case "anti_mode" -> filter(args[1], List.of("whitelist", "blacklist"));
-                case "anti_entities", "exclude", "bypass" -> filter(args[1], List.of("add", "remove", "list", "clear"));
+                case "anti_entities", "exclude", "bypass", "blacklisted_world" ->
+                        filter(args[1], List.of("add", "remove", "list", "clear"));
                 default -> null;
             };
         }
@@ -73,6 +74,20 @@ public class TabCompletion implements TabCompleter {
                         yield types;
                     }
                     case "remove" -> filter(args[2], new ArrayList<>(Config.antiEntities));
+                    default -> null;
+                };
+                case "blacklisted_world" -> switch (args[1].toLowerCase()) {
+                    case "add" -> {
+                        List<String> names = new ArrayList<>();
+                        for (org.bukkit.World w : Bukkit.getWorlds()) {
+                            String name = w.getName();
+                            if (!Config.blacklistedWorlds.contains(name.toLowerCase()) && name.toLowerCase().startsWith(args[2].toLowerCase())) {
+                                names.add(name);
+                            }
+                        }
+                        yield names;
+                    }
+                    case "remove" -> filter(args[2], new ArrayList<>(Config.blacklistedWorlds));
                     default -> null;
                 };
                 case "exclude", "bypass" -> switch (args[1].toLowerCase()) {
