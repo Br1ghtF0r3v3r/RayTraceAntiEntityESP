@@ -100,4 +100,4 @@ anti_mode: whitelist
 # Worlds where ESP checking never runs, by the viewing player's current
 # world (as shown by /rtaee blacklisted_world). Leave empty to run in
 # every world.
-blacklisted_world: [ ]
+blacklisted_world: []
