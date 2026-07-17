@@ -50,6 +50,7 @@ public class RayTraceEngine {
     private static final float ROT_EPSILON = 1;
     private static final int AABB_REFRESH_TICKS = 4;
     private static final double AABB_QUERY_MARGIN = 4;
+    private static final double VERTEX_INSET = 0.02;
 
     private static final double BUCKET_SIZE_XZ = 64;
 
@@ -445,6 +446,13 @@ public class RayTraceEngine {
                                           double maxX, double maxY, double maxZ) {
         if (Config.checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
         double midX = (minX + maxX) * 0.5, midZ = (minZ + maxZ) * 0.5;
+        double insetMinX = Math.min(minX + VERTEX_INSET, midX);
+        double insetMaxX = Math.max(maxX - VERTEX_INSET, midX);
+        double insetMinZ = Math.min(minZ + VERTEX_INSET, midZ);
+        double insetMaxZ = Math.max(maxZ - VERTEX_INSET, midZ);
+        double midY = (minY + maxY) * 0.5;
+        double insetMinY = Math.min(minY + VERTEX_INSET, midY);
+        double insetMaxY = Math.max(maxY - VERTEX_INSET, midY);
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
         int scaledSampleLayers;
         if (ratio > 0.8) scaledSampleLayers = 2;
@@ -465,36 +473,86 @@ public class RayTraceEngine {
 
         int count = 0;
         for (int i = 0; i < scaledSampleLayers; i++) {
-            double y = lerp(((double) i) / (scaledSampleLayers - 1), minY, maxY);
+            double y = lerp(((double) i) / (scaledSampleLayers - 1), insetMinY, insetMaxY);
             vertexXBuf[count] = midX;
             vertexYBuf[count] = y;
             vertexZBuf[count] = midZ;
             count++;
             if (includeCorners) {
                 if (hasExtra) {
-                    vertexXBuf[count] = eMinX; vertexYBuf[count] = y; vertexZBuf[count] = eMinZ; count++;
-                    vertexXBuf[count] = eMinX; vertexYBuf[count] = y; vertexZBuf[count] = eMaxZ; count++;
-                    vertexXBuf[count] = eMaxX; vertexYBuf[count] = y; vertexZBuf[count] = eMaxZ; count++;
-                    vertexXBuf[count] = eMaxX; vertexYBuf[count] = y; vertexZBuf[count] = eMinZ; count++;
-                    vertexXBuf[count] = midX; vertexYBuf[count] = y; vertexZBuf[count] = eMinZ; count++;
-                    vertexXBuf[count] = midX; vertexYBuf[count] = y; vertexZBuf[count] = eMaxZ; count++;
-                    vertexXBuf[count] = eMinX; vertexYBuf[count] = y; vertexZBuf[count] = midZ; count++;
-                    vertexXBuf[count] = eMaxX; vertexYBuf[count] = y; vertexZBuf[count] = midZ; count++;
+                    vertexXBuf[count] = eMinX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = eMinZ;
+                    count++;
+                    vertexXBuf[count] = eMinX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = eMaxZ;
+                    count++;
+                    vertexXBuf[count] = eMaxX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = eMaxZ;
+                    count++;
+                    vertexXBuf[count] = eMaxX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = eMinZ;
+                    count++;
+                    vertexXBuf[count] = midX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = eMinZ;
+                    count++;
+                    vertexXBuf[count] = midX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = eMaxZ;
+                    count++;
+                    vertexXBuf[count] = eMinX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = midZ;
+                    count++;
+                    vertexXBuf[count] = eMaxX;
+                    vertexYBuf[count] = y;
+                    vertexZBuf[count] = midZ;
+                    count++;
                 }
-                vertexXBuf[count] = minX; vertexYBuf[count] = y; vertexZBuf[count] = minZ; count++;
-                vertexXBuf[count] = minX; vertexYBuf[count] = y; vertexZBuf[count] = maxZ; count++;
-                vertexXBuf[count] = maxX; vertexYBuf[count] = y; vertexZBuf[count] = maxZ; count++;
-                vertexXBuf[count] = maxX; vertexYBuf[count] = y; vertexZBuf[count] = minZ; count++;
-                vertexXBuf[count] = midX; vertexYBuf[count] = y; vertexZBuf[count] = minZ; count++;
-                vertexXBuf[count] = midX; vertexYBuf[count] = y; vertexZBuf[count] = maxZ; count++;
-                vertexXBuf[count] = minX; vertexYBuf[count] = y; vertexZBuf[count] = midZ; count++;
-                vertexXBuf[count] = maxX; vertexYBuf[count] = y; vertexZBuf[count] = midZ; count++;
+                vertexXBuf[count] = insetMinX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = insetMinZ;
+                count++;
+                vertexXBuf[count] = insetMinX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = insetMaxZ;
+                count++;
+                vertexXBuf[count] = insetMaxX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = insetMaxZ;
+                count++;
+                vertexXBuf[count] = insetMaxX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = insetMinZ;
+                count++;
+                vertexXBuf[count] = midX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = insetMinZ;
+                count++;
+                vertexXBuf[count] = midX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = insetMaxZ;
+                count++;
+                vertexXBuf[count] = insetMinX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = midZ;
+                count++;
+                vertexXBuf[count] = insetMaxX;
+                vertexYBuf[count] = y;
+                vertexZBuf[count] = midZ;
+                count++;
             }
         }
         return count;
     }
 
-    private static double lerp(double t, double a, double b) { return a + t * (b - a); }
+    private static double lerp(double t, double a, double b) {
+        return a + t * (b - a);
+    }
 
     public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer, boolean visibleClient,
                                               List<Object> outbox) {

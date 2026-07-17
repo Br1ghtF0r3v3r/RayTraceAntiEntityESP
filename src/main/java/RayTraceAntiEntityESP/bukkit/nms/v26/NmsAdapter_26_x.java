@@ -130,8 +130,11 @@ public final class NmsAdapter_26_x implements NmsAdapter {
 
     @Override
     public List<Object> buildBlockDisplayMetadata(Object blockState, float scale, int interpolationTicks) {
-        List<Object> out = new ArrayList<>(3);
+        List<Object> out = new ArrayList<>(4);
         out.add(new SynchedEntityData.DataValue<>(10, EntityDataSerializers.INT, interpolationTicks));
+        float half = scale * -0.5f;
+        out.add(new SynchedEntityData.DataValue<>(11, EntityDataSerializers.VECTOR3,
+                new Vector3f(half, half, half)));
         out.add(new SynchedEntityData.DataValue<>(12, EntityDataSerializers.VECTOR3,
                 new Vector3f(scale, scale, scale)));
         out.add(new SynchedEntityData.DataValue<>(23, EntityDataSerializers.BLOCK_STATE,
