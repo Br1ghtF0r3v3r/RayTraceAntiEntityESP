@@ -1,9 +1,15 @@
 # RayTrace Anti Entity ESP
 
-A Paper plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
+![Modrinth Downloads](https://img.shields.io/modrinth/dt/raytraceantientityesp?logo=modrinth&label=Modrinth&color=00AF5C)
+![GitHub Release](https://img.shields.io/github/v/release/Br1ghtF0r3v3r/RayTraceAntiEntityESP?label=Release)
+![License](https://img.shields.io/badge/license-GPL--3.0-orange)
+![Last Commit](https://img.shields.io/github/last-commit/Br1ghtF0r3v3r/RayTraceAntiEntityESP)
+![Repo Size](https://img.shields.io/github/repo-size/Br1ghtF0r3v3r/RayTraceAntiEntityESP)
+![Minecraft](https://img.shields.io/badge/Minecraft-1.21+-brightgreen)
+![Paper](https://img.shields.io/badge/Paper-Supported-informational)
+![Purpur](https://img.shields.io/badge/Purpur-Supported-blueviolet)
 
-It uses a DDA raytrace algorithm to check each entity's visibility per player every tick — entities hidden behind solid
-blocks are concealed at the packet level, meaning clients never receive data for entities they shouldn't see.
+A Paper plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
 
 ---
 
