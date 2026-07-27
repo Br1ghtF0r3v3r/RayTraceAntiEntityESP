@@ -9,6 +9,8 @@ import RayTraceAntiEntityESP.paper.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.paper.listener.EventListener;
 import RayTraceAntiEntityESP.paper.manager.events.EventManager;
 import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.paper.scheduler.RegionOwnershipChecker;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.EntityIdentityCache;
 import RayTraceAntiEntityESP.paper.utils.TeamUtils;
 import RayTraceAntiEntityESP.paper.utils.VersionChecker;
@@ -25,6 +27,9 @@ public final class Main extends JavaPlugin {
     @Override
     public void onLoad() {
         plugin = this;
+
+        SchedulerAdapterFactory.init(this);
+        RegionOwnershipChecker.init();
         NmsAdapterFactory.init();
     }
 
@@ -36,7 +41,7 @@ public final class Main extends JavaPlugin {
         PacketEventsBridge.registerIfAvailable();
         registerCommands();
         VersionChecker.check();
-        getLogger().info("RayTraceEntityESP enabled.");
+        getLogger().info("RayTraceEntityESP enabled on " + (SchedulerAdapterFactory.isFolia() ? "Folia" : "Paper") + ".");
 
         int pluginId = 32643;
         new Metrics(this, pluginId);
@@ -44,7 +49,9 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        RayTraceEngine.killTask();
+        RayTraceEngine.shutdownCleanup();
+
+        SchedulerAdapterFactory.get().cancelAll();
         for (Player player : Bukkit.getOnlinePlayers()) {
             EventManager.uninjectPlayer(player);
         }

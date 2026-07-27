@@ -1,17 +1,15 @@
 main: ${main}
 api-version: ${apiVersion}
-
 name: ${name}
 version: ${version}
 author: ${author}
 description: ${description}
 
 softdepend: [ PlaceholderAPI, packetevents ]
-
+folia-supported: true
 permissions:
   raytrace_anti_entity_esp.admin:
     default: op
-
 commands:
   raytrace_anti_entity_esp:
     permission: raytrace_anti_entity_esp.admin
