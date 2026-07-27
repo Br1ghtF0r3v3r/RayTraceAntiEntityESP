@@ -5,6 +5,7 @@ import RayTraceAntiEntityESP.paper.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.paper.listener.PacketListener;
 import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.paper.nms.parsed.ParsedSetPlayerTeam;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.TeamUtils;
 import RayTraceAntiEntityESP.paper.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
@@ -29,9 +30,9 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         String teamAction = parsed.teamAction();
         String playerAction = parsed.playerAction();
 
-        List<Object> outbox = new ArrayList<>();
+        boolean hasColorInfo = parsed.color() != null || parsed.prefix() != null || parsed.suffix() != null || parsed.nametagVisibility() != null;
 
-        if (parsed.color() != null || parsed.prefix() != null || parsed.suffix() != null || parsed.nametagVisibility() != null) {
+        if (hasColorInfo) {
             NamedTextColor color = parsed.color();
             Component prefix = parsed.prefix();
             Component suffix = parsed.suffix();
@@ -41,41 +42,16 @@ public class SetPlayerTeamPacketListener extends PacketListener {
             if (parsed.nametagVisibility() != null) {
                 TeamUtils.teamVisibilities.put(teamName, parsed.nametagVisibility());
             }
-
-            if (Config.isDisplayNameEnabled) {
-                int viewerEntityId = viewer.getEntityId();
-                for (String entry : TeamUtils.entryToTeam.entrySet().stream()
-                        .filter(e -> e.getValue().equals(teamName))
-                        .map(Map.Entry::getKey)
-                        .toList()) {
-                    Player target = Bukkit.getPlayerExact(entry);
-                    if (target == null) continue;
-                    int targetEntityId = target.getEntityId();
-                    if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) continue;
-                    NametagCloneRenderer.refreshDisplay(viewer, target, outbox);
-                }
-            }
         }
 
         if ("ADD".equals(teamAction) || "ADD".equals(playerAction)) {
             for (String entry : parsed.players()) TeamUtils.entryToTeam.put(entry, teamName);
         }
 
+        List<String> playersRemoved = null;
         if ("REMOVE".equals(playerAction)) {
+            playersRemoved = List.copyOf(parsed.players());
             for (String entry : parsed.players()) TeamUtils.entryToTeam.remove(entry);
-
-            int viewerEntityId = viewer.getEntityId();
-            for (String entry : parsed.players()) {
-                Player target = Bukkit.getPlayerExact(entry);
-                if (target == null) continue;
-
-                int targetEntityId = target.getEntityId();
-                boolean isHidden = VisibilityUtils.isHidden(viewerEntityId, targetEntityId);
-
-                if (isHidden && Config.isDisplayNameEnabled) {
-                    NametagCloneRenderer.refreshDisplay(viewer, target, outbox);
-                }
-            }
         }
 
         if ("REMOVE".equals(teamAction)) {
@@ -87,12 +63,46 @@ public class SetPlayerTeamPacketListener extends PacketListener {
         }
 
         ctx.write(msg, promise);
-        flushOutbox(viewer, outbox);
+        if (Config.isDisplayNameEnabled && (hasColorInfo || playersRemoved != null)) {
+            List<String> finalPlayersRemoved = playersRemoved;
+            SchedulerAdapterFactory.get().runEntityTask(viewer, () ->
+                    refreshNametagsForTeamChange(viewer, teamName, hasColorInfo, finalPlayersRemoved));
+        }
+
         return true;
     }
 
-    private static void flushOutbox(Player viewer, List<Object> outbox) {
-        if (outbox.isEmpty()) return;
-        NmsAdapterFactory.get().sendBundled(viewer, outbox);
+    private static void refreshNametagsForTeamChange(Player viewer, String teamName,
+                                                     boolean hasColorInfo, List<String> playersRemoved) {
+        List<Object> outbox = new ArrayList<>();
+        int viewerEntityId = viewer.getEntityId();
+
+        if (hasColorInfo) {
+            for (String entry : TeamUtils.entryToTeam.entrySet().stream()
+                    .filter(e -> e.getValue().equals(teamName))
+                    .map(Map.Entry::getKey)
+                    .toList()) {
+                Player target = Bukkit.getPlayerExact(entry);
+                if (target == null) continue;
+                int targetEntityId = target.getEntityId();
+                if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) continue;
+                NametagCloneRenderer.refreshDisplay(viewer, target, outbox);
+            }
+        }
+
+        if (playersRemoved != null) {
+            for (String entry : playersRemoved) {
+                Player target = Bukkit.getPlayerExact(entry);
+                if (target == null) continue;
+                int targetEntityId = target.getEntityId();
+                if (VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) {
+                    NametagCloneRenderer.refreshDisplay(viewer, target, outbox);
+                }
+            }
+        }
+
+        if (!outbox.isEmpty()) {
+            NmsAdapterFactory.get().sendBundled(viewer, outbox);
+        }
     }
 }

@@ -33,7 +33,7 @@ final class PacketEventsHook {
 
         PacketEvents.getAPI().getEventManager().registerListener(new BridgeListener());
         installed = true;
-        plugin.getLogger().info("PacketEvents detected - enabled team-color/glow/invisibility compatibility bridge.");
+        plugin.getLogger().info("PacketEvents detected: enabled team-color/glow/invisibility compatibility bridge.");
     }
 
     private static final class BridgeListener extends PacketListenerAbstract {

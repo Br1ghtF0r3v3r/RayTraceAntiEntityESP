@@ -8,8 +8,9 @@
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21+-brightgreen)
 ![Paper](https://img.shields.io/badge/Paper-Supported-informational)
 ![Purpur](https://img.shields.io/badge/Purpur-Supported-blueviolet)
+![Folia](https://img.shields.io/badge/Folia-Supported-2ECC71)
 
-A Paper plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
+A plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
 
 ---
 
@@ -39,7 +40,7 @@ A Paper plugin that prevents HACKERS from seeing entities (ex:Players) through w
 4. **Edit** the generated [config.yml](src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to your liking.
 5. **Run** `/rtaee reload` in-game to apply config changes without restarting.
 
-> ⚠️ **Requirements:** Paper **1.21.x** or **26.x**.
+> ⚠️ **Requirements:** Paper, Purpur, or Folia ver **1.21.x** or **26.x**.
 >
 > ⚠️ Do not enable, disable or reload this plugin using plugin managers or `/reload`. It will not work properly and may cause issues.
 

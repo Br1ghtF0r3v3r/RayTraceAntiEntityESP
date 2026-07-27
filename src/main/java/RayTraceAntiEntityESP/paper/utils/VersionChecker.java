@@ -1,9 +1,9 @@
 package RayTraceAntiEntityESP.paper.utils;
 
 import RayTraceAntiEntityESP.paper.misc.StringFormat;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.io.InputStreamReader;
@@ -20,7 +20,7 @@ public class VersionChecker {
     private static volatile boolean updateAvailable = false;
 
     public static void check() {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+        SchedulerAdapterFactory.get().runTaskAsynchronously(() -> {
             try {
                 HttpURLConnection conn = (HttpURLConnection) new URI(API_URL).toURL().openConnection();
                 conn.setRequestMethod("GET");

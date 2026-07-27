@@ -7,6 +7,7 @@ import RayTraceAntiEntityESP.paper.listener.PacketListener;
 import RayTraceAntiEntityESP.paper.listener.PacketManager;
 import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.paper.nms.parsed.ParsedAddEntity;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.EntityIdentityCache;
 import RayTraceAntiEntityESP.paper.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
@@ -24,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static RayTraceAntiEntityESP.paper.Main.plugin;
 
 public class AddEntityPacketListener extends PacketListener {
+
     public static final ConcurrentHashMap<UUID, Set<UUID>> pendingHides = new ConcurrentHashMap<>();
 
     public static void drainPendingHides() {
@@ -39,29 +41,34 @@ public class AddEntityPacketListener extends PacketListener {
                 pendingHides.remove(viewerUUID);
                 return;
             }
-            entityUUIDs.removeIf(entityUUID -> {
-                Entity entity = Bukkit.getEntity(entityUUID);
-                if (entity == null) return false;
 
-                if (!RayTraceEngine.isAntiEntity(entity)) {
-                    PacketManager.addShowBypass(viewerUUID, entityUUID);
-                    viewer.hideEntity(plugin, entity);
-                    viewer.showEntity(plugin, entity);
-                    return true;
-                }
-
-                VisibilityUtils.setHidden(viewer, entity);
-                if (Config.isCheckingEnabled && Config.isDisplayNameEnabled) {
-                    List<Object> outbox = new ArrayList<>();
-                    NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
-                    if (!outbox.isEmpty()) {
-                        NmsAdapterFactory.get().sendBundled(viewer, outbox);
-                    }
-                }
-                return true;
-            });
-            if (entityUUIDs.isEmpty()) pendingHides.remove(viewerUUID);
+            pendingHides.remove(viewerUUID);
+            SchedulerAdapterFactory.get().runEntityTask(viewer, () -> processPendingHides(viewer, entityUUIDs));
         });
+    }
+
+    private static void processPendingHides(Player viewer, Set<UUID> entityUUIDs) {
+        UUID viewerUUID = viewer.getUniqueId();
+        for (UUID entityUUID : entityUUIDs) {
+            Entity entity = Bukkit.getEntity(entityUUID);
+            if (entity == null) continue;
+
+            if (!RayTraceEngine.isAntiEntity(entity)) {
+                PacketManager.addShowBypass(viewerUUID, entityUUID);
+                viewer.hideEntity(plugin, entity);
+                viewer.showEntity(plugin, entity);
+                continue;
+            }
+
+            VisibilityUtils.setHidden(viewer, entity);
+            if (Config.isCheckingEnabled && Config.isDisplayNameEnabled) {
+                List<Object> outbox = new ArrayList<>();
+                NametagCloneRenderer.applyDisplay(viewer, entity, outbox);
+                if (!outbox.isEmpty()) {
+                    NmsAdapterFactory.get().sendBundled(viewer, outbox);
+                }
+            }
+        }
     }
 
     @Override
@@ -100,9 +107,7 @@ public class AddEntityPacketListener extends PacketListener {
             return true;
         }
 
-        pendingHides
-                .computeIfAbsent(viewer.getUniqueId(), k -> ConcurrentHashMap.newKeySet())
-                .add(entityUUID);
+        pendingHides.computeIfAbsent(viewer.getUniqueId(), k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
         return true;
     }
 }
