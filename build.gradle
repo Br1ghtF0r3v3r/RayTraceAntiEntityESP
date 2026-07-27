@@ -21,7 +21,18 @@ tasks {
         enabled = false
     }
     runServer {
-        serverJar(file("run/server.jar"))
+        def matches = file(".").listFiles()?.findAll {
+            it.isDirectory() && it.name.contains(".run")
+        } ?: []
+        if (matches.isEmpty()) {
+            throw new GradleException("No folder containing '.run' found in project root")
+        }
+        if (matches.size() > 1) {
+            throw new GradleException("Multiple '.run' folders found: ${matches*.name}: only one should be active at a time")
+        }
+        def targetDir = matches[0]
+        runDirectory(targetDir)
+        serverJar(file("${targetDir}/server.jar"))
         systemProperty("com.mojang.eula.agree", true)
     }
 }
