@@ -50,6 +50,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static RayTraceAntiEntityESP.paper.Main.plugin;
+
 public final class NmsAdapter_26_x implements NmsAdapter {
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
@@ -344,7 +346,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
 
     private static void logUnknownColorType(Object result) {
         if (loggedUnknownColorType.compareAndSet(false, true)) {
-            RayTraceAntiEntityESP.paper.Main.plugin.getLogger().warning(
+            plugin.getLogger().warning(
                     "[RayTraceAntiEntityESP] Team color came back as unrecognized type "
                             + result.getClass().getName() + " (value=" + result
                             + ") — nametag color from team packets will be null until resolveColor() "
@@ -361,7 +363,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
         for (java.lang.reflect.Method m : params.getClass().getMethods()) {
             if (m.getParameterCount() == 0) names.add(m.getName());
         }
-        RayTraceAntiEntityESP.paper.Main.plugin.getLogger().warning(
+        plugin.getLogger().warning(
                 "[RayTraceAntiEntityESP] Could not locate " + label + " accessor on " + params.getClass()
                         + " — no-arg methods available: " + names
                         + ". Report this list so extract" + label + " can be patched with the right name.");

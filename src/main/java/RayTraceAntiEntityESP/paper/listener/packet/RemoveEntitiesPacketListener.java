@@ -7,6 +7,7 @@ import RayTraceAntiEntityESP.paper.listener.PacketListener;
 import RayTraceAntiEntityESP.paper.listener.PacketManager;
 import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.paper.nms.parsed.ParsedRemoveEntities;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.EntityIdentityCache;
 import RayTraceAntiEntityESP.paper.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,7 +28,7 @@ public class RemoveEntitiesPacketListener extends PacketListener {
 
         int viewerId = viewer.getEntityId();
         UUID viewerUUID = viewer.getUniqueId();
-        List<Object> outbox = null;
+        List<UUID> nametagRemovals = null;
 
         for (int entityId : parsed.entityIds()) {
             if (PacketManager.isSyntheticEntity(entityId)) continue;
@@ -54,8 +55,8 @@ public class RemoveEntitiesPacketListener extends PacketListener {
             if (wasHidden) {
                 VisibilityUtils.setNotHiddenSilently(viewerId, entityId);
                 if (Config.isDisplayNameEnabled && entityUUID != null) {
-                    if (outbox == null) outbox = new ArrayList<>();
-                    NametagCloneRenderer.removeDisplay(viewerUUID, entityUUID, outbox);
+                    if (nametagRemovals == null) nametagRemovals = new ArrayList<>();
+                    nametagRemovals.add(entityUUID);
                 }
             }
 
@@ -63,11 +64,21 @@ public class RemoveEntitiesPacketListener extends PacketListener {
             cleanupEntityState(viewerId, entityId);
         }
 
-        if (outbox != null && !outbox.isEmpty()) {
-            NmsAdapterFactory.get().sendBundled(viewer, outbox);
+        ctx.write(msg, promise);
+
+        if (nametagRemovals != null) {
+            List<UUID> toRemove = nametagRemovals;
+            SchedulerAdapterFactory.get().runEntityTask(viewer, () -> {
+                List<Object> outbox = new ArrayList<>();
+                for (UUID entityUUID : toRemove) {
+                    NametagCloneRenderer.removeDisplay(viewerUUID, entityUUID, outbox);
+                }
+                if (!outbox.isEmpty()) {
+                    NmsAdapterFactory.get().sendBundled(viewer, outbox);
+                }
+            });
         }
 
-        ctx.write(msg, promise);
         return true;
     }
 

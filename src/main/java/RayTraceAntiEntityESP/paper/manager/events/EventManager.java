@@ -5,6 +5,7 @@ import RayTraceAntiEntityESP.paper.engine.NametagCloneRenderer;
 import RayTraceAntiEntityESP.paper.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.paper.listener.PacketManager;
 import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.TeamUtils;
 import RayTraceAntiEntityESP.paper.utils.VersionChecker;
 import RayTraceAntiEntityESP.paper.utils.VisibilityUtils;
@@ -27,7 +28,6 @@ import org.bukkit.scoreboard.Team;
 import java.util.List;
 import java.util.UUID;
 
-import static RayTraceAntiEntityESP.paper.Main.plugin;
 import static RayTraceAntiEntityESP.paper.config.Config.isDebugEnabled;
 import static RayTraceAntiEntityESP.paper.config.Config.isDisplayNameEnabled;
 
@@ -66,7 +66,7 @@ public class EventManager {
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
         UUID playerUUID = event.getPlayerUniqueId();
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        SchedulerAdapterFactory.get().runTask(() -> {
             if (Bukkit.getPlayer(playerUUID) != null) return;
             if (isDisplayNameEnabled) NametagCloneRenderer.removeDisplay(playerUUID);
             if (isDebugEnabled) DebugVertexRenderer.removeDisplay(playerUUID);
@@ -106,7 +106,7 @@ public class EventManager {
             }
         }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        SchedulerAdapterFactory.get().runTaskLater(() -> {
             NmsAdapterFactory.get().resendAllTeamsTo(player);
             if (player.isOnline() && player.hasPermission("raytrace_anti_entity_esp.admin")) {
                 VersionChecker.notifyIfOutdated(player);
