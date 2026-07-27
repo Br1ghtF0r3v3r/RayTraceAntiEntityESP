@@ -312,10 +312,8 @@ public final class NmsAdapter_1_21_x implements NmsAdapter {
                     case net.minecraft.world.scores.Team.Visibility v -> mapVisibility(v);
                     case String s -> switch (s) {
                         case "never", "NEVER" -> org.bukkit.scoreboard.Team.OptionStatus.NEVER;
-                        case "hideForOtherTeams", "HIDE_FOR_OTHER_TEAMS" ->
-                                org.bukkit.scoreboard.Team.OptionStatus.FOR_OWN_TEAM;
-                        case "hideForOwnTeam", "HIDE_FOR_OWN_TEAM" ->
-                                org.bukkit.scoreboard.Team.OptionStatus.FOR_OTHER_TEAMS;
+                        case "hideForOtherTeams", "HIDE_FOR_OTHER_TEAMS" -> org.bukkit.scoreboard.Team.OptionStatus.FOR_OWN_TEAM;
+                        case "hideForOwnTeam", "HIDE_FOR_OWN_TEAM" -> org.bukkit.scoreboard.Team.OptionStatus.FOR_OTHER_TEAMS;
                         default -> org.bukkit.scoreboard.Team.OptionStatus.ALWAYS;
                     };
                     case null, default -> org.bukkit.scoreboard.Team.OptionStatus.ALWAYS;

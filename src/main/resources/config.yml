@@ -4,10 +4,10 @@
 # ██╔══██╗   ██║   ██╔══██║██╔══╝  ██╔══╝
 # ██║  ██║   ██║   ██║  ██║███████╗███████╗
 # ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
-# RayTrace Anti Entity ESP - Configuration File
+# RayTrace Anti Entity ESP Configuration File
 
 # Used internally to detect outdated config files after a plugin update.
-# Do not edit this manually - if it's missing or doesn't match the plugin jar's
+# Do not edit this manually, if it's missing or doesn't match the plugin jar's
 # version, your config.yml will be automatically rebuilt on next start/reload
 # (your existing values are carried over; the old file is backed up first).
 config_version: 4
