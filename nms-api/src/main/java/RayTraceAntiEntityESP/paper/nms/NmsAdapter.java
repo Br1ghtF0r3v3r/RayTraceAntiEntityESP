@@ -17,6 +17,8 @@ public interface NmsAdapter {
 
     void bundleAndSend(Player viewer, List<Object> packets);
 
+    void resendPlayerInfoAdd(Player viewer, Player target);
+
     default void sendBundled(Player viewer, List<Object> outbox) {
         if (outbox == null || outbox.isEmpty()) return;
         bundleAndSend(viewer, outbox);
