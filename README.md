@@ -1,9 +1,9 @@
 # RayTrace Anti Entity ESP
 
-![Modrinth Downloads](https://img.shields.io/modrinth/dt/raytraceantientityesp?logo=modrinth&label=Modrinth&color=00AF5C)
-![GitHub Release](https://img.shields.io/github/v/release/Br1ghtF0r3v3r/RayTraceAntiEntityESP?label=Release)
-![License](https://img.shields.io/badge/license-GPL--3.0-orange)
-![Last Commit](https://img.shields.io/github/last-commit/Br1ghtF0r3v3r/RayTraceAntiEntityESP)
+[![Modrinth Downloads](https://img.shields.io/modrinth/dt/raytraceantientityesp?logo=modrinth&label=Modrinth&color=00AF5C)](https://modrinth.com/plugin/raytraceantientityesp)
+[![GitHub Release](https://img.shields.io/github/v/release/Br1ghtF0r3v3r/RayTraceAntiEntityESP?label=Release)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0-orange)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/blob/master/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/Br1ghtF0r3v3r/RayTraceAntiEntityESP)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/commits)
 ![Repo Size](https://img.shields.io/github/repo-size/Br1ghtF0r3v3r/RayTraceAntiEntityESP)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21+-brightgreen)
 ![Paper](https://img.shields.io/badge/Paper-Supported-informational)
@@ -108,14 +108,12 @@ All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alia
 
 ## License
 
-This project is licensed under the **GPL-3.0 License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GPL-3.0 License**. See the [LICENSE](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/blob/master/LICENSE) file for details.
 
 ---
 
 ## Support
 
 If you have any questions, issues, or suggestions, please open an issue on [Issues](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/issues).
-
-Or join the [Discord](https://discord.gg/x8KkZPXXHR) for support and discussion.
 
 ---
