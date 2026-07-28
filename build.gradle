@@ -1,43 +1,12 @@
 plugins {
-    id "java"
-    id "com.gradleup.shadow" version "9.5.1"
-    id "xyz.jpenilla.run-paper" version "3.0.2"
-    id "io.papermc.paperweight.userdev" version "2.0.0-beta.21"
+    id 'io.papermc.paperweight.userdev' version '2.0.0-beta.21' apply false
 }
 
-tasks {
-    shadowJar {
-        archiveBaseName.set("${project.name}")
-        archiveClassifier.set("")
-        archiveVersion.set("")
-        mergeServiceFiles()
-        configurations = [project.configurations.runtimeClasspath]
-        dependencies {
-            exclude { it.moduleGroup != "org.bstats" }
-        }
-        relocate("org.bstats", "${project.group}.libs.bstats")
-    }
-    tasks.jar {
-        enabled = false
-    }
-    runServer {
-        def matches = file(".").listFiles()?.findAll {
-            it.isDirectory() && it.name.contains(".run")
-        } ?: []
-        if (matches.isEmpty()) {
-            throw new GradleException("No folder containing '.run' found in project root")
-        }
-        if (matches.size() > 1) {
-            throw new GradleException("Multiple '.run' folders found: ${matches*.name}: only one should be active at a time")
-        }
-        def targetDir = matches[0]
-        runDirectory(targetDir)
-        serverJar(file("${targetDir}/server.jar"))
-        systemProperty("com.mojang.eula.agree", true)
-    }
-}
+def javaVersion = javaVersion as int
 
-allprojects {
+subprojects {
+    apply plugin: 'java'
+
     repositories {
         mavenCentral()
         gradlePluginPortal()
@@ -47,46 +16,20 @@ allprojects {
         maven { url "https://repo.extendedclip.com/releases/" }
         maven { url "https://maven.respark.dev/releases" }
     }
-}
 
-dependencies {
-    implementation "org.bstats:bstats-bukkit:3.2.1"
-    compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
-    paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
-    compileOnly "me.clip:placeholderapi:2.12.2"
-    compileOnly "com.github.retrooper:packetevents-spigot:2.13.0"
-}
+    java {
+        sourceCompatibility = JavaVersion.toVersion(javaVersion)
+        targetCompatibility = JavaVersion.toVersion(javaVersion)
 
-java {
-    sourceCompatibility = JavaVersion.toVersion(javaVersion)
-    targetCompatibility = JavaVersion.toVersion(javaVersion)
-
-    if (JavaVersion.current() < JavaVersion.toVersion(javaVersion)) {
-        toolchain.languageVersion = JavaLanguageVersion.of(javaVersion as String)
+        if (JavaVersion.current() < JavaVersion.toVersion(javaVersion)) {
+            toolchain.languageVersion = JavaLanguageVersion.of(javaVersion as String)
+        }
     }
-}
 
-def javaVersion = javaVersion as int
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-
-    if (javaVersion as int >= 10 || JavaVersion.current().isJava10Compatible()) {
-        options.release = javaVersion as int
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        if (javaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+            options.release = javaVersion
+        }
     }
-}
-
-processResources {
-    def props = [
-            name : project.name,
-            version : project.version,
-            main : main,
-            apiVersion : apiVersion,
-            author : author,
-            description : project.description,
-    ]
-    inputs.properties props
-    filesMatching('plugin.yml') { expand props }
-    filesMatching('build.properties') { expand props }
-    filteringCharset 'UTF-8'
 }
