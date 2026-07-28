@@ -32,6 +32,10 @@ public class VisibilityUtils {
         PacketManager.cancelShowBypass(player.getUniqueId(), entity.getUniqueId());
         PacketManager.addDestroyBypass(player.getUniqueId(), entityId);
         player.hideEntity(plugin, entity);
+
+        if (entity instanceof Player target) {
+            NmsAdapterFactory.get().resendPlayerInfoAdd(player, target);
+        }
     }
 
     public static void setNotHidden(Player player, Entity entity) {
