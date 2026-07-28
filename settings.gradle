@@ -8,3 +8,5 @@ plugins {
 }
 
 rootProject.name = name
+
+include 'nms-api', 'nms-1_21', 'nms-26', 'plugin'
