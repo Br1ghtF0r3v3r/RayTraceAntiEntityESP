@@ -46,8 +46,7 @@ public class RemoveEntitiesPacketListener extends PacketListener {
                 Player target = entityUUID != null ? Bukkit.getPlayer(entityUUID) : null;
                 if (target == null || !target.isOnline()) {
                     if (wasHidden && entityUUID != null) {
-                        NmsAdapterFactory.get().sendPacket(viewer,
-                                NmsAdapterFactory.get().buildPlayerInfoRemovePacket(List.of(entityUUID)));
+                        NmsAdapterFactory.get().sendPacket(viewer, NmsAdapterFactory.get().buildPlayerInfoRemovePacket(List.of(entityUUID)));
                     }
                 }
             }

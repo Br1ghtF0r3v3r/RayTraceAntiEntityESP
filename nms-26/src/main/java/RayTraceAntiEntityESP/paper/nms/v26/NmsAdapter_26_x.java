@@ -94,6 +94,13 @@ public final class NmsAdapter_26_x implements NmsAdapter {
     }
 
     @Override
+    public void resendPlayerInfoAdd(Player viewer, Player target) {
+        ServerPlayer nmsViewer = ((CraftPlayer) viewer).getHandle();
+        ServerPlayer nmsTarget = ((CraftPlayer) target).getHandle();
+        nmsViewer.connection.send(ClientboundPlayerInfoUpdatePacket.createPlayerInitializing(List.of(nmsTarget)));
+    }
+
+    @Override
     @SuppressWarnings({"rawtypes"})
     public Object buildArmorStandSpawnPacket(int entityId, UUID entityUuid, double x, double y, double z) {
         return new ClientboundAddEntityPacket(entityId, entityUuid, x, y, z, 0f, 0f, (EntityType) EntityTypeResolver.armorStand(), 0, Vec3.ZERO, 0.0);
