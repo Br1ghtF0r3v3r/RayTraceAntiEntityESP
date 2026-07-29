@@ -11,7 +11,8 @@ import java.net.URI;
 
 import static RayTraceAntiEntityESP.paper.Main.plugin;
 
-public class VersionChecker {
+public final class VersionChecker {
+
     private static final String GITHUB_REPO = "Br1ghtF0r3v3r/RayTraceAntiEntityESP";
     private static final String API_URL = "https://api.github.com/repos/" + GITHUB_REPO + "/releases";
     private static volatile String currentVersion = null;
