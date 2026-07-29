@@ -21,8 +21,7 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         ParsedPlayerInfoUpdate parsed = NmsAdapterFactory.get().parsePlayerInfoUpdate(msg);
         if (parsed == null) return false;
 
-        boolean touchesDisplayName = parsed.actions().contains("ADD_PLAYER")
-                || parsed.actions().contains("UPDATE_DISPLAY_NAME");
+        boolean touchesDisplayName = parsed.actions().contains("ADD_PLAYER") || parsed.actions().contains("UPDATE_DISPLAY_NAME");
 
         if (!touchesDisplayName) {
             ctx.write(msg, promise);
@@ -32,7 +31,7 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         Map<UUID, Component> forcedDisplayNames = null;
 
         for (PlayerInfoEntry entry : parsed.entries()) {
-            Component forced = buildForcedDisplayName(entry);
+            Component forced = buildForcedDisplayName(viewer, entry);
             if (forced != null) {
                 if (forcedDisplayNames == null) forcedDisplayNames = new HashMap<>();
                 forcedDisplayNames.put(entry.profileId(), forced);
@@ -44,13 +43,16 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
         return true;
     }
 
-    private static Component buildForcedDisplayName(PlayerInfoEntry entry) {
+    private static Component buildForcedDisplayName(Player viewer, PlayerInfoEntry entry) {
         if (entry.profile() == null) return null;
 
         String profileName = entry.profile().name();
         if (profileName == null || profileName.isEmpty()) return null;
         if (!isPlainOrUnset(entry.displayNamePlain(), profileName)) return null;
-
+        Player target = org.bukkit.Bukkit.getPlayer(entry.profileId());
+        if (target != null) {
+            return TeamUtils.decorateName(viewer, target, profileName);
+        }
         String teamName = TeamUtils.getEntryTeamName(profileName);
         if (teamName == null) return null;
 
