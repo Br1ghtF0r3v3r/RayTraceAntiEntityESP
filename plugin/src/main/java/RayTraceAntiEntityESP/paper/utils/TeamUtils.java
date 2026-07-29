@@ -87,6 +87,22 @@ public final class TeamUtils {
         return name;
     }
 
+    public static Component decorateName(Player viewer, Entity entity, String plainName) {
+        NamedTextColor color = getTeamColor(viewer, entity);
+        Component prefix = getTeamPrefix(viewer, entity);
+        Component suffix = getTeamSuffix(viewer, entity);
+        boolean hasPrefix = !isEmptyComponent(prefix);
+        boolean hasSuffix = !isEmptyComponent(suffix);
+        if (color == null && !hasPrefix && !hasSuffix) return null;
+
+        Component name = Component.text(plainName);
+        if (color != null) name = name.color(color);
+        if (hasPrefix) name = prefix.append(name);
+        if (hasSuffix) name = name.append(suffix);
+
+        return name;
+    }
+
     public static boolean isEmptyComponent(Component c) {
         return c == null || PLAIN.serialize(c).isEmpty();
     }
