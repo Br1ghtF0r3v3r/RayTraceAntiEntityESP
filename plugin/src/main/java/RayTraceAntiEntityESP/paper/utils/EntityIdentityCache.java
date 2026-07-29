@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class EntityIdentityCache {
+public final class EntityIdentityCache {
 
     private static final ConcurrentHashMap<Integer, UUID> idToUuid = new ConcurrentHashMap<>();
     private static final Set<Integer> playerEntityIds = ConcurrentHashMap.newKeySet();

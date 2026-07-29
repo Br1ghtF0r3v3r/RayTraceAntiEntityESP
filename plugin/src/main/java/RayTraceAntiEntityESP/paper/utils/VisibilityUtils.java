@@ -15,7 +15,7 @@ import static RayTraceAntiEntityESP.paper.Main.plugin;
 import static RayTraceAntiEntityESP.paper.utils.TeamUtils.getEntryTeamName;
 import static RayTraceAntiEntityESP.paper.utils.TeamUtils.getTeamVisibility;
 
-public class VisibilityUtils {
+public final class VisibilityUtils {
 
     private static final ConcurrentHashMap<Integer, IntSet> hiddenByViewer = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, IntSet> externallyHidden = new ConcurrentHashMap<>();

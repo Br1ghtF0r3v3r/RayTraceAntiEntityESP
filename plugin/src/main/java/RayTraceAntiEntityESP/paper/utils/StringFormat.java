@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class StringFormat {
+public final class StringFormat {
 
     public static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     public static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
