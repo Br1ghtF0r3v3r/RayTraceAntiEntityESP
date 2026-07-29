@@ -73,7 +73,7 @@ public class SetPlayerTeamPacketListener extends PacketListener {
     }
 
     private static void refreshTabListEntry(Player viewer, Player target, String teamName) {
-        Component decorated = TeamUtils.decorateName(teamName, target.getName());
+        Component decorated = TeamUtils.decorateName(viewer, target, target.getName());
         if (decorated == null) return;
         NmsAdapterFactory.get().sendPacket(viewer, NmsAdapterFactory.get().buildDisplayNameUpdatePacket(target, decorated));
     }
