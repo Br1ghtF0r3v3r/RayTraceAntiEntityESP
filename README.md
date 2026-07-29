@@ -6,9 +6,9 @@
 [![Last Commit](https://img.shields.io/github/last-commit/Br1ghtF0r3v3r/RayTraceAntiEntityESP?logo=github&label=Last%20Commit)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/commits)
 [![Repo Size](https://img.shields.io/github/repo-size/Br1ghtF0r3v3r/RayTraceAntiEntityESP?logo=github&label=Repo%20Size)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP)
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21+-brightgreen?label=Minecraft%20Version)
-![Paper](https://img.shields.io/badge/Paper-Supported-informational)
-![Purpur](https://img.shields.io/badge/Purpur-Supported-blueviolet)
-![Folia](https://img.shields.io/badge/Folia-Supported-2ECC71)
+[![Paper](https://img.shields.io/badge/Paper-Supported-informational)](https://papermc.io/downloads/paper)
+[![Purpur](https://img.shields.io/badge/Purpur-Supported-blueviolet)](https://purpurmc.org/download/purpur)
+[![Folia](https://img.shields.io/badge/Folia-Supported-2ECC71)](https://papermc.io/downloads/folia)
 
 A plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
 
