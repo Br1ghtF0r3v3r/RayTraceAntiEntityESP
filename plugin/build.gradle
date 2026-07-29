@@ -1,0 +1,57 @@
+plugins {
+    id "java"
+    id "com.gradleup.shadow" version "9.5.1"
+    id "xyz.jpenilla.run-paper" version "3.0.2"
+    id "io.papermc.paperweight.userdev"
+}
+dependencies {
+    implementation "org.bstats:bstats-bukkit:3.2.1"
+    compileOnly "me.clip:placeholderapi:2.12.2"
+    compileOnly "com.github.retrooper:packetevents-spigot:2.13.0"
+    paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
+    implementation project(':nms-api')
+    shadow project(':nms-1_21')
+    shadow project(':nms-26')
+}
+tasks {
+    shadowJar {
+        archiveBaseName.set(rootProject.name)
+        archiveClassifier.set("")
+        archiveVersion.set("")
+        mergeServiceFiles()
+        configurations = [project.configurations.shadow, project.configurations.runtimeClasspath]
+        relocate("org.bstats", "${rootProject.group}.libs.bstats")
+    }
+    jar {
+        enabled = false
+    }
+    runServer {
+        def matches = rootProject.file(".").listFiles()?.findAll {
+            it.isDirectory() && it.name.contains(".run")
+        } ?: []
+        if (matches.isEmpty()) {
+            throw new GradleException("No folder containing '.run' found in project root")
+        }
+        if (matches.size() > 1) {
+            throw new GradleException("Multiple '.run' folders found: ${matches*.name}: only one should be active at a time")
+        }
+        def targetDir = matches[0]
+        runDirectory(targetDir)
+        serverJar(file("${targetDir}/server.jar"))
+        systemProperty("com.mojang.eula.agree", true)
+    }
+}
+processResources {
+    def props = [
+            name: rootProject.name,
+            version: rootProject.version,
+            main: main,
+            apiVersion: apiVersion,
+            author: author,
+            description: description,
+    ]
+    inputs.properties props
+    filesMatching('plugin.yml') { expand props }
+    filesMatching('build.properties') { expand props }
+    filteringCharset 'UTF-8'
+}
