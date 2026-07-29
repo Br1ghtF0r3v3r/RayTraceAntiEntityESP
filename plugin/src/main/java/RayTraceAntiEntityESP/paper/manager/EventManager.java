@@ -25,9 +25,9 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Team;
 
-import java.util.List;
 import java.util.UUID;
 
+import static RayTraceAntiEntityESP.paper.Main.plugin;
 import static RayTraceAntiEntityESP.paper.config.Config.isDebugEnabled;
 import static RayTraceAntiEntityESP.paper.config.Config.isDisplayNameEnabled;
 
@@ -42,11 +42,13 @@ public class EventManager {
 
         NmsAdapterFactory.get().forEachServerPlayer(other -> {
             if (other.getUniqueId().equals(playerUUID)) return;
+            PacketManager.removeHiddenBypass(other.getUniqueId(), playerUUID);
+            PacketManager.cancelShowBypass(other.getUniqueId(), playerUUID);
+
             if (VisibilityUtils.isHidden(other.getEntityId(), viewerEntityId)) {
-                NmsAdapterFactory.get().sendPacket(other, NmsAdapterFactory.get().buildPlayerInfoRemovePacket(List.of(playerUUID)));
+                other.showEntity(plugin, player);
                 VisibilityUtils.setNotHiddenSilently(other.getEntityId(), viewerEntityId);
             }
-            PacketManager.removeHiddenBypass(other.getUniqueId(), playerUUID);
         });
         PacketManager.clearBypassForViewer(playerUUID);
         TeamUtils.clearViewerOverrides(playerUUID);
