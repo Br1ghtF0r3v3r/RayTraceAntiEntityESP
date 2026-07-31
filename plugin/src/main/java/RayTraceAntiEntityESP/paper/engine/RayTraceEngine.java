@@ -128,6 +128,11 @@ public class RayTraceEngine {
 
         ArrayList<Object> outboxBuffer = new ArrayList<>(32);
         ArrayList<Entity> pendingShowsBuffer = new ArrayList<>(16);
+
+        final double[] thirdPersonScratch = new double[3];
+        final double[] vertexXBuf = new double[128];
+        final double[] vertexYBuf = new double[128];
+        final double[] vertexZBuf = new double[128];
     }
 
     private static final Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache = new Object2BooleanOpenHashMap<>();
@@ -813,7 +818,7 @@ public class RayTraceEngine {
         cache.eyeY = eyeLoc.getY();
         cache.eyeZ = eyeLoc.getZ();
 
-        double[] thirdPersonScratchLocal = new double[3];
+        double[] thirdPersonScratchLocal = cache.thirdPersonScratch;
 
         if (perspectiveEnabled) {
             if (moved || !cache.perspectiveValid) {
@@ -844,9 +849,9 @@ public class RayTraceEngine {
         for (int ci = 0; ci < count; ci++)
             clientVis[ci] = hiddenSet == null || !hiddenSet.contains(entityIds[ci]);
 
-        double[] vertexXBufLocal = new double[128];
-        double[] vertexYBufLocal = new double[128];
-        double[] vertexZBufLocal = new double[128];
+        double[] vertexXBufLocal = cache.vertexXBuf;
+        double[] vertexYBufLocal = cache.vertexYBuf;
+        double[] vertexZBufLocal = cache.vertexZBuf;
 
         boolean[] results = cache.asyncResults;
         boolean vMoved = moved;
