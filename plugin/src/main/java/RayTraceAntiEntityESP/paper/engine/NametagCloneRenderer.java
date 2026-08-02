@@ -24,7 +24,16 @@ public class NametagCloneRenderer {
 
     private static final ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, NametagCloneUtils>> clones = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<UUID, double[]> velocityTrackers = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, ConcurrentHashMap<UUID, NameCacheEntry>> nameCache = new ConcurrentHashMap<>();
     private static final double CLONE_MOVE_EPSILON_SQ = 0.01 * 0.01;
+
+    private static final class NameCacheEntry {
+        Component customName;
+        NamedTextColor teamColor;
+        Component teamPrefix;
+        Component teamSuffix;
+        Component result;
+    }
 
     private static double[] extrapolatedPos(Entity entity) {
         double ex = entity.getX(), ey = entity.getY(), ez = entity.getZ();
@@ -60,12 +69,15 @@ public class NametagCloneRenderer {
     }
 
     private static boolean shouldShowFast(Player viewer, Entity entity) {
+        return shouldShowFast(viewer, entity, VisibilityUtils.getHiddenSet(viewer.getEntityId()));
+    }
+
+    private static boolean shouldShowFast(Player viewer, Entity entity, it.unimi.dsi.fastutil.ints.IntSet hiddenSet) {
         if (entity.isDead()) return false;
         if (!entity.isValid()) return false;
 
-        int viewerEntityId = viewer.getEntityId();
         int targetEntityId = entity.getEntityId();
-        if (!VisibilityUtils.isHidden(viewerEntityId, targetEntityId)) return false;
+        if (hiddenSet == null || !hiddenSet.contains(targetEntityId)) return false;
 
         Boolean cachedInvisible = SetEntityDataPacketListener.getInvisible(targetEntityId);
         if (cachedInvisible != null ? cachedInvisible : entity.isInvisible()) return false;
@@ -133,6 +145,10 @@ public class NametagCloneRenderer {
     }
 
     public static void refreshDisplay(Player viewer, Entity entity, List<Object> outbox) {
+        refreshDisplay(viewer, entity, outbox, VisibilityUtils.getHiddenSet(viewer.getEntityId()));
+    }
+
+    public static void refreshDisplay(Player viewer, Entity entity, List<Object> outbox, it.unimi.dsi.fastutil.ints.IntSet hiddenSet) {
         UUID viewerUUID = viewer.getUniqueId();
         UUID entityUUID = entity.getUniqueId();
 
@@ -148,7 +164,7 @@ public class NametagCloneRenderer {
             return;
         }
 
-        if (!shouldShowFast(viewer, entity)) {
+        if (!shouldShowFast(viewer, entity, hiddenSet)) {
             inner.remove(entityUUID);
             despawnClone(existing, outbox);
             return;
@@ -175,10 +191,13 @@ public class NametagCloneRenderer {
         if (clone == null) return;
         despawnClone(clone, outbox);
         maybeClearVelocityTracker(entityUUID);
+        ConcurrentHashMap<UUID, NameCacheEntry> nameInner = nameCache.get(viewerUUID);
+        if (nameInner != null) nameInner.remove(entityUUID);
     }
 
     public static void removeDisplay(UUID viewerUUID) {
         Map<UUID, NametagCloneUtils> inner = clones.remove(viewerUUID);
+        nameCache.remove(viewerUUID);
         if (inner == null) return;
         for (NametagCloneUtils clone : inner.values()) {
             if (clone == null) continue;
@@ -194,6 +213,9 @@ public class NametagCloneRenderer {
             if (clone == null) continue;
             despawnClone(clone, null);
         }
+        for (ConcurrentHashMap<UUID, NameCacheEntry> nameInner : nameCache.values()) {
+            if (nameInner != null) nameInner.remove(entityUUID);
+        }
         velocityTrackers.remove(entityUUID);
     }
 
@@ -201,11 +223,14 @@ public class NametagCloneRenderer {
         UUID viewerUUID = viewer.getUniqueId();
         Map<UUID, NametagCloneUtils> inner = clones.get(viewerUUID);
         if (inner == null) return;
+        ConcurrentHashMap<UUID, NameCacheEntry> nameInner = nameCache.get(viewerUUID);
+        it.unimi.dsi.fastutil.ints.IntSet hiddenSet = VisibilityUtils.getHiddenSet(viewer.getEntityId());
         java.util.List<UUID> removed = new ArrayList<>();
         inner.entrySet().removeIf(entry -> {
             Entity entity = Bukkit.getEntity(entry.getKey());
-            if (entity == null || !shouldShowFast(viewer, entity)) {
+            if (entity == null || !shouldShowFast(viewer, entity, hiddenSet)) {
                 despawnClone(entry.getValue(), outbox);
+                if (nameInner != null) nameInner.remove(entry.getKey());
                 removed.add(entry.getKey());
                 return true;
             }
@@ -232,6 +257,7 @@ public class NametagCloneRenderer {
         });
         clones.clear();
         velocityTrackers.clear();
+        nameCache.clear();
     }
 
     private static void despawnClone(NametagCloneUtils clone, List<Object> outbox) {
@@ -249,16 +275,34 @@ public class NametagCloneRenderer {
 
     private static Component getName(Player viewer, Entity entity) {
         Component custom = entity.customName();
+        TeamUtils.TeamInfo teamInfo = TeamUtils.resolveTeamInfo(viewer, entity);
+        NamedTextColor teamColor = teamInfo.color();
+        Component teamPrefix = teamInfo.prefix();
+        Component teamSuffix = teamInfo.suffix();
+
+        ConcurrentHashMap<UUID, NameCacheEntry> inner =
+                nameCache.computeIfAbsent(viewer.getUniqueId(), k -> new ConcurrentHashMap<>());
+        NameCacheEntry cached = inner.get(entity.getUniqueId());
+        if (cached != null
+                && cached.customName == custom
+                && cached.teamColor == teamColor
+                && cached.teamPrefix == teamPrefix
+                && cached.teamSuffix == teamSuffix) {
+            return cached.result;
+        }
+
         Component name = (!(entity instanceof Player) && custom != null) ? custom : Component.text(entity.getName());
-
-        NamedTextColor teamColor = TeamUtils.getTeamColor(viewer, entity);
         if (teamColor != null) name = name.color(teamColor);
-
-        Component teamPrefix = TeamUtils.getTeamPrefix(viewer, entity);
         if (teamPrefix != null) name = teamPrefix.append(name);
-
-        Component teamSuffix = TeamUtils.getTeamSuffix(viewer, entity);
         if (teamSuffix != null) name = name.append(teamSuffix);
+
+        NameCacheEntry fresh = new NameCacheEntry();
+        fresh.customName = custom;
+        fresh.teamColor = teamColor;
+        fresh.teamPrefix = teamPrefix;
+        fresh.teamSuffix = teamSuffix;
+        fresh.result = name;
+        inner.put(entity.getUniqueId(), fresh);
 
         return name;
     }
