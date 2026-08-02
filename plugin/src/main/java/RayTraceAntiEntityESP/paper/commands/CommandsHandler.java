@@ -123,8 +123,8 @@ public class CommandsHandler implements CommandExecutor {
                     ExcludeBypassManager::removeExclude,
                     ExcludeBypassManager::listExclude,
                     ExcludeBypassManager::clearExclude,
-                    "&aAll viewers can now always see &e%s",
-                    "&e%s &ccan be seen by everyone again");
+                    "&e%s &acan now be seen by everyone",
+                    "&e%s &cis no longer excluded from ESP checking");
             case "bypass" -> handleListCommand(sender, args, 1, "bypass", "player",
                     CommandsHandler::resolvePlayerUUID,
                     CommandsHandler::displayPlayerName,
