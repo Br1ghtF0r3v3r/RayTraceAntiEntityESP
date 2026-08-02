@@ -45,13 +45,10 @@ public class CommandsHandler implements CommandExecutor {
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "checking.enabled", args, 2, Boolean::parseBoolean);
                     case "period_ticks" -> setWithMin(sender, "checking.period_ticks", args, 2, Long::parseLong, 1L);
-                    case "stagger_groups" ->
-                            setWithMin(sender, "checking.stagger_groups", args, 2, Integer::parseInt, 1);
+                    case "stagger_groups" -> setWithMin(sender, "checking.stagger_groups", args, 2, Integer::parseInt, 1);
                     case "distance_override" -> set(sender, "checking.distance_override", args, 2, Double::parseDouble);
-                    case "bounding_box_extra_value" ->
-                            set(sender, "checking.bounding_box_extra_value", args, 2, Double::parseDouble);
-                    case "vertices_layers" ->
-                            setWithMin(sender, "checking.vertices_layers", args, 2, Integer::parseInt, 2);
+                    case "bounding_box_extra_value" -> set(sender, "checking.bounding_box_extra_value", args, 2, Double::parseDouble);
+                    case "vertices_layers" -> setWithMin(sender, "checking.vertices_layers", args, 2, Integer::parseInt, 2);
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
@@ -59,8 +56,7 @@ public class CommandsHandler implements CommandExecutor {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "perspective_checking.enabled", args, 2, Boolean::parseBoolean);
-                    case "distances_from_head" ->
-                            set(sender, "perspective_checking.distances_from_head", args, 2, Double::parseDouble);
+                    case "distances_from_head" -> set(sender, "perspective_checking.distances_from_head", args, 2, Double::parseDouble);
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
@@ -68,6 +64,7 @@ public class CommandsHandler implements CommandExecutor {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 switch (args[1].toLowerCase()) {
                     case "enabled" -> set(sender, "display_name.enabled", args, 2, Boolean::parseBoolean);
+                    case "period_ticks" -> setWithMin(sender, "display_name.period_ticks", args, 2, Long::parseLong, 1L);
                     case "offset_y" -> set(sender, "display_name.offset_y", args, 2, Double::parseDouble);
                     case "lookahead_ticks" -> set(sender, "display_name.lookahead_ticks", args, 2, Double::parseDouble);
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
@@ -325,7 +322,7 @@ public class CommandsHandler implements CommandExecutor {
                 "&e/rtaee config_value &7- Print all current config values",
                 "&e/rtaee checking <enabled|period_ticks|stagger_groups|distance_override|bounding_box_extra_value|vertices_layers> <value> &7- Checking options",
                 "&e/rtaee perspective_checking <enabled|distances_from_head> <value> &7- Perspective options",
-                "&e/rtaee display_name <enabled|offset_y|lookahead_ticks> <value> &7- Name tag options",
+                "&e/rtaee display_name <enabled|period_ticks|offset_y|lookahead_ticks> <value> &7- Name tag options",
                 "&e/rtaee debug enabled <true|false> &7- Toggle debug mode",
                 "&e/rtaee anti_mode <whitelist|blacklist> &7- Switch filter mode",
                 "&e/rtaee anti_entities <add|remove|list|clear> [type] &7- Edit entity list",

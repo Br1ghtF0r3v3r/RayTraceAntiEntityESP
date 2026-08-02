@@ -28,14 +28,12 @@ public class TabCompletion implements TabCompleter {
 
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
-                case "checking" ->
-                        filter(args[1], List.of("enabled", "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers"));
+                case "checking" -> filter(args[1], List.of("enabled", "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers"));
                 case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
                 case "debug" -> filter(args[1], List.of("enabled"));
-                case "display_name" -> filter(args[1], List.of("enabled", "offset_y", "lookahead_ticks"));
+                case "display_name" -> filter(args[1], List.of("enabled", "period_ticks", "offset_y", "lookahead_ticks"));
                 case "anti_mode" -> filter(args[1], List.of("whitelist", "blacklist"));
-                case "anti_entities", "exclude", "bypass", "blacklisted_world" ->
-                        filter(args[1], List.of("add", "remove", "list", "clear"));
+                case "anti_entities", "exclude", "bypass", "blacklisted_world" -> filter(args[1], List.of("add", "remove", "list", "clear"));
                 default -> null;
             };
         }
@@ -44,8 +42,7 @@ public class TabCompletion implements TabCompleter {
             return switch (args[0].toLowerCase()) {
                 case "checking" -> switch (args[1].toLowerCase()) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
-                    case "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value",
-                         "vertices_layers" -> List.of("<value>");
+                    case "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers" -> List.of("<value>");
                     default -> null;
                 };
                 case "perspective_checking" -> switch (args[1].toLowerCase()) {
@@ -59,7 +56,7 @@ public class TabCompletion implements TabCompleter {
                 };
                 case "display_name" -> switch (args[1].toLowerCase()) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
-                    case "offset_y", "lookahead_ticks" -> List.of("<value>");
+                    case "period_ticks", "offset_y", "lookahead_ticks" -> List.of("<value>");
                     default -> null;
                 };
                 case "anti_entities" -> switch (args[1].toLowerCase()) {
