@@ -66,6 +66,7 @@ perspective_checking:
   distances_from_head: 4 #Simulated third-person camera distance in blocks
 display_name:
   enabled: true #Show a fake name tag above hidden entities
+  period_ticks: 1 #How often to refresh the fake nametag's position/text in ticks, independent of checking.period_ticks (recommended: 1)
   lookahead_ticks: 3 #Extrapolate the fake nametag's position this many ticks ahead to compensate for vanilla's client-side smoothing (0 disables extrapolation)
   offset_y: 0 #Vertical offset of the name tag above the entity's head
 debug:
@@ -93,7 +94,7 @@ All commands require OP or the `raytrace_anti_entity_esp.admin` permission. Alia
 | `/rtaee config_value`                                                                                                           | Print all current config values                               |
 | `/rtaee checking <enabled\|period_ticks\|stagger_groups\|distance_override\|bounding_box_extra_value\|vertices_layers> <value>` | Checking options                                              |
 | `/rtaee perspective_checking <enabled\|distances_from_head> <value>`                                                            | Perspective options                                           |
-| `/rtaee display_name <enabled\|offset_y\|lookahead_ticks> <value>`                                                              | Name tag options                                               |
+| `/rtaee display_name <enabled\|period_ticks\|offset_y\|lookahead_ticks> <value>`                                               | Name tag options                                               |
 | `/rtaee debug enabled <true\|false>`                                                                                            | Toggle debug mode                                             |
 | `/rtaee anti_mode <whitelist\|blacklist>`                                                                                       | Switch filter mode                                             |
 | `/rtaee anti_entities <add\|remove\|list\|clear> [type]`                                                                        | Edit entity list                                               |

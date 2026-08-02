@@ -9,6 +9,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Team;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -19,12 +22,14 @@ import java.util.function.Predicate;
 public final class TeamUtils {
 
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
-
+    private static final Map<Component, Boolean> emptyComponentCache = Collections.synchronizedMap(new IdentityHashMap<>());
     public static final ConcurrentHashMap<String, NamedTextColor> teamColors = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamPrefixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamSuffixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, String> entryToTeam = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Team.OptionStatus> teamVisibilities = new ConcurrentHashMap<>();
+
+    public record TeamInfo(NamedTextColor color, Component prefix, Component suffix) {}
 
     private static final class ViewerTeamState {
         final ConcurrentHashMap<String, String> entryToTeam = new ConcurrentHashMap<>();
@@ -56,8 +61,8 @@ public final class TeamUtils {
     public static void putViewerTeamInfo(UUID viewer, String teamName, NamedTextColor color, Component prefix, Component suffix) {
         ViewerTeamState state = viewerState(viewer, true);
         putOrRemove(state.teamColors, teamName, color);
-        putOrRemove(state.teamPrefixes, teamName, prefix);
-        putOrRemove(state.teamSuffixes, teamName, suffix);
+        putOrRemove(state.teamPrefixes, teamName, isEmptyComponent(prefix) ? null : prefix);
+        putOrRemove(state.teamSuffixes, teamName, isEmptyComponent(suffix) ? null : suffix);
     }
 
     public static void removeViewerTeam(UUID viewer, String teamName) {
@@ -75,8 +80,8 @@ public final class TeamUtils {
         NamedTextColor color = teamColors.get(teamName);
         Component prefix = teamPrefixes.get(teamName);
         Component suffix = teamSuffixes.get(teamName);
-        boolean hasPrefix = !isEmptyComponent(prefix);
-        boolean hasSuffix = !isEmptyComponent(suffix);
+        boolean hasPrefix = prefix != null;
+        boolean hasSuffix = suffix != null;
         if (color == null && !hasPrefix && !hasSuffix) return null;
 
         Component name = Component.text(plainName);
@@ -91,8 +96,8 @@ public final class TeamUtils {
         NamedTextColor color = getTeamColor(viewer, entity);
         Component prefix = getTeamPrefix(viewer, entity);
         Component suffix = getTeamSuffix(viewer, entity);
-        boolean hasPrefix = !isEmptyComponent(prefix);
-        boolean hasSuffix = !isEmptyComponent(suffix);
+        boolean hasPrefix = prefix != null;
+        boolean hasSuffix = suffix != null;
         if (color == null && !hasPrefix && !hasSuffix) return null;
 
         Component name = Component.text(plainName);
@@ -104,10 +109,15 @@ public final class TeamUtils {
     }
 
     public static boolean isEmptyComponent(Component c) {
-        return c == null || PLAIN.serialize(c).isEmpty();
+        if (c == null) return true;
+        Boolean cached = emptyComponentCache.get(c);
+        if (cached != null) return cached;
+        boolean empty = PLAIN.serialize(c).isEmpty();
+        emptyComponentCache.put(c, empty);
+        return empty;
     }
 
-    public static <K, V> void putOrRemove(java.util.Map<K, V> map, K key, V value) {
+    public static <K, V> void putOrRemove(Map<K, V> map, K key, V value) {
         if (value != null) map.put(key, value);
         else map.remove(key);
     }
@@ -119,6 +129,7 @@ public final class TeamUtils {
         entryToTeam.clear();
         teamVisibilities.clear();
         viewerOverrides.clear();
+        emptyComponentCache.clear();
     }
 
     private static void ensureTeamInfoFromBukkit(String entry) {
@@ -179,11 +190,42 @@ public final class TeamUtils {
     }
 
     public static Component getTeamPrefix(Player viewer, Entity entity) {
-        return resolveTeamValue(viewer, entity, s -> s.teamPrefixes, teamPrefixes, c -> !isEmptyComponent(c));
+        return resolveTeamValue(viewer, entity, s -> s.teamPrefixes, teamPrefixes, Objects::nonNull);
     }
 
     public static Component getTeamSuffix(Player viewer, Entity entity) {
-        return resolveTeamValue(viewer, entity, s -> s.teamSuffixes, teamSuffixes, c -> !isEmptyComponent(c));
+        return resolveTeamValue(viewer, entity, s -> s.teamSuffixes, teamSuffixes, Objects::nonNull);
+    }
+
+    public static TeamInfo resolveTeamInfo(Player viewer, Entity entity) {
+        String entry = entity.getScoreboardEntryName();
+        ViewerTeamState state = viewerOverrides.get(viewer.getUniqueId());
+        String viewerTeam = state != null ? state.entryToTeam.get(entry) : null;
+        String globalTeam = getEntryTeamName(entry);
+
+        NamedTextColor color = resolveFromNames(state, viewerTeam, globalTeam, s -> s.teamColors, teamColors, Objects::nonNull);
+        Component prefix = resolveFromNames(state, viewerTeam, globalTeam, s -> s.teamPrefixes, teamPrefixes, Objects::nonNull);
+        Component suffix = resolveFromNames(state, viewerTeam, globalTeam, s -> s.teamSuffixes, teamSuffixes, Objects::nonNull);
+        return new TeamInfo(color, prefix, suffix);
+    }
+
+    private static <T> T resolveFromNames(
+            ViewerTeamState state,
+            String viewerTeam,
+            String globalTeam,
+            Function<ViewerTeamState, ConcurrentHashMap<String, T>> viewerMap,
+            ConcurrentHashMap<String, T> globalMap,
+            Predicate<T> isUsable
+    ) {
+        if (state != null && viewerTeam != null) {
+            T value = viewerMap.apply(state).get(viewerTeam);
+            if (isUsable.test(value)) return value;
+        }
+        if (globalTeam != null) {
+            T value = globalMap.get(globalTeam);
+            if (isUsable.test(value)) return value;
+        }
+        return null;
     }
 
     private static <T> T resolveTeamValue(
