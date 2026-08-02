@@ -345,9 +345,8 @@ public class RayTraceEngine {
                 perspectiveEnabled,
                 midX, centerY, midZ)) return true;
 
-        int vCount = fillEntityVertices(distance, range, minX, bMinY, minZ, maxX, bMaxY, maxZ,
-                vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
-        for (int i = 0; i < vCount; i++) {
+        int sparseCount = fillSparseCorners(minX, bMinY, minZ, maxX, bMaxY, maxZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        for (int i = 0; i < sparseCount; i++) {
             if (isVisibleNms(level, minY, maxY,
                     eyeX, eyeY, eyeZ,
                     thirdBackX, thirdBackY, thirdBackZ,
@@ -356,6 +355,26 @@ public class RayTraceEngine {
                     vertexXBufLocal[i], vertexYBufLocal[i], vertexZBufLocal[i])) return true;
         }
         return false;
+    }
+
+    private static int fillSparseCorners(double minX, double minY, double minZ, double maxX, double maxY, double maxZ, double[] vertexXBufLocal, double[] vertexYBufLocal, double[] vertexZBufLocal) {
+        double midX = (minX + maxX) * 0.5, midZ = (minZ + maxZ) * 0.5, midY = (minY + maxY) * 0.5;
+        double insetMinX = Math.min(minX + VERTEX_INSET, midX);
+        double insetMaxX = Math.max(maxX - VERTEX_INSET, midX);
+        double insetMinZ = Math.min(minZ + VERTEX_INSET, midZ);
+        double insetMaxZ = Math.max(maxZ - VERTEX_INSET, midZ);
+        double insetMinY = Math.min(minY + VERTEX_INSET, midY);
+        double insetMaxY = Math.max(maxY - VERTEX_INSET, midY);
+
+        int count = 0;
+        double[] ys = {insetMinY, insetMaxY};
+        for (double y : ys) {
+            vertexXBufLocal[count] = insetMinX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMinZ; count++;
+            vertexXBufLocal[count] = insetMinX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMaxZ; count++;
+            vertexXBufLocal[count] = insetMaxX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMaxZ; count++;
+            vertexXBufLocal[count] = insetMaxX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMinZ; count++;
+        }
+        return count;
     }
 
     private static boolean isVisibleNms(org.bukkit.World level, int minY, int maxY,
@@ -474,11 +493,7 @@ public class RayTraceEngine {
         double insetMinY = Math.min(minY + VERTEX_INSET, midY);
         double insetMaxY = Math.max(maxY - VERTEX_INSET, midY);
         double ratio = checkingRange > 0 ? Math.min(distance / checkingRange, 1.0) : 0.0;
-        int scaledSampleLayers;
-        if (ratio > 0.8) scaledSampleLayers = 2;
-        else if (ratio > 0.6) scaledSampleLayers = 3;
-        else if (ratio > 0.4) scaledSampleLayers = Math.max(2, Config.checkingVerticesLayers - 2);
-        else scaledSampleLayers = Math.max(2, (int) Math.round(Config.checkingVerticesLayers * (1.0 - ratio * 0.5)));
+        int scaledSampleLayers = Math.max(2, (int) Math.round(Config.checkingVerticesLayers * (1.0 - ratio * 0.75)));
         boolean includeCorners = ratio < 0.25;
         boolean hasExtra = Config.checkingBoundingBoxExtraValue > 0;
         double eMinX = minX - Config.checkingBoundingBoxExtraValue, eMaxX = maxX + Config.checkingBoundingBoxExtraValue;
