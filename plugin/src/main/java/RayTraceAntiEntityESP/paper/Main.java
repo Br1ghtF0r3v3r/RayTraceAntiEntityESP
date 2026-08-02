@@ -12,11 +12,14 @@ import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.paper.scheduler.RegionOwnershipChecker;
 import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.EntityIdentityCache;
+import RayTraceAntiEntityESP.paper.utils.RealEntityCache;
 import RayTraceAntiEntityESP.paper.utils.TeamUtils;
 import RayTraceAntiEntityESP.paper.utils.VersionChecker;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -38,6 +41,11 @@ public final class Main extends JavaPlugin {
         reloadConfigAll();
 
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                RealEntityCache.add(entity.getUniqueId());
+            }
+        }
         PacketEventsBridge.registerIfAvailable();
         registerCommands();
         VersionChecker.check();
@@ -56,6 +64,7 @@ public final class Main extends JavaPlugin {
             EventManager.uninjectPlayer(player);
         }
         EntityIdentityCache.clearAll();
+        RealEntityCache.clearAll();
         TeamUtils.clearAll();
         getLogger().info("RayTraceEntityESP disabled.");
     }
