@@ -2,6 +2,9 @@ package RayTraceAntiEntityESP.paper.listener;
 
 import RayTraceAntiEntityESP.paper.engine.RayTraceEngine;
 import RayTraceAntiEntityESP.paper.manager.EventManager;
+import RayTraceAntiEntityESP.paper.utils.RealEntityCache;
+import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
+import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -23,6 +26,16 @@ public class EventListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerJoin(PlayerJoinEvent event) {
         EventManager.playerJoinHandler(event);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityAddToWorld(EntityAddToWorldEvent event) {
+        RealEntityCache.add(event.getEntity().getUniqueId());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityRemoveFromWorld(EntityRemoveFromWorldEvent event) {
+        RealEntityCache.remove(event.getEntity().getUniqueId());
     }
 
     @EventHandler
