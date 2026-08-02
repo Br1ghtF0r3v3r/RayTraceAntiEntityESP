@@ -26,8 +26,10 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static RayTraceAntiEntityESP.paper.Main.plugin;
@@ -35,6 +37,43 @@ import static RayTraceAntiEntityESP.paper.Main.plugin;
 public class RayTraceEngine {
 
     private static ScheduledTaskHandle task;
+
+    private static final AtomicInteger blockCacheTtlTick = new AtomicInteger(0);
+    private static final int BLOCK_CACHE_TTL_TICKS = 200;
+
+    private static final AtomicInteger globalTick = new AtomicInteger(0);
+    private static final AtomicInteger bucketEvictSweepTick = new AtomicInteger(0);
+    private static final int BUCKET_EVICT_SWEEP_INTERVAL_TICKS = 200;
+    private static final int BUCKET_IDLE_EVICT_TICKS = 6000;
+
+    private static final AtomicInteger staggerTick = new AtomicInteger(0);
+
+    private static final Object sharedStateLock = new Object();
+
+    private static final double POS_EPSILON_SQ = 0.01 * 0.01;
+    private static final float ROT_EPSILON = 1;
+    private static final int AABB_REFRESH_TICKS = 4;
+    private static final int STALE_CLONE_CLEANUP_INTERVAL_TICKS = 20;
+    private static final double AABB_QUERY_MARGIN = 4;
+    private static final double VERTEX_INSET = 0.02;
+
+    private static final double BUCKET_SIZE_XZ = 64;
+
+    private static final double BELOW_NAME_RANGE_BLOCKS = 10;
+
+    private static final Int2ObjectOpenHashMap<ViewerCache> viewerCaches = new Int2ObjectOpenHashMap<>();
+
+    private static final Int2ObjectOpenHashMap<IntSet> distanceOverrideActive = new Int2ObjectOpenHashMap<>();
+    private static final Int2ObjectOpenHashMap<IntSet> belowNameRangeActive = new Int2ObjectOpenHashMap<>();
+
+    private static final Object2BooleanOpenHashMap<String> antiEntityTypeCache = new Object2BooleanOpenHashMap<>();
+
+    private static final EnumMap<EntityType, String> ENTITY_TYPE_KEYS = new EnumMap<>(EntityType.class);
+    static {
+        for (EntityType t : EntityType.values()) {
+            ENTITY_TYPE_KEYS.put(t, t.name().toLowerCase());
+        }
+    }
 
     private static final class BlockSection {
         final long[] known = new long[64];
@@ -79,34 +118,6 @@ public class RayTraceEngine {
         cursor.section = section;
         return section;
     }
-
-    private static final AtomicInteger blockCacheTtlTick = new AtomicInteger(0);
-    private static final int BLOCK_CACHE_TTL_TICKS = 200;
-
-    private static final AtomicInteger globalTick = new AtomicInteger(0);
-    private static final AtomicInteger bucketEvictSweepTick = new AtomicInteger(0);
-    private static final int BUCKET_EVICT_SWEEP_INTERVAL_TICKS = 200;
-    private static final int BUCKET_IDLE_EVICT_TICKS = 6000;
-
-    private static final AtomicInteger staggerTick = new AtomicInteger(0);
-
-    private static final Object sharedStateLock = new Object();
-
-    private static final double POS_EPSILON_SQ = 0.01 * 0.01;
-    private static final float ROT_EPSILON = 1;
-    private static final int AABB_REFRESH_TICKS = 4;
-    private static final int STALE_CLONE_CLEANUP_INTERVAL_TICKS = 20;
-    private static final double AABB_QUERY_MARGIN = 4;
-    private static final double VERTEX_INSET = 0.02;
-
-    private static final double BUCKET_SIZE_XZ = 64;
-
-    private static final double BELOW_NAME_RANGE_BLOCKS = 10;
-
-    private static final Int2ObjectOpenHashMap<ViewerCache> viewerCaches = new Int2ObjectOpenHashMap<>();
-
-    private static final Int2ObjectOpenHashMap<IntSet> distanceOverrideActive = new Int2ObjectOpenHashMap<>();
-    private static final Int2ObjectOpenHashMap<IntSet> belowNameRangeActive = new Int2ObjectOpenHashMap<>();
 
     private static class WorldEntitySnapshot {
         Entity[] entities = new Entity[128];
@@ -178,8 +189,6 @@ public class RayTraceEngine {
 
         final SectionCursor sectionCursor = new SectionCursor();
     }
-
-    private static final Object2BooleanOpenHashMap<EntityType> antiEntityTypeCache = new Object2BooleanOpenHashMap<>();
 
     public static void clearViewerCache(int entityId) {
         synchronized (sharedStateLock) {
@@ -396,8 +405,7 @@ public class RayTraceEngine {
         int entityId = entity.getEntityId();
         boolean withinDistanceOverride = isWithinDistanceOverride(viewerId, entityId, distSq);
         boolean withinBelowNameRange = isWithinBelowNameRange(viewer, entity, viewerId, entityId, distSq);
-
-        if (!isAntiEntity(entity) || isEntityGlowing(viewer, entity)
+        if (ExcludeBypassManager.isExcluded(entity.getUniqueId()) || isEntityGlowing(viewer, entity)
                 || horizDistSq > range * range
                 || withinDistanceOverride
                 || withinBelowNameRange) {
@@ -412,8 +420,7 @@ public class RayTraceEngine {
         double centerY = (bMinY + bMaxY) * 0.5;
 
         if (Config.isDebugEnabled) {
-            int vCount = fillEntityVertices(distance, range, minX, bMinY, minZ, maxX, bMaxY, maxZ,
-                    vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+            int vCount = fillEntityVertices(distance, range, minX, bMinY, minZ, maxX, bMaxY, maxZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
             List<Vector> vertices = new ArrayList<>(vCount);
             List<Boolean> vis = new ArrayList<>(vCount);
             boolean visible = false;
@@ -557,26 +564,27 @@ public class RayTraceEngine {
         return entries.contains(entry);
     }
 
-    private static boolean isExcluded(Entity entity) {
-        return ExcludeBypassManager.isExcluded(entity.getUniqueId());
-    }
-
-    private static boolean isAntiEntityType(Entity entity) {
-        EntityType type = entity.getType();
-        synchronized (sharedStateLock) {
-            if (antiEntityTypeCache.containsKey(type)) return antiEntityTypeCache.getBoolean(type);
-        }
-        boolean listed = Config.antiEntities.contains(type.name().toLowerCase());
-        boolean result = Config.isBlacklist != listed;
-        synchronized (sharedStateLock) {
-            antiEntityTypeCache.put(type, result);
-        }
-        return result;
+    public static boolean isAntiEntity(String typeKey, UUID entityUUID) {
+        if (typeKey == null) return false;
+        if (ExcludeBypassManager.isExcluded(entityUUID)) return false;
+        return isAntiEntityType(typeKey.toLowerCase());
     }
 
     public static boolean isAntiEntity(Entity entity) {
-        if (isExcluded(entity)) return false;
-        return isAntiEntityType(entity);
+        String typeKey = ENTITY_TYPE_KEYS.get(entity.getType());
+        if (typeKey == null) return false;
+        if (ExcludeBypassManager.isExcluded(entity.getUniqueId())) return false;
+        return isAntiEntityType(typeKey.toLowerCase());
+    }
+
+    public static boolean isAntiEntityType(String typeKey) {
+        synchronized (sharedStateLock) {
+            if (antiEntityTypeCache.containsKey(typeKey)) return antiEntityTypeCache.getBoolean(typeKey);
+            boolean listed = Config.antiEntities.contains(typeKey);
+            boolean result = Config.isBlacklist != listed;
+            antiEntityTypeCache.put(typeKey, result);
+            return result;
+        }
     }
 
     private static int fillEntityVertices(double distance, double checkingRange,
@@ -874,7 +882,7 @@ public class RayTraceEngine {
 
                 NmsAdapterFactory.get().getAllEntitiesInBox(world,
                         cellMinX, worldMinY, cellMinZ, cellMaxX, worldMaxY, cellMaxZ, e -> {
-                            if (!isAntiEntityType(e)) return;
+                            if (!isAntiEntity(e)) return;
                             if (!RegionOwnershipChecker.isOwnedByCurrentRegion(e)) return;
                             if (snap.entityCount >= snap.entities.length)
                                 snap.entities = Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
