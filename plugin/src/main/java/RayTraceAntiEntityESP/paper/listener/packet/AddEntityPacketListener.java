@@ -9,6 +9,7 @@ import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.paper.nms.parsed.ParsedAddEntity;
 import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.EntityIdentityCache;
+import RayTraceAntiEntityESP.paper.utils.RealEntityCache;
 import RayTraceAntiEntityESP.paper.utils.VisibilityUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -103,6 +104,11 @@ public class AddEntityPacketListener extends PacketListener {
             return true;
         }
         if (!Config.isCheckingEnabled) {
+            ctx.write(msg, promise);
+            return true;
+        }
+
+        if (!RealEntityCache.isReal(entityUUID)) {
             ctx.write(msg, promise);
             return true;
         }
