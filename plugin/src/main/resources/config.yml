@@ -10,7 +10,7 @@
 # Do not edit this manually, if it's missing or doesn't match the plugin jar's
 # version, your config.yml will be automatically rebuilt on next start/reload
 # (your existing values are carried over; the old file is backed up first).
-config_version: 4
+config_version: 5
 
 #-----------------------------------------------
 # CHECKING
@@ -59,6 +59,12 @@ perspective_checking:
 display_name:
   # Show a fake name tag above hidden entities so players can still identify them
   enabled: true
+
+  # How often to refresh the fake nametag's position and text (in ticks, 1 tick = 50ms)
+  # Runs independently of checking.period_ticks, so you can update nametags less
+  # often than the visibility check itself to save CPU
+  # Recommended: 1
+  period_ticks: 1
 
   # How many ticks ahead to extrapolate the fake nametag's position, based on the
   # hidden entity's recent velocity. Vanilla clients smooth incoming position updates

@@ -1,7 +1,6 @@
 package RayTraceAntiEntityESP.paper.config;
 
 import RayTraceAntiEntityESP.paper.engine.RayTraceEngine;
-import it.unimi.dsi.fastutil.objects.Object2DoubleOpenHashMap;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -17,13 +16,14 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static RayTraceAntiEntityESP.paper.Main.plugin;
 import static RayTraceAntiEntityESP.paper.utils.StringFormat.formatToString;
 
 public class Config {
 
-    public static final int CONFIG_VERSION = 4;
+    public static final int CONFIG_VERSION = 5;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -36,6 +36,7 @@ public class Config {
     public static double perspectiveCheckingDistance;
 
     public static boolean isDisplayNameEnabled;
+    public static long displayNamePeriodTicks;
     public static double displayNameOffSetY;
     public static double displayNameLookaheadTicks;
 
@@ -46,6 +47,9 @@ public class Config {
     public static boolean isBlacklist;
 
     public static Set<String> blacklistedWorlds;
+    public static YamlConfiguration spigotConfig;
+    public static volatile double maxTrackingRange = 144.0;
+    private static final ConcurrentHashMap<String, ConcurrentHashMap<Class<?>, Double>> trackingRangeCache = new ConcurrentHashMap<>();
 
     public static void migrateConfigIfNeeded() {
         File configFile = new File(plugin.getDataFolder(), "config.yml");
@@ -102,7 +106,7 @@ public class Config {
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
         checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
-        checkingStaggerGroups = Math.max(1, config.getInt("checking.stagger_groups", 3));
+        checkingStaggerGroups = config.getInt("checking.stagger_groups", 3);
         checkingDistanceOverride = config.getDouble("checking.distance_override", 10);
         checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
         checkingVerticesLayers = config.getInt("checking.vertices_layers", 4);
@@ -111,6 +115,7 @@ public class Config {
         perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
 
         isDisplayNameEnabled = config.getBoolean("display_name.enabled", true);
+        displayNamePeriodTicks = config.getLong("display_name.period_ticks", 1);
         displayNameLookaheadTicks = config.getDouble("display_name.lookahead_ticks", 3.0);
         displayNameOffSetY = config.getDouble("display_name.offset_y", 0);
 
@@ -147,11 +152,6 @@ public class Config {
         return !blacklistedWorlds.contains(worldName.toLowerCase());
     }
 
-    public static YamlConfiguration spigotConfig;
-    public static volatile double maxTrackingRange = 144.0;
-
-    private static final Object2DoubleOpenHashMap<String> trackingRangeCache = new Object2DoubleOpenHashMap<>();
-
     public static void loadSpigotConfig() {
         File spigotFile = new File("spigot.yml");
         spigotConfig = YamlConfiguration.loadConfiguration(spigotFile);
@@ -185,14 +185,14 @@ public class Config {
 
     public static double getSpigotTrackingRange(Entity entity) {
         String worldName = entity.getWorld().getName();
-        String entityType = entity.getClass().getSimpleName();
-        String key = worldName + ":" + entityType;
+        Class<?> entityClass = entity.getClass();
 
-        double cached = trackingRangeCache.getOrDefault(key, Double.NEGATIVE_INFINITY);
-        if (cached != Double.NEGATIVE_INFINITY) return cached;
+        var perWorld = trackingRangeCache.computeIfAbsent(worldName, w -> new ConcurrentHashMap<>());
+        Double cached = perWorld.get(entityClass);
+        if (cached != null) return cached;
 
         double range = computeTrackingRange(entity) + 16;
-        trackingRangeCache.put(key, range);
+        perWorld.put(entityClass, range);
         return range;
     }
 
@@ -224,6 +224,7 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + cfg.getBoolean("perspective_checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + cfg.getDouble("perspective_checking.distances_from_head", 4)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + cfg.getBoolean("display_name.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&edisplay_name.period_ticks: &f" + cfg.getLong("display_name.period_ticks", 1)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + cfg.getDouble("display_name.offset_y", 0)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.lookahead_ticks: &f" + cfg.getDouble("display_name.lookahead_ticks", 3.0)));
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));

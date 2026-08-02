@@ -88,6 +88,10 @@ public final class VisibilityUtils {
         return set != null && set.contains(entityId);
     }
 
+    public static IntSet getExternallyHiddenSet(int viewerId) {
+        return externallyHidden.get(viewerId);
+    }
+
     public static boolean isNameVisible(Player viewer, Entity entity) {
         if (viewer.equals(entity)) return false;
         if (!(entity instanceof Player)) {

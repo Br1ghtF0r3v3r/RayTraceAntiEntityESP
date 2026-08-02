@@ -93,7 +93,7 @@ public class EventListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onStructureGrow(StructureGrowEvent event) {
         for (BlockState state : event.getBlocks()) {
-            RayTraceEngine.invalidateBlockAt(state.getX(), state.getY(), state.getZ());
+            RayTraceEngine.invalidateBlockAt(state.getWorld(), state.getX(), state.getY(), state.getZ());
         }
     }
 
@@ -117,6 +117,6 @@ public class EventListener implements Listener {
     }
 
     private static void invalidate(Block block) {
-        RayTraceEngine.invalidateBlockAt(block.getX(), block.getY(), block.getZ());
+        RayTraceEngine.invalidateBlockAt(block.getWorld(), block.getX(), block.getY(), block.getZ());
     }
 }
