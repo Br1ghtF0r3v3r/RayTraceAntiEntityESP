@@ -163,7 +163,8 @@ public final class NmsAdapter_26_x implements NmsAdapter {
     @Override
     public ParsedAddEntity parseAddEntity(Object msg) {
         if (!(msg instanceof ClientboundAddEntityPacket p)) return null;
-        return new ParsedAddEntity(p.getId(), p.getUUID(), p.getType() == EntityTypeResolver.player());
+        String typeKey = EntityType.getKey(p.getType()).getPath();
+        return new ParsedAddEntity(p.getId(), p.getUUID(), p.getType() == EntityTypeResolver.player(), typeKey);
     }
 
     @Override
