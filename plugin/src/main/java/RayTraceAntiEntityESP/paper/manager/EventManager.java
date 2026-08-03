@@ -38,16 +38,16 @@ public class EventManager {
     public static void playerQuitHandler(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
-        int viewerEntityId = player.getEntityId();
+        int departingEntityId = player.getEntityId();
 
         NmsAdapterFactory.get().forEachServerPlayer(other -> {
             if (other.getUniqueId().equals(playerUUID)) return;
             PacketManager.removeHiddenBypass(other.getUniqueId(), playerUUID);
             PacketManager.cancelShowBypass(other.getUniqueId(), playerUUID);
 
-            if (VisibilityUtils.isHidden(other.getEntityId(), viewerEntityId)) {
+            if (VisibilityUtils.isHidden(other.getEntityId(), departingEntityId)) {
                 other.showEntity(plugin, player);
-                VisibilityUtils.setNotHiddenSilently(other.getEntityId(), viewerEntityId);
+                VisibilityUtils.setNotHiddenSilently(other.getEntityId(), departingEntityId);
             }
         });
         PacketManager.clearBypassForViewer(playerUUID);
@@ -61,8 +61,8 @@ public class EventManager {
             DebugVertexRenderer.removeDisplayForEntity(playerUUID);
             DebugVertexRenderer.removeDisplay(playerUUID);
         }
-        VisibilityUtils.clearViewer(viewerEntityId);
-        RayTraceEngine.clearViewerCache(player.getEntityId());
+        VisibilityUtils.clearViewer(departingEntityId);
+        RayTraceEngine.clearViewerCache(departingEntityId);
     }
 
     public static void connectionCloseHandler(PlayerConnectionCloseEvent event) {
