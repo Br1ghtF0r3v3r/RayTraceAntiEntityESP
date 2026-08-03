@@ -916,6 +916,7 @@ public class RayTraceEngine {
         IntSet externallyHiddenSet = VisibilityUtils.getExternallyHiddenSet(vid);
         for (int ei = 0; ei < aabbCount; ei++) {
             Entity nmsEntity = worldSnap.entities[ei];
+            if (!nmsEntity.isValid()) continue;
             int eid = nmsEntity.getEntityId();
             if (eid == vid) continue;
             if (externallyHiddenSet != null && externallyHiddenSet.contains(eid)) continue;
