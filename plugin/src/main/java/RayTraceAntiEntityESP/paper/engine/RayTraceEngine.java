@@ -215,6 +215,20 @@ public class RayTraceEngine {
         }
     }
 
+    public static void clearTargetAcrossAllViewers(int targetEntityId) {
+        synchronized (sharedStateLock) {
+            for (ViewerCache cache : viewerCaches.values()) {
+                int idx = cache.entityIndexMap.remove(targetEntityId);
+                if (idx >= 0 && idx < cache.cachedCount) {
+                    cache.cachedVisible[idx] = false;
+                }
+            }
+            for (IntSet set : distanceOverrideActive.values()) set.remove(targetEntityId);
+            for (IntSet set : belowNameRangeActive.values()) set.remove(targetEntityId);
+        }
+        VisibilityUtils.clearExternallyHiddenForTargetAcrossAllViewers(targetEntityId);
+    }
+
     public static void clearAntiEntityCache() {
         synchronized (sharedStateLock) {
             antiEntityTypeCache.clear();
@@ -751,7 +765,7 @@ public class RayTraceEngine {
         killTaskCommon();
     }
 
-    private static void clearViewerVisibility(Player v) {
+    public static void clearViewerVisibility(Player v) {
         int vid = v.getEntityId();
         for (Entity nmsEntity : v.getWorld().getEntities()) {
             if (!RegionOwnershipChecker.isOwnedByCurrentRegion(nmsEntity)) continue;
