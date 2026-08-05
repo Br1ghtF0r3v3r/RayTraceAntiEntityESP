@@ -85,7 +85,11 @@ public class AddEntityPacketListener extends PacketListener {
         }
 
         UUID entityUUID = parsed.uuid();
-        EntityIdentityCache.register(entityId, entityUUID, parsed.isPlayer());
+
+        int previousEntityId = EntityIdentityCache.registerAndGetPreviousId(entityId, entityUUID, parsed.isPlayer());
+        if (previousEntityId != -1) {
+            RayTraceEngine.clearTargetAcrossAllViewers(previousEntityId);
+        }
 
         if (viewer.getUniqueId().equals(entityUUID)) {
             ctx.write(msg, promise);
