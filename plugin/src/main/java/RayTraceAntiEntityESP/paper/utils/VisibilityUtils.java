@@ -83,6 +83,10 @@ public final class VisibilityUtils {
         if (set != null) set.remove(entityId);
     }
 
+    public static void clearExternallyHiddenForTargetAcrossAllViewers(int entityId) {
+        for (IntSet set : externallyHidden.values()) set.remove(entityId);
+    }
+
     public static boolean isExternallyHidden(int viewerId, int entityId) {
         IntSet set = externallyHidden.get(viewerId);
         return set != null && set.contains(entityId);
