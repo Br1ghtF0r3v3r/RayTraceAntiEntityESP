@@ -10,7 +10,7 @@
 [![Purpur](https://img.shields.io/badge/Purpur-Supported-blueviolet)](https://purpurmc.org/download/purpur)
 [![Folia](https://img.shields.io/badge/Folia-Supported-2ECC71)](https://papermc.io/downloads/folia)
 
-A plugin that prevents HACKERS from seeing entities (ex:Players) through walls.
+A plugin that prevents HACKERS from seeing entities (e.g. Players) through walls.
 
 ---
 
