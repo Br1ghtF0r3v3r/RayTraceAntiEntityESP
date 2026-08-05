@@ -126,9 +126,9 @@ public class EventManager {
 
     public static void playerRespawnHandler(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
-        int entityId = player.getEntityId();
-
-        VisibilityUtils.clearViewer(entityId);
+        int respawnedEntityId = player.getEntityId();
+        SchedulerAdapterFactory.get().runEntityTask(player, () -> RayTraceEngine.clearViewerVisibility(player));
+        SchedulerAdapterFactory.get().runTask(() -> RayTraceEngine.clearTargetAcrossAllViewers(respawnedEntityId));
     }
 
     public static void injectPlayer(Player player) {
