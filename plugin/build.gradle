@@ -45,10 +45,10 @@ processResources {
     def props = [
             name: rootProject.name,
             version: rootProject.version,
+            description: rootProject.description,
             main: main,
             apiVersion: apiVersion,
             author: author,
-            description: description,
     ]
     inputs.properties props
     filesMatching('plugin.yml') { expand props }
