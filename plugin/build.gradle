@@ -26,14 +26,18 @@ tasks {
         enabled = false
     }
     runServer {
-        def matches = rootProject.file(".").listFiles()?.findAll {
+        def runRoot = rootProject.file(".run")
+        if (!runRoot.isDirectory()) {
+            throw new GradleException("No '.run' folder found in project root")
+        }
+        def matches = runRoot.listFiles()?.findAll {
             it.isDirectory() && it.name.contains(".run")
         } ?: []
         if (matches.isEmpty()) {
-            throw new GradleException("No folder containing '.run' found in project root")
+            throw new GradleException("No folder containing '.run' found in ${runRoot}")
         }
         if (matches.size() > 1) {
-            throw new GradleException("Multiple '.run' folders found: ${matches*.name}: only one should be active at a time")
+            throw new GradleException("Multiple '.run' folders found in ${runRoot}: ${matches*.name}: only one should be active at a time")
         }
         def targetDir = matches[0]
         runDirectory(targetDir)
