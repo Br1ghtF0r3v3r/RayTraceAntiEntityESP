@@ -113,7 +113,7 @@ public class AddEntityPacketListener extends PacketListener {
         }
 
         if (!RealEntityCache.isReal(entityUUID)) {
-            if (RayTraceEngine.isAntiEntity(parsed.entityTypeKey(), entityUUID)) {
+            if (!"armor_stand".equals(parsed.entityTypeKey()) && RayTraceEngine.isAntiEntity(parsed.entityTypeKey(), entityUUID)) {
                 return true;
             }
             ctx.write(msg, promise);
