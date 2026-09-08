@@ -10,8 +10,8 @@ dependencies {
     compileOnly "com.github.retrooper:packetevents-spigot:2.13.0"
     paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
     implementation project(':nms-api')
-    shadow project(':nms-1_21')
-    shadow project(':nms-26')
+    shadow project(path: ':nms-1_21', configuration: 'runtimeElements')
+    shadow project(path: ':nms-26', configuration: 'runtimeElements')
 }
 tasks {
     shadowJar {
@@ -57,5 +57,5 @@ processResources {
     inputs.properties props
     filesMatching('plugin.yml') { expand props }
     filesMatching('build.properties') { expand props }
-    filteringCharset 'UTF-8'
+    filteringCharset = 'UTF-8'
 }

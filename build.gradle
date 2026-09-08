@@ -1,5 +1,5 @@
 plugins {
-    id 'io.papermc.paperweight.userdev' version '2.0.0-beta.21' apply false
+    id 'io.papermc.paperweight.userdev' version '2.0.0-beta.23' apply false
 }
 
 def javaVersion = javaVersion as int
@@ -10,11 +10,11 @@ subprojects {
     repositories {
         mavenCentral()
         gradlePluginPortal()
-        maven { url "https://repo.codemc.io/repository/maven-releases/" }
-        maven { url "https://repo.codemc.io/repository/maven-snapshots/" }
-        maven { url "https://repo.papermc.io/repository/maven-public/" }
-        maven { url "https://repo.extendedclip.com/releases/" }
-        maven { url "https://maven.respark.dev/releases" }
+        maven { url = "https://repo.codemc.io/repository/maven-releases/" }
+        maven { url = "https://repo.codemc.io/repository/maven-snapshots/" }
+        maven { url = "https://repo.papermc.io/repository/maven-public/" }
+        maven { url = "https://repo.extendedclip.com/releases/" }
+        maven { url = "https://maven.respark.dev/releases" }
     }
 
     java {
