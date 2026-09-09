@@ -40,9 +40,8 @@ A plugin that prevents HACKERS from seeing entities (e.g. Players) through walls
 4. **Edit** the generated [config.yml](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/blob/master/plugin/src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to your liking.
 5. **Run** `/rtaee reload` in-game to apply config changes without restarting.
 
-> ⚠️ **Requirements:** Paper, Purpur, or Folia ver **1.21.x** or **26.x**.
->
-> ⚠️ Do not enable, disable or reload this plugin using plugin managers or `/reload`. It will not work properly and may cause issues.
+>**Requirements:** Paper, Purpur, or Folia ver **1.21.x** or **26.x**.
+>Do not enable, disable or reload this plugin using plugin managers or `/reload`. It will not work properly and may cause issues.
 
 </details>
 
