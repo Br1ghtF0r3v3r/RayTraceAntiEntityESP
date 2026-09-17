@@ -116,4 +116,6 @@ This project is licensed under the **GPL-3.0 License**. See the [LICENSE](https:
 
 If you have any questions, issues, or suggestions, please open an issue on [ISSUES](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/issues).
 
+
+[![bStats](https://bstats.org/signatures/bukkit/RayTraceAntiEntityESP.svg)](https://bstats.org/plugin/bukkit/RayTraceAntiEntityESP/32643)
 ---
