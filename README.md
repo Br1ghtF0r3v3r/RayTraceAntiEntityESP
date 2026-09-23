@@ -19,11 +19,7 @@ A plugin that prevents HACKERS from seeing entities (e.g. Players) through walls
 <details>
 <summary>View</summary>
 
-### Without Xray
-<img width="720" height="405" alt="=Without Xray" src="https://github.com/user-attachments/assets/f8c1979e-fa92-4a03-91ba-458b5f6a2f8d"/>
-
-### With Xray
-<img width="720" height="405" alt="With Xray" src="https://github.com/user-attachments/assets/3061f724-cf3d-49a5-a8ad-ae32cccea742"/>
+<img width="854" height="480" alt="demo0" src="https://github.com/user-attachments/assets/8075d138-6952-4d2d-b9a0-969b742fed95" />
 
 </details>
 
