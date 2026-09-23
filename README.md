@@ -19,7 +19,7 @@ A plugin that prevents HACKERS from seeing entities (e.g. Players) through walls
 <details>
 <summary>View</summary>
 
-<img width="854" height="480" alt="demo0" src="https://github.com/user-attachments/assets/8075d138-6952-4d2d-b9a0-969b742fed95" />
+<img width="854" height="480" alt="demo" src="https://github.com/user-attachments/assets/8075d138-6952-4d2d-b9a0-969b742fed95"/>
 
 </details>
 
