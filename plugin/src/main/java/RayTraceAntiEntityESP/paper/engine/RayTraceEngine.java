@@ -68,6 +68,37 @@ public class RayTraceEngine {
 
     private static final Object2BooleanOpenHashMap<String> antiEntityTypeCache = new Object2BooleanOpenHashMap<>();
 
+    private static final ChunkSnapshotStore chunkSnapshotStore = new ChunkSnapshotStore();
+    private static volatile java.util.concurrent.ExecutorService asyncExecutor;
+
+    private static synchronized java.util.concurrent.ExecutorService getOrCreateAsyncExecutor() {
+        java.util.concurrent.ExecutorService exec = asyncExecutor;
+        if (exec == null || exec.isShutdown()) {
+            exec = java.util.concurrent.Executors.newFixedThreadPool(Math.max(1, Config.checkingAsyncThreads),
+                    r -> {
+                        Thread t = new Thread(r, "RTAEE-async-raycast");
+                        t.setDaemon(true);
+                        return t;
+                    });
+            asyncExecutor = exec;
+        }
+        return exec;
+    }
+
+    public static synchronized void onAsyncModeChanged(boolean nowEnabled) {
+        if (!nowEnabled && asyncExecutor != null) {
+            asyncExecutor.shutdownNow();
+            asyncExecutor = null;
+            chunkSnapshotStore.clearAll();
+        }
+        synchronized (sharedStateLock) {
+            for (ViewerCache cache : viewerCaches.values()) {
+                cache.asyncBatchInFlight.set(false);
+                cache.pendingAsyncEntityAndVisible.clear();
+            }
+        }
+    }
+
     private static final EnumMap<EntityType, String> ENTITY_TYPE_KEYS = new EnumMap<>(EntityType.class);
     static {
         for (EntityType t : EntityType.values()) {
@@ -172,6 +203,7 @@ public class RayTraceEngine {
         double[] cachedY = new double[64];
         double[] cachedZ = new double[64];
         boolean[] cachedVisible = new boolean[64];
+        int[] cachedVersion = new int[64];
         int cachedCount = 0;
 
         Entity[] snapshotBuffer = new Entity[64];
@@ -188,6 +220,9 @@ public class RayTraceEngine {
         final double[] vertexZBuf = new double[128];
 
         final SectionCursor sectionCursor = new SectionCursor();
+
+        final java.util.concurrent.atomic.AtomicBoolean asyncBatchInFlight = new java.util.concurrent.atomic.AtomicBoolean(false);
+        final java.util.concurrent.ConcurrentLinkedQueue<int[]> pendingAsyncEntityAndVisible = new java.util.concurrent.ConcurrentLinkedQueue<>();
     }
 
     public static void clearViewerCache(int entityId) {
@@ -260,6 +295,7 @@ public class RayTraceEngine {
             distanceOverrideActive.clear();
             belowNameRangeActive.clear();
         }
+        chunkSnapshotStore.clearAll();
     }
 
     public static void clearWorldCache(org.bukkit.World world) {
@@ -267,9 +303,14 @@ public class RayTraceEngine {
             worldEntityCache.remove(world);
             blockSectionCache.remove(world);
         }
+        chunkSnapshotStore.invalidateWorld(world);
     }
 
-    private static boolean isOccluding(NmsAdapter adapter, org.bukkit.World world,
+    private static boolean needsSectionCacheLock(boolean folia) {
+        return folia || Config.checkingAsyncEnabled;
+    }
+
+    private static boolean isOccluding(BlockSolidSource blockSource, org.bukkit.World world,
                                        Long2ObjectOpenHashMap<BlockSection> sections,
                                        SectionCursor cursor,
                                        int x, int y, int z, boolean folia) {
@@ -279,15 +320,15 @@ public class RayTraceEngine {
         int word = bitIndex >>> 6;
         long mask = 1L << (bitIndex & 63);
 
-        if (folia) {
+        if (needsSectionCacheLock(folia)) {
             synchronized (sharedStateLock) {
-                return isOccludingLocked(adapter, world, sections, cursor, x, y, z, sx, sy, sz, word, mask);
+                return isOccludingLocked(blockSource, world, sections, cursor, x, y, z, sx, sy, sz, word, mask);
             }
         }
-        return isOccludingLocked(adapter, world, sections, cursor, x, y, z, sx, sy, sz, word, mask);
+        return isOccludingLocked(blockSource, world, sections, cursor, x, y, z, sx, sy, sz, word, mask);
     }
 
-    private static boolean isOccludingLocked(NmsAdapter adapter, org.bukkit.World world,
+    private static boolean isOccludingLocked(BlockSolidSource blockSource, org.bukkit.World world,
                                              Long2ObjectOpenHashMap<BlockSection> sections,
                                              SectionCursor cursor,
                                              int x, int y, int z,
@@ -297,7 +338,7 @@ public class RayTraceEngine {
 
         boolean result;
         try {
-            result = adapter.isBlockSolidAt(world, x, y, z);
+            result = blockSource.isSolid(world, x, y, z);
         } catch (Throwable t) {
             result = false;
         }
@@ -308,7 +349,7 @@ public class RayTraceEngine {
     }
 
     private static Long2ObjectOpenHashMap<BlockSection> resolveSections(org.bukkit.World world, boolean folia) {
-        if (folia) {
+        if (needsSectionCacheLock(folia)) {
             synchronized (sharedStateLock) {
                 return getOrCreateWorldSections(world);
             }
@@ -323,10 +364,10 @@ public class RayTraceEngine {
         boolean folia = SchedulerAdapterFactory.isFolia();
         Long2ObjectOpenHashMap<BlockSection> sections = resolveSections(world, folia);
         SectionCursor sectionCursor = new SectionCursor();
-        return hitsBlockFast(adapter, folia, sections, sectionCursor, world, minY, maxY, ox, oy, oz, ex2, ey2, ez2);
+        return hitsBlockFast(new NmsLiveBlockSource(adapter), folia, sections, sectionCursor, world, minY, maxY, ox, oy, oz, ex2, ey2, ez2);
     }
 
-    private static boolean hitsBlockFast(NmsAdapter adapter, boolean folia,
+    private static boolean hitsBlockFast(BlockSolidSource blockSource, boolean folia,
                                          Long2ObjectOpenHashMap<BlockSection> sections,
                                          SectionCursor sectionCursor,
                                          org.bukkit.World world, int minY, int maxY,
@@ -350,7 +391,7 @@ public class RayTraceEngine {
         int endX = (int) Math.floor(ex2), endY = (int) Math.floor(ey2), endZ = (int) Math.floor(ez2);
         int maxSteps = (int) (distance + 2) * 3;
         for (int s = 0; s < maxSteps; s++) {
-            if (posY >= minY && posY <= maxY && isOccluding(adapter, world, sections, sectionCursor, posX, posY, posZ, folia)) return true;
+            if (posY >= minY && posY <= maxY && isOccluding(blockSource, world, sections, sectionCursor, posX, posY, posZ, folia)) return true;
             if (posX == endX && posY == endY && posZ == endZ) return false;
             if (tMX < tMY && tMX < tMZ) {
                 posX += stepX;
@@ -397,6 +438,18 @@ public class RayTraceEngine {
         return applyProximityDebounce(belowNameRangeActive, viewerId, entityId, distSq, BELOW_NAME_RANGE_BLOCKS);
     }
 
+    private static boolean isAlwaysVisibleGate(Player viewer, Entity entity, double range,
+                                               double horizDistSq, double distSq) {
+        int viewerId = viewer.getEntityId();
+        int entityId = entity.getEntityId();
+        boolean withinDistanceOverride = isWithinDistanceOverride(viewerId, entityId, distSq);
+        boolean withinBelowNameRange = isWithinBelowNameRange(viewer, entity, viewerId, entityId, distSq);
+        return ExcludeBypassManager.isExcluded(entity.getUniqueId()) || isEntityGlowing(viewer, entity)
+                || horizDistSq > range * range
+                || withinDistanceOverride
+                || withinBelowNameRange;
+    }
+
     private static boolean isEntityInSight(
             Player viewer,
             Entity entity,
@@ -408,38 +461,29 @@ public class RayTraceEngine {
             double vx, double vy, double vz,
             org.bukkit.World level, int minY, int maxY,
             double[] vertexXBufLocal, double[] vertexYBufLocal, double[] vertexZBufLocal,
-            NmsAdapter adapter, boolean folia, Long2ObjectOpenHashMap<BlockSection> sections,
+            BlockSolidSource blockSource, boolean folia, Long2ObjectOpenHashMap<BlockSection> sections,
             SectionCursor sectionCursor) {
         double range = Config.getSpigotTrackingRange(entity);
         double dx = vx - ex, dy = vy - ey, dz = vz - ez;
         double horizDistSq = dx * dx + dz * dz, distSq = horizDistSq + dy * dy;
         double distance = Math.sqrt(distSq);
 
-        int viewerId = viewer.getEntityId();
-        int entityId = entity.getEntityId();
-        boolean withinDistanceOverride = isWithinDistanceOverride(viewerId, entityId, distSq);
-        boolean withinBelowNameRange = isWithinBelowNameRange(viewer, entity, viewerId, entityId, distSq);
-        if (ExcludeBypassManager.isExcluded(entity.getUniqueId()) || isEntityGlowing(viewer, entity)
-                || horizDistSq > range * range
-                || withinDistanceOverride
-                || withinBelowNameRange) {
+        if (isAlwaysVisibleGate(viewer, entity, range, horizDistSq, distSq)) {
             if (Config.isDebugEnabled) DebugVertexRenderer.removeDisplay(viewer.getUniqueId(), entity.getUniqueId());
             return true;
         }
 
         double[] box = NmsAdapterFactory.get().getEntityBoundingBox(entity);
-        double minX = box[0], bMinY = box[1], minZ = box[2];
-        double maxX = box[3], bMaxY = box[4], maxZ = box[5];
-        double midX = (minX + maxX) * 0.5, midZ = (minZ + maxZ) * 0.5;
-        double centerY = (bMinY + bMaxY) * 0.5;
 
         if (Config.isDebugEnabled) {
+            double minX = box[0], bMinY = box[1], minZ = box[2];
+            double maxX = box[3], bMaxY = box[4], maxZ = box[5];
             int vCount = fillEntityVertices(distance, range, minX, bMinY, minZ, maxX, bMaxY, maxZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
             List<Vector> vertices = new ArrayList<>(vCount);
             List<Boolean> vis = new ArrayList<>(vCount);
             boolean visible = false;
             for (int i = 0; i < vCount; i++) {
-                boolean r = isVisibleNms(adapter, folia, sections, sectionCursor, level, minY, maxY,
+                boolean r = isVisibleNms(blockSource, folia, sections, sectionCursor, level, minY, maxY,
                         eyeX, eyeY, eyeZ,
                         thirdBackX, thirdBackY, thirdBackZ,
                         thirdFrontX, thirdFrontY, thirdFrontZ,
@@ -453,7 +497,28 @@ public class RayTraceEngine {
             return visible;
         }
 
-        if (isVisibleNms(adapter, folia, sections, sectionCursor, level, minY, maxY,
+        return evaluateGeometry(box, eyeX, eyeY, eyeZ, thirdBackX, thirdBackY, thirdBackZ,
+                thirdFrontX, thirdFrontY, thirdFrontZ, perspectiveEnabled,
+                level, minY, maxY, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal,
+                blockSource, folia, sections, sectionCursor);
+    }
+
+    private static boolean evaluateGeometry(
+            double[] box,
+            double eyeX, double eyeY, double eyeZ,
+            double thirdBackX, double thirdBackY, double thirdBackZ,
+            double thirdFrontX, double thirdFrontY, double thirdFrontZ,
+            boolean perspectiveEnabled,
+            org.bukkit.World level, int minY, int maxY,
+            double[] vertexXBufLocal, double[] vertexYBufLocal, double[] vertexZBufLocal,
+            BlockSolidSource blockSource, boolean folia, Long2ObjectOpenHashMap<BlockSection> sections,
+            SectionCursor sectionCursor) {
+        double minX = box[0], bMinY = box[1], minZ = box[2];
+        double maxX = box[3], bMaxY = box[4], maxZ = box[5];
+        double midX = (minX + maxX) * 0.5, midZ = (minZ + maxZ) * 0.5;
+        double centerY = (bMinY + bMaxY) * 0.5;
+
+        if (isVisibleNms(blockSource, folia, sections, sectionCursor, level, minY, maxY,
                 eyeX, eyeY, eyeZ,
                 thirdBackX, thirdBackY, thirdBackZ,
                 thirdFrontX, thirdFrontY, thirdFrontZ,
@@ -463,7 +528,7 @@ public class RayTraceEngine {
         int sparseCount = fillSparseCorners(minX, bMinY, minZ, maxX, bMaxY, maxZ,
                 vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
         for (int i = 0; i < sparseCount; i++) {
-            if (isVisibleNms(adapter, folia, sections, sectionCursor, level, minY, maxY,
+            if (isVisibleNms(blockSource, folia, sections, sectionCursor, level, minY, maxY,
                     eyeX, eyeY, eyeZ,
                     thirdBackX, thirdBackY, thirdBackZ,
                     thirdFrontX, thirdFrontY, thirdFrontZ,
@@ -472,6 +537,36 @@ public class RayTraceEngine {
         }
         return false;
     }
+
+    static boolean evaluateVisibilityFromSnapshot(EntityCheckSnapshot snap,
+                                                  double eyeX, double eyeY, double eyeZ,
+                                                  double thirdBackX, double thirdBackY, double thirdBackZ,
+                                                  double thirdFrontX, double thirdFrontY, double thirdFrontZ,
+                                                  boolean perspectiveEnabled,
+                                                  org.bukkit.World level, int minY, int maxY,
+                                                  BlockSolidSource blockSource, boolean folia,
+                                                  Long2ObjectOpenHashMap<BlockSection> sections,
+                                                  SectionCursor sectionCursor,
+                                                  double[] vertexXBufLocal, double[] vertexYBufLocal, double[] vertexZBufLocal) {
+        if (snap.alwaysVisible()) return true;
+        return evaluateGeometry(snap.box(), eyeX, eyeY, eyeZ, thirdBackX, thirdBackY, thirdBackZ,
+                thirdFrontX, thirdFrontY, thirdFrontZ, perspectiveEnabled,
+                level, minY, maxY, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal,
+                blockSource, folia, sections, sectionCursor);
+    }
+
+    static EntityCheckSnapshot buildCheckSnapshot(Player viewer, Entity entity,
+                                                  double ex, double ey, double ez,
+                                                  double vx, double vy, double vz) {
+        double range = Config.getSpigotTrackingRange(entity);
+        double dx = vx - ex, dy = vy - ey, dz = vz - ez;
+        double horizDistSq = dx * dx + dz * dz, distSq = horizDistSq + dy * dy;
+        boolean alwaysVisible = isAlwaysVisibleGate(viewer, entity, range, horizDistSq, distSq);
+        double[] box = alwaysVisible ? null : NmsAdapterFactory.get().getEntityBoundingBox(entity);
+        return new EntityCheckSnapshot(entity.getEntityId(), alwaysVisible, box, globalTick.get());
+    }
+
+    record EntityCheckSnapshot(int entityId, boolean alwaysVisible, double[] box, int version) {}
 
     private static int fillSparseCorners(double minX, double minY, double minZ,
                                          double maxX, double maxY, double maxZ,
@@ -495,7 +590,7 @@ public class RayTraceEngine {
         return count;
     }
 
-    private static boolean isVisibleNms(NmsAdapter adapter, boolean folia,
+    private static boolean isVisibleNms(BlockSolidSource blockSource, boolean folia,
                                         Long2ObjectOpenHashMap<BlockSection> sections,
                                         SectionCursor sectionCursor,
                                         org.bukkit.World level, int minY, int maxY,
@@ -504,13 +599,13 @@ public class RayTraceEngine {
                                         double thirdFrontX, double thirdFrontY, double thirdFrontZ,
                                         boolean perspectiveEnabled,
                                         double endX, double endY, double endZ) {
-        if (!hitsBlockFast(adapter, folia, sections, sectionCursor, level, minY, maxY, eyeX, eyeY, eyeZ, endX, endY, endZ)) return true;
+        if (!hitsBlockFast(blockSource, folia, sections, sectionCursor, level, minY, maxY, eyeX, eyeY, eyeZ, endX, endY, endZ)) return true;
         if (!perspectiveEnabled) return false;
-        if (!hitsBlockFast(adapter, folia, sections, sectionCursor, level, minY, maxY, thirdBackX, thirdBackY, thirdBackZ, endX, endY, endZ)) return true;
-        return !hitsBlockFast(adapter, folia, sections, sectionCursor, level, minY, maxY, thirdFrontX, thirdFrontY, thirdFrontZ, endX, endY, endZ);
+        if (!hitsBlockFast(blockSource, folia, sections, sectionCursor, level, minY, maxY, thirdBackX, thirdBackY, thirdBackZ, endX, endY, endZ)) return true;
+        return !hitsBlockFast(blockSource, folia, sections, sectionCursor, level, minY, maxY, thirdFrontX, thirdFrontY, thirdFrontZ, endX, endY, endZ);
     }
 
-    private static void computeThirdPersonPos(NmsAdapter adapter, boolean folia,
+    private static void computeThirdPersonPos(BlockSolidSource blockSource, boolean folia,
                                               Long2ObjectOpenHashMap<BlockSection> sections,
                                               SectionCursor sectionCursor,
                                               org.bukkit.World level, int minY, int maxY,
@@ -541,7 +636,7 @@ public class RayTraceEngine {
         double curT = 0;
         for (int s = 0; s < maxSteps; s++) {
             if (curT >= maxDistance) break;
-            if (posY >= minY && posY <= maxY && isOccluding(adapter, level, sections, sectionCursor, posX, posY, posZ, folia)) {
+            if (posY >= minY && posY <= maxY && isOccluding(blockSource, level, sections, sectionCursor, posX, posY, posZ, folia)) {
                 double t = Math.max(0, curT - 0.1);
                 scratch[0] = ox + dirX * t;
                 scratch[1] = oy + dirY * t;
@@ -783,6 +878,14 @@ public class RayTraceEngine {
         PacketManager.clearAllBypasses();
         AddEntityPacketListener.pendingHides.clear();
 
+        synchronized (RayTraceEngine.class) {
+            if (asyncExecutor != null) {
+                asyncExecutor.shutdownNow();
+                asyncExecutor = null;
+            }
+        }
+        chunkSnapshotStore.clearAll();
+
         clearAllCaches();
 
         blockCacheTtlTick.set(0);
@@ -916,6 +1019,8 @@ public class RayTraceEngine {
         boolean folia = SchedulerAdapterFactory.isFolia();
         Long2ObjectOpenHashMap<BlockSection> sections = resolveSections(world, folia);
         SectionCursor sectionCursor = cache.sectionCursor;
+        BlockSolidSource blockSource = new NmsLiveBlockSource(adapter);
+        boolean asyncEnabled = Config.checkingAsyncEnabled && !Config.isDebugEnabled;
 
         if (cache.snapshotBuffer.length < aabbCount) {
             int nl = aabbCount + 16;
@@ -986,14 +1091,14 @@ public class RayTraceEngine {
             if (moved || !cache.perspectiveValid) {
                 int worldMinY = world.getMinHeight();
                 int worldMaxY = world.getMaxHeight();
-                computeThirdPersonPos(adapter, folia, sections, sectionCursor, world, worldMinY, worldMaxY,
+                computeThirdPersonPos(blockSource, folia, sections, sectionCursor, world, worldMinY, worldMaxY,
                         cache.eyeX, cache.eyeY, cache.eyeZ,
                         -ldx, -ldy, -ldz,
                         Config.perspectiveCheckingDistance, thirdPersonScratchLocal);
                 cache.thirdBackX = thirdPersonScratchLocal[0];
                 cache.thirdBackY = thirdPersonScratchLocal[1];
                 cache.thirdBackZ = thirdPersonScratchLocal[2];
-                computeThirdPersonPos(adapter, folia, sections, sectionCursor, world, worldMinY, worldMaxY,
+                computeThirdPersonPos(blockSource, folia, sections, sectionCursor, world, worldMinY, worldMaxY,
                         cache.eyeX, cache.eyeY, cache.eyeZ,
                         ldx, ldy, ldz,
                         Config.perspectiveCheckingDistance, thirdPersonScratchLocal);
@@ -1023,6 +1128,20 @@ public class RayTraceEngine {
         boolean perspValid = cache.perspectiveValid && perspectiveEnabled;
         int minY = world.getMinHeight(), maxY = world.getMaxHeight();
 
+        if (Config.checkingAsyncEnabled) {
+            int[] pair;
+            while ((pair = cache.pendingAsyncEntityAndVisible.poll()) != null) {
+                int idx = cache.entityIndexMap.getOrDefault(pair[0], -1);
+                if (idx >= 0 && pair[2] >= cache.cachedVersion[idx]) {
+                    cache.cachedVisible[idx] = pair[1] != 0;
+                    cache.cachedVersion[idx] = pair[2];
+                }
+            }
+        }
+
+        List<EntityCheckSnapshot> asyncBatch = null;
+        it.unimi.dsi.fastutil.longs.LongOpenHashSet asyncChunkColumns = null;
+
         for (int j = 0; j < count; j++) {
             Entity nmsEnt = snapshot[j];
             int eid = entityIds[j];
@@ -1037,7 +1156,43 @@ public class RayTraceEngine {
                 entityMoved = (dxe * dxe + dye * dye + dze * dze) > POS_EPSILON_SQ;
             }
 
-            if (forceCheck || entityMoved || (eid % groups) == currentGroup) {
+            boolean needsCheck = forceCheck || entityMoved || (eid % groups) == currentGroup;
+            if (!needsCheck) {
+                results[j] = cache.cachedVisible[idx];
+                continue;
+            }
+
+            if (idx < 0) {
+                idx = cache.cachedCount++;
+                if (idx >= cache.cachedX.length) {
+                    int nl = (idx + 1) * 2;
+                    cache.cachedX = Arrays.copyOf(cache.cachedX, nl);
+                    cache.cachedY = Arrays.copyOf(cache.cachedY, nl);
+                    cache.cachedZ = Arrays.copyOf(cache.cachedZ, nl);
+                    cache.cachedVisible = Arrays.copyOf(cache.cachedVisible, nl);
+                    cache.cachedVersion = Arrays.copyOf(cache.cachedVersion, nl);
+                }
+                cache.entityIndexMap.put(eid, idx);
+                cache.cachedVisible[idx] = clientVis[j];
+                cache.cachedVersion[idx] = Integer.MIN_VALUE;
+            }
+            cache.cachedX[idx] = ex;
+            cache.cachedY[idx] = ey;
+            cache.cachedZ[idx] = ez;
+
+            if (asyncEnabled && !cache.asyncBatchInFlight.get()) {
+                results[j] = cache.cachedVisible[idx];
+                if (asyncBatch == null) {
+                    asyncBatch = new ArrayList<>();
+                    asyncChunkColumns = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
+                }
+                asyncBatch.add(buildCheckSnapshot(viewer, nmsEnt, ex, ey, ez, vx, vy, vz));
+                collectChunkColumnsAlong(eyeX, eyeZ, ex, ez, asyncChunkColumns);
+                if (perspValid) {
+                    collectChunkColumnsAlong(thirdBackX, thirdBackZ, ex, ez, asyncChunkColumns);
+                    collectChunkColumnsAlong(thirdFrontX, thirdFrontZ, ex, ez, asyncChunkColumns);
+                }
+            } else {
                 boolean visible = isEntityInSight(
                         viewer, nmsEnt, ex, ey, ez,
                         eyeX, eyeY, eyeZ,
@@ -1047,26 +1202,17 @@ public class RayTraceEngine {
                         vx, vy, vz,
                         world, minY, maxY,
                         vertexXBufLocal, vertexYBufLocal, vertexZBufLocal,
-                        adapter, folia, sections, sectionCursor);
+                        blockSource, folia, sections, sectionCursor);
                 results[j] = visible;
-                if (idx < 0) {
-                    idx = cache.cachedCount++;
-                    if (idx >= cache.cachedX.length) {
-                        int nl = (idx + 1) * 2;
-                        cache.cachedX = Arrays.copyOf(cache.cachedX, nl);
-                        cache.cachedY = Arrays.copyOf(cache.cachedY, nl);
-                        cache.cachedZ = Arrays.copyOf(cache.cachedZ, nl);
-                        cache.cachedVisible = Arrays.copyOf(cache.cachedVisible, nl);
-                    }
-                    cache.entityIndexMap.put(eid, idx);
-                }
-                cache.cachedX[idx] = ex;
-                cache.cachedY[idx] = ey;
-                cache.cachedZ[idx] = ez;
                 cache.cachedVisible[idx] = visible;
-            } else {
-                results[j] = cache.cachedVisible[idx];
+                cache.cachedVersion[idx] = globalTick.get();
             }
+        }
+
+        if (asyncBatch != null && !asyncBatch.isEmpty()) {
+            dispatchAsyncBatch(cache, world, folia, asyncBatch, asyncChunkColumns,
+                    eyeX, eyeY, eyeZ, thirdBackX, thirdBackY, thirdBackZ,
+                    thirdFrontX, thirdFrontY, thirdFrontZ, perspValid, minY, maxY);
         }
 
         ArrayList<Object> outbox = cache.outboxBuffer;
@@ -1091,5 +1237,62 @@ public class RayTraceEngine {
             NametagCloneRenderer.cleanupStaleClones(outbox, viewer);
         if (!outbox.isEmpty())
             NmsAdapterFactory.get().sendBundled(viewer, outbox);
+    }
+
+    private static final double ASYNC_CHUNK_SAMPLE_STEP_BLOCKS = 12.0;
+
+    private static void collectChunkColumnsAlong(double x1, double z1, double x2, double z2,
+                                                 it.unimi.dsi.fastutil.longs.LongOpenHashSet out) {
+        double dx = x2 - x1, dz = z2 - z1;
+        double dist = Math.sqrt(dx * dx + dz * dz);
+        int steps = Math.max(1, (int) (dist / ASYNC_CHUNK_SAMPLE_STEP_BLOCKS) + 1);
+        for (int i = 0; i <= steps; i++) {
+            double t = (double) i / steps;
+            int cx = (int) Math.floor((x1 + dx * t) / 16.0);
+            int cz = (int) Math.floor((z1 + dz * t) / 16.0);
+            out.add(bucketKey(cx, cz));
+        }
+    }
+
+    private static void dispatchAsyncBatch(ViewerCache cache, org.bukkit.World world, boolean folia,
+                                           List<EntityCheckSnapshot> batch,
+                                           it.unimi.dsi.fastutil.longs.LongOpenHashSet chunkColumns,
+                                           double eyeX, double eyeY, double eyeZ,
+                                           double thirdBackX, double thirdBackY, double thirdBackZ,
+                                           double thirdFrontX, double thirdFrontY, double thirdFrontZ,
+                                           boolean perspValid, int minY, int maxY) {
+        if (!cache.asyncBatchInFlight.compareAndSet(false, true)) return;
+
+        int tick = globalTick.get();
+        int ttl = Config.checkingAsyncChunkSnapshotTtlTicks;
+        for (long key : chunkColumns) {
+            int cx = (int) (key >> 32);
+            int cz = (int) key;
+            chunkSnapshotStore.ensureFresh(world, cx, cz, tick, ttl);
+        }
+
+        BlockSolidSource asyncSource = chunkSnapshotStore.asBlockSolidSource();
+        Long2ObjectOpenHashMap<BlockSection> sections = resolveSections(world, folia);
+        SectionCursor freshCursor = new SectionCursor();
+
+        getOrCreateAsyncExecutor().submit(() -> {
+            try {
+                double[] vxBuf = new double[8], vyBuf = new double[8], vzBuf = new double[8];
+                for (EntityCheckSnapshot snap : batch) {
+                    boolean visible;
+                    try {
+                        visible = evaluateVisibilityFromSnapshot(snap, eyeX, eyeY, eyeZ,
+                                thirdBackX, thirdBackY, thirdBackZ, thirdFrontX, thirdFrontY, thirdFrontZ,
+                                perspValid, world, minY, maxY, asyncSource, folia, sections, freshCursor,
+                                vxBuf, vyBuf, vzBuf);
+                    } catch (Throwable t) {
+                        visible = true;
+                    }
+                    cache.pendingAsyncEntityAndVisible.add(new int[]{snap.entityId(), visible ? 1 : 0, snap.version()});
+                }
+            } finally {
+                cache.asyncBatchInFlight.set(false);
+            }
+        });
     }
 }

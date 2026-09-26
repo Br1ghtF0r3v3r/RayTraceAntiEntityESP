@@ -77,8 +77,12 @@ public class EventManager {
 
     public static void playerJoinHandler(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        UUID playerUUID = player.getUniqueId();
         injectPlayer(player);
+        bootstrapPlayer(player);
+    }
+
+    public static void bootstrapPlayer(Player player) {
+        UUID playerUUID = player.getUniqueId();
 
         Objective obj = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(DisplaySlot.BELOW_NAME);
         if (obj != null) {

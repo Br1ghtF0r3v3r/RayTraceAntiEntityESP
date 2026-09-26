@@ -22,13 +22,12 @@ public class TabCompletion implements TabCompleter {
     public List<String> onTabComplete(@NonNull CommandSender sender, Command command, @NonNull String alias, String @NonNull [] args) {
         if (!command.getName().equalsIgnoreCase("raytrace_anti_entity_esp")) return null;
 
-        if (args.length == 1) {
-            return filter(args[0], List.of("config_value", "reload", "checking", "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "exclude", "bypass", "blacklisted_world", "help"));
-        }
+        if (args.length == 1) return filter(args[0], List.of("config_value", "reload", "checking", "async", "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "exclude", "bypass", "blacklisted_world", "help"));
 
         if (args.length == 2) {
             return switch (args[0].toLowerCase()) {
                 case "checking" -> filter(args[1], List.of("enabled", "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers"));
+                case "async" -> filter(args[1], List.of("enabled", "threads", "chunk_snapshot_ttl_ticks"));
                 case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
                 case "debug" -> filter(args[1], List.of("enabled"));
                 case "display_name" -> filter(args[1], List.of("enabled", "period_ticks", "offset_y", "lookahead_ticks"));
@@ -43,6 +42,11 @@ public class TabCompletion implements TabCompleter {
                 case "checking" -> switch (args[1].toLowerCase()) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     case "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers" -> List.of("<value>");
+                    default -> null;
+                };
+                case "async" -> switch (args[1].toLowerCase()) {
+                    case "enabled" -> filter(args[2], List.of("true", "false"));
+                    case "threads", "chunk_snapshot_ttl_ticks" -> List.of("<value>");
                     default -> null;
                 };
                 case "perspective_checking" -> switch (args[1].toLowerCase()) {

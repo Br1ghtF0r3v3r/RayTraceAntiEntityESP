@@ -46,6 +46,10 @@ public final class Main extends JavaPlugin {
                 RealEntityCache.add(entity.getUniqueId());
             }
         }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            EventManager.injectPlayer(player);
+            EventManager.bootstrapPlayer(player);
+        }
         PacketEventsBridge.registerIfAvailable();
         registerCommands();
         VersionChecker.check();

@@ -52,6 +52,15 @@ public class CommandsHandler implements CommandExecutor {
                     default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
                 }
             }
+            case "async" -> {
+                if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
+                switch (args[1].toLowerCase()) {
+                    case "enabled" -> set(sender, "async.enabled", args, 2, Boolean::parseBoolean);
+                    case "threads" -> setWithMin(sender, "async.threads", args, 2, Integer::parseInt, 1);
+                    case "chunk_snapshot_ttl_ticks" -> setWithMin(sender, "async.chunk_snapshot_ttl_ticks", args, 2, Integer::parseInt, 1);
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                }
+            }
             case "perspective_checking" -> {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 switch (args[1].toLowerCase()) {
@@ -321,6 +330,7 @@ public class CommandsHandler implements CommandExecutor {
                 "&e/rtaee reload &7- Reload config from disk",
                 "&e/rtaee config_value &7- Print all current config values",
                 "&e/rtaee checking <enabled|period_ticks|stagger_groups|distance_override|bounding_box_extra_value|vertices_layers> <value> &7- Checking options",
+                "&e/rtaee async <enabled|threads|chunk_snapshot_ttl_ticks> <value> &7- Async raycast options",
                 "&e/rtaee perspective_checking <enabled|distances_from_head> <value> &7- Perspective options",
                 "&e/rtaee display_name <enabled|period_ticks|offset_y|lookahead_ticks> <value> &7- Name tag options",
                 "&e/rtaee debug enabled <true|false> &7- Toggle debug mode",
