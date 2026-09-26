@@ -23,7 +23,7 @@ import static RayTraceAntiEntityESP.paper.utils.StringFormat.formatToString;
 
 public class Config {
 
-    public static final int CONFIG_VERSION = 5;
+    public static final int CONFIG_VERSION = 6;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -31,6 +31,10 @@ public class Config {
     public static double checkingBoundingBoxExtraValue;
     public static int checkingVerticesLayers;
     public static int checkingStaggerGroups;
+
+    public static boolean checkingAsyncEnabled;
+    public static int checkingAsyncThreads;
+    public static int checkingAsyncChunkSnapshotTtlTicks;
 
     public static boolean isPerspectiveCheckingEnabled;
     public static double perspectiveCheckingDistance;
@@ -110,6 +114,14 @@ public class Config {
         checkingDistanceOverride = config.getDouble("checking.distance_override", 10);
         checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
         checkingVerticesLayers = config.getInt("checking.vertices_layers", 4);
+
+        boolean prevAsyncEnabled = checkingAsyncEnabled;
+        checkingAsyncEnabled = config.getBoolean("async.enabled", true);
+        checkingAsyncThreads = Math.max(1, config.getInt("async.threads", 2));
+        checkingAsyncChunkSnapshotTtlTicks = Math.max(1, config.getInt("async.chunk_snapshot_ttl_ticks", 200));
+        if (prevAsyncEnabled != checkingAsyncEnabled) {
+            RayTraceEngine.onAsyncModeChanged(checkingAsyncEnabled);
+        }
 
         isPerspectiveCheckingEnabled = config.getBoolean("perspective_checking.enabled", true);
         perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
@@ -221,6 +233,9 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&echecking.distance_override: &f" + cfg.getDouble("checking.distance_override", 10)));
         sender.sendMessage(formatToString(sender, "&echecking.bounding_box_extra_value: &f" + cfg.getDouble("checking.bounding_box_extra_value", 0)));
         sender.sendMessage(formatToString(sender, "&echecking.vertices_layers: &f" + cfg.getInt("checking.vertices_layers", 4)));
+        sender.sendMessage(formatToString(sender, "&easync.enabled: &f" + cfg.getBoolean("async.enabled", true)));
+        sender.sendMessage(formatToString(sender, "&easync.threads: &f" + cfg.getInt("async.threads", 2)));
+        sender.sendMessage(formatToString(sender, "&easync.chunk_snapshot_ttl_ticks: &f" + cfg.getInt("async.chunk_snapshot_ttl_ticks", 200)));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.enabled: &f" + cfg.getBoolean("perspective_checking.enabled", true)));
         sender.sendMessage(formatToString(sender, "&eperspective_checking.distances_from_head: &f" + cfg.getDouble("perspective_checking.distances_from_head", 4)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.enabled: &f" + cfg.getBoolean("display_name.enabled", true)));
