@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import RayTraceAntiEntityESP.paper.scheduler.SchedulerAdapterFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -13,6 +14,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +25,8 @@ public final class TeamUtils {
 
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
     private static final Map<Component, Boolean> emptyComponentCache = Collections.synchronizedMap(new IdentityHashMap<>());
+    private static final Set<String> pendingBukkitLookup = ConcurrentHashMap.newKeySet();
+
     public static final ConcurrentHashMap<String, NamedTextColor> teamColors = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamPrefixes = new ConcurrentHashMap<>();
     public static final ConcurrentHashMap<String, Component> teamSuffixes = new ConcurrentHashMap<>();
@@ -130,11 +134,26 @@ public final class TeamUtils {
         teamVisibilities.clear();
         viewerOverrides.clear();
         emptyComponentCache.clear();
+        pendingBukkitLookup.clear();
     }
 
     private static void ensureTeamInfoFromBukkit(String entry) {
         if (entryToTeam.containsKey(entry)) return;
-        if (!Bukkit.isPrimaryThread()) return;
+        if (Bukkit.isPrimaryThread()) {
+            doEnsureTeamInfoFromBukkit(entry);
+            return;
+        }
+        if (!pendingBukkitLookup.add(entry)) return;
+        SchedulerAdapterFactory.get().runTask(() -> {
+            try {
+                doEnsureTeamInfoFromBukkit(entry);
+            } finally {
+                pendingBukkitLookup.remove(entry);
+            }
+        });
+    }
+
+    private static void doEnsureTeamInfoFromBukkit(String entry) {
         try {
             Team bukkitTeam = Bukkit.getScoreboardManager().getMainScoreboard().getEntryTeam(entry);
             if (bukkitTeam == null) return;

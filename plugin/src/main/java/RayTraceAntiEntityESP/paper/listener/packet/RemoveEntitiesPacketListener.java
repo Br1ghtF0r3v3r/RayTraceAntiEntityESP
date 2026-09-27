@@ -35,7 +35,6 @@ public class RemoveEntitiesPacketListener extends PacketListener {
             if (entityId == viewerId) continue;
 
             if (PacketManager.consumeDestroyBypass(viewerUUID, entityId)) {
-                cleanupEntityState(viewerId, entityId);
                 continue;
             }
 
