@@ -14,6 +14,7 @@ public class PacketManager {
 
     private static final ConcurrentHashMap<UUID, Set<UUID>> showBypass = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<UUID, Set<UUID>> hiddenBypass = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Set<Integer>> destroyBypass = new ConcurrentHashMap<>();
 
     public static void addShowBypass(UUID viewerUUID, UUID entityUUID) {
         showBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
@@ -33,12 +34,15 @@ public class PacketManager {
         hiddenBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
     }
 
-    public static boolean removeHiddenBypass(UUID viewerUUID, UUID entityUUID) {
+    public static void removeHiddenBypass(UUID viewerUUID, UUID entityUUID) {
         Set<UUID> set = hiddenBypass.get(viewerUUID);
-        return set != null && set.remove(entityUUID);
+        if (set != null) set.remove(entityUUID);
     }
 
-    private static final ConcurrentHashMap<UUID, Set<Integer>> destroyBypass = new ConcurrentHashMap<>();
+    public static boolean isHiddenBypassed(UUID viewerUUID, UUID entityUUID) {
+        Set<UUID> set = hiddenBypass.get(viewerUUID);
+        return set != null && set.contains(entityUUID);
+    }
 
     public static void addDestroyBypass(UUID viewerUUID, int entityId) {
         destroyBypass.computeIfAbsent(viewerUUID, k -> ConcurrentHashMap.newKeySet()).add(entityId);
