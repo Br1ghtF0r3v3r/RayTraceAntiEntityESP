@@ -4,6 +4,8 @@ plugins {
     id "xyz.jpenilla.run-paper" version "3.1.0"
     id "io.papermc.paperweight.userdev"
 }
+evaluationDependsOn(':nms-26')
+
 dependencies {
     implementation "org.bstats:bstats-bukkit:3.2.1"
     compileOnly "me.clip:placeholderapi:2.12.2"
@@ -11,7 +13,6 @@ dependencies {
     paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
     implementation project(':nms-api')
     shadow project(path: ':nms-1_21', configuration: 'runtimeElements')
-    shadow project(path: ':nms-26', configuration: 'runtimeElements')
 }
 tasks {
     shadowJar {
@@ -20,6 +21,8 @@ tasks {
         archiveVersion.set("")
         mergeServiceFiles()
         configurations = [project.configurations.shadow, project.configurations.runtimeClasspath]
+        dependsOn project(':nms-26').tasks.named('compileJava')
+        from(project(':nms-26').tasks.named('compileJava').flatMap { it.destinationDirectory })
         relocate("org.bstats", "${rootProject.group}.libs.bstats")
     }
     jar {

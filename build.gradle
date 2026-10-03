@@ -2,10 +2,13 @@ plugins {
     id 'io.papermc.paperweight.userdev' version '2.0.0-beta.23' apply false
 }
 
-def javaVersion = javaVersion as int
+def defaultJava = (javaVersion as int)
+def java26 = (java26Version as int)
 
 subprojects {
     apply plugin: 'java'
+
+    def javaVersion = (project.path == ':nms-26') ? java26 : defaultJava
 
     repositories {
         mavenCentral()
