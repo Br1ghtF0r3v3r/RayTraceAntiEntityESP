@@ -95,7 +95,10 @@ public abstract class AbstractSyntheticEntity {
     }
 
     public final void despawn() {
-        if (!spawned) return;
+        if (!spawned) {
+            PacketManager.unregisterSyntheticEntity(entityId);
+            return;
+        }
         send(NmsAdapterFactory.get().buildRemoveEntitiesPacket(entityId));
         spawned = false;
         PacketManager.unregisterSyntheticEntity(entityId);

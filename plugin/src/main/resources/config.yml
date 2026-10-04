@@ -6,105 +6,103 @@
 # ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝╚══════╝
 # RayTrace Anti Entity ESP Configuration File
 
-#Config version, don't touch. Bumped automatically when the plugin adds/changes
-#keys; your old file gets backed up and merged into the new template.
+#Don't touch this. The plugin bumps it when keys change and merges your old file into the new one (backup is kept).
 config_version: 6
 
 #-----------------------------------------------
 # CHECKING
 #-----------------------------------------------
 checking:
-  #Turn the whole ESP check on/off
+  #Turns the whole ESP check on or off
   enabled: true
 
-  #Ticks between check passes (1 tick = 50ms). Leave at 1 if you're using stagger_groups.
+  #Ticks between checks (1 tick = 50ms). Keep it at 1 if you use stagger_groups. Range 1-1200
   period_ticks: 1
 
-  #Spreads entities across N groups, one group checked per tick, so you're not
-  #raytracing everyone every single tick. Higher = less CPU per tick, more ticks
-  #before a hidden entity's state updates. Pushed up from the default 3 for speed.
+  #Splits entities into N groups and checks one group per tick instead of everyone every tick.
+  #Higher = less CPU, but hidden entities take longer to update. Range 1-64
   stagger_groups: 6
 
-  #Inside this distance, entities are always shown, walls or not. 0 to disable.
-  #Left on — it's a cheap distance check, skips the raytrace entirely when it fires.
+  #Entities closer than this are always shown. 0 turns it off. Range 0-256
   distance_override: 10
 
-  #Fudge factor added to entity hitboxes for the raytrace. 0 to disable.
+  #Extra size added to the hitbox. Range 0-4
+  #Only used by the debug markers right now, the real check ignores it
   bounding_box_extra_value: 0
 
-  #How many vertex layers get sampled per entity (min 2). More = more accurate,
-  #more CPU. Set to the floor for max speed — fewer samples per entity per check.
+  #How many sample layers per entity. Range 2-7
+  #Only used by the debug markers right now, the real check ignores it
   vertices_layers: 3
 
 async:
-  # Run raycast visibility checks off the main thread using chunk snapshots.
+  #Run the raycasts off the main thread using chunk snapshots
   enabled: true
-  # Worker threads for async raycasts.
+  #Worker threads for the raycasts. Range 1-16
   threads: 2
-  # How long (in ticks) a cached chunk snapshot stays valid before being refreshed.
+  #Ticks a chunk snapshot stays valid. Changing a block in the chunk refreshes it early. Range 1-72000
   chunk_snapshot_ttl_ticks: 200
 
 #-----------------------------------------------
 # PERSPECTIVE CHECKING
 #-----------------------------------------------
 perspective_checking:
-  #Also raytrace from where a third-person camera would sit. Roughly triples
-  #the raytrace per entity (eye + two 3rd-person angles). Turned off here for
-  #speed — the trade-off is a player who pops into 3rd person can peek an
-  #entity through a wall that the 1st-person check alone would've kept hidden.
+  #Also checks from where a third person camera would be. Costs about 3x the raytraces.
+  #If you turn it off, someone in third person can see through walls the first person check would block
   enabled: true
 
-  #How far back the simulated 3rd-person camera sits (blocks). Unused while
-  #perspective_checking is off.
+  #How far behind the player the fake camera sits, in blocks. Range 0-32
   distances_from_head: 4
 
 #-----------------------------------------------
 # DISPLAY NAME
 #-----------------------------------------------
 display_name:
-  #Puts a fake nametag over hidden entities so they're not just invisible
+  #Shows a fake nametag over hidden entities so they don't just vanish
   enabled: true
 
-  #How often the nametag repositions/refreshes (ticks), independent of
-  #checking.period_ticks. Raised from the default 1 — nametags don't need to
-  #be as crisp as the visibility check itself, and this is one more thing off
-  #the hot path every tick.
+  #Ticks between nametag updates. Higher = less work per tick. Range 1-200
   period_ticks: 1
 
-  #Ticks to extrapolate the nametag ahead based on recent velocity. Doesn't
-  #cost meaningfully more CPU either way — left at default.
+  #How many ticks ahead the nametag is moved, based on the entity's speed. Range 0-20
   lookahead_ticks: 3
 
-  #Vertical nudge for the nametag height (blocks)
+  #Moves the nametag up or down, in blocks. Range -10 to 10
   offset_y: 0
+
+#-----------------------------------------------
+# UPDATE CHECKER
+#-----------------------------------------------
+update_checker:
+  #Checks GitHub once on startup for a newer release and tells admins when they join.
+  #Set to false if you don't want the plugin touching the internet
+  enabled: true
 
 #-----------------------------------------------
 # DEBUG
 #-----------------------------------------------
 debug:
-  #Draws debug markers at the raytrace vertices and forces every check
-  #synchronous. Never enable this if you actually care about performance.
+  #Draws markers at the raytrace points and forces every check to run on the main thread.
+  #Leave it off on a live server
   enabled: false
 
 #-----------------------------------------------
 # ANTI ENTITIES
 #-----------------------------------------------
-#Which entity types get ESP protection. Use the names from:
+#Entity types that get protected. Names come from:
 #https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/entity/EntityType.html
-#Keep this list as short as possible — every extra type is more entities
-#in the tracking query and more raytrace per tick.
+#A misspelled name gets ignored (you'll see a warning), so that entity stays unprotected.
+#Keep the list short, every extra type costs more raytraces.
 anti_entities:
   - player
 
-#whitelist = only the listed types get checked
-#blacklist = everything gets checked except the listed types
+#whitelist = only the listed types are checked
+#blacklist = everything is checked except the listed types
+#Anything else falls back to whitelist
 anti_mode: whitelist
 
 #-----------------------------------------------
 # BLACKLISTED WORLD
 #-----------------------------------------------
-#Worlds where checking is skipped entirely, based on the viewer's current world.
-#Empty list = runs everywhere. If you've got worlds where ESP doesn't matter
-#(minigame lobbies, creative/build worlds, etc.), list them here — it's a free
-#skip of the entire check for every player standing in them.
+#Worlds where checking is skipped, based on the world the viewer is in.
+#Empty = runs everywhere. Good for lobbies, creative worlds and so on
 blacklisted_world: []

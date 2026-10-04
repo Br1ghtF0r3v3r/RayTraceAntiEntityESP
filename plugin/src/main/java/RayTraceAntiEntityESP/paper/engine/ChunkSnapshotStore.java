@@ -9,15 +9,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class ChunkSnapshotStore {
 
     private record Key(Object worldKey, int chunkX, int chunkZ) {}
-
-    private record Entry(org.bukkit.ChunkSnapshot snapshot, int fetchedAtTick) {}
-
+    private record Entry(org.bukkit.ChunkSnapshot snapshot, int fetchedAtTick, boolean stale) {}
     private final ConcurrentHashMap<Key, Entry> snapshots = new ConcurrentHashMap<>();
 
     public void ensureFresh(World world, int chunkX, int chunkZ, int currentTick, int ttlTicks) {
         Key key = new Key(world, chunkX, chunkZ);
         Entry existing = snapshots.get(key);
-        if (existing != null && (currentTick - existing.fetchedAtTick()) < ttlTicks) return;
+        if (existing != null && !existing.stale() && (currentTick - existing.fetchedAtTick()) < ttlTicks) return;
 
         if (!world.isChunkLoaded(chunkX, chunkZ)) {
             snapshots.remove(key);
@@ -25,7 +23,21 @@ public final class ChunkSnapshotStore {
         }
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
         org.bukkit.ChunkSnapshot snapshot = chunk.getChunkSnapshot(false, false, false);
-        snapshots.put(key, new Entry(snapshot, currentTick));
+        snapshots.put(key, new Entry(snapshot, currentTick, false));
+    }
+
+    public void markStale(World world, int chunkX, int chunkZ) {
+        if (snapshots.isEmpty()) return;
+        snapshots.computeIfPresent(new Key(world, chunkX, chunkZ),
+                (k, e) -> e.stale() ? e : new Entry(e.snapshot(), e.fetchedAtTick(), true));
+    }
+
+    public void evictOlderThan(int currentTick, int maxAgeTicks) {
+        snapshots.values().removeIf(e -> (currentTick - e.fetchedAtTick()) > maxAgeTicks);
+    }
+
+    public int size() {
+        return snapshots.size();
     }
 
     public boolean isSolid(World world, int x, int y, int z) {

@@ -54,7 +54,7 @@ public class ExcludeBypassManager {
         }
     }
 
-    private static void save() {
+    private static synchronized void save() {
         List<String> excludeList = new ArrayList<>();
         for (UUID uuid : excluded) excludeList.add(uuid.toString());
         Collections.sort(excludeList);
@@ -66,7 +66,17 @@ public class ExcludeBypassManager {
         data.set("exclude", excludeList);
         data.set("bypass", bypassList);
         try {
-            data.save(file);
+            java.nio.file.Path target = file.toPath();
+            java.nio.file.Path parent = target.toAbsolutePath().getParent();
+            if (parent != null) java.nio.file.Files.createDirectories(parent);
+            java.nio.file.Path tmp = target.resolveSibling(file.getName() + ".tmp");
+            java.nio.file.Files.writeString(tmp, data.saveToString(), java.nio.charset.StandardCharsets.UTF_8);
+            try {
+                java.nio.file.Files.move(tmp, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                        java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
+                java.nio.file.Files.move(tmp, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
         } catch (IOException e) {
             plugin.getLogger().warning("Failed to save entities.yml: " + e.getMessage());
         }

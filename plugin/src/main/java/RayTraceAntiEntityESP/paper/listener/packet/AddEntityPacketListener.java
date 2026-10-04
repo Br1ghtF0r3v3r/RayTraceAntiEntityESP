@@ -32,20 +32,14 @@ public class AddEntityPacketListener extends PacketListener {
     public static void drainPendingHides() {
         if (!Config.isCheckingEnabled) return;
         if (pendingHides.isEmpty()) return;
-        pendingHides.forEach((viewerUUID, entityUUIDs) -> {
-            if (PacketManager.isBypassed(viewerUUID)) {
-                pendingHides.remove(viewerUUID);
-                return;
-            }
+        for (UUID viewerUUID : new ArrayList<>(pendingHides.keySet())) {
+            Set<UUID> entityUUIDs = pendingHides.remove(viewerUUID);
+            if (entityUUIDs == null || entityUUIDs.isEmpty()) continue;
+            if (PacketManager.isBypassed(viewerUUID)) continue;
             Player viewer = Bukkit.getPlayer(viewerUUID);
-            if (viewer == null) {
-                pendingHides.remove(viewerUUID);
-                return;
-            }
-
-            pendingHides.remove(viewerUUID);
+            if (viewer == null) continue;
             SchedulerAdapterFactory.get().runEntityTask(viewer, () -> processPendingHides(viewer, entityUUIDs));
-        });
+        }
     }
 
     private static void processPendingHides(Player viewer, Set<UUID> entityUUIDs) {
@@ -120,7 +114,11 @@ public class AddEntityPacketListener extends PacketListener {
             return true;
         }
 
-        pendingHides.computeIfAbsent(viewer.getUniqueId(), k -> ConcurrentHashMap.newKeySet()).add(entityUUID);
+        pendingHides.compute(viewer.getUniqueId(), (k, set) -> {
+            if (set == null) set = ConcurrentHashMap.newKeySet();
+            set.add(entityUUID);
+            return set;
+        });
         return true;
     }
 }

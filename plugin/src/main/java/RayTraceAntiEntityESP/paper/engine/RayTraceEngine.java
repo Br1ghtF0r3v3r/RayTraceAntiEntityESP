@@ -24,12 +24,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static RayTraceAntiEntityESP.paper.Main.plugin;
@@ -102,7 +97,7 @@ public class RayTraceEngine {
     private static final EnumMap<EntityType, String> ENTITY_TYPE_KEYS = new EnumMap<>(EntityType.class);
     static {
         for (EntityType t : EntityType.values()) {
-            ENTITY_TYPE_KEYS.put(t, t.name().toLowerCase());
+            ENTITY_TYPE_KEYS.put(t, t.name().toLowerCase(Locale.ROOT));
         }
     }
 
@@ -276,6 +271,7 @@ public class RayTraceEngine {
         int bitIndex = (ly << 8) | (lz << 4) | lx;
         int word = bitIndex >>> 6;
         long mask = 1L << (bitIndex & 63);
+        chunkSnapshotStore.markStale(world, x >> 4, z >> 4);
         synchronized (sharedStateLock) {
             Long2ObjectOpenHashMap<BlockSection> sections = blockSectionCache.get(world);
             if (sections == null) return;
@@ -355,16 +351,6 @@ public class RayTraceEngine {
             }
         }
         return getOrCreateWorldSections(world);
-    }
-
-    public static boolean hitsBlock(org.bukkit.World world, int minY, int maxY,
-                                    double ox, double oy, double oz,
-                                    double ex2, double ey2, double ez2) {
-        NmsAdapter adapter = NmsAdapterFactory.get();
-        boolean folia = SchedulerAdapterFactory.isFolia();
-        Long2ObjectOpenHashMap<BlockSection> sections = resolveSections(world, folia);
-        SectionCursor sectionCursor = new SectionCursor();
-        return hitsBlockFast(new NmsLiveBlockSource(adapter), folia, sections, sectionCursor, world, minY, maxY, ox, oy, oz, ex2, ey2, ez2);
     }
 
     private static boolean hitsBlockFast(BlockSolidSource blockSource, boolean folia,
@@ -676,14 +662,14 @@ public class RayTraceEngine {
     public static boolean isAntiEntity(String typeKey, UUID entityUUID) {
         if (typeKey == null) return false;
         if (ExcludeBypassManager.isExcluded(entityUUID)) return false;
-        return isAntiEntityType(typeKey.toLowerCase());
+        return isAntiEntityType(typeKey.toLowerCase(Locale.ROOT));
     }
 
     public static boolean isAntiEntity(Entity entity) {
         String typeKey = ENTITY_TYPE_KEYS.get(entity.getType());
         if (typeKey == null) return false;
         if (ExcludeBypassManager.isExcluded(entity.getUniqueId())) return false;
-        return isAntiEntityType(typeKey.toLowerCase());
+        return isAntiEntityType(typeKey.toLowerCase(Locale.ROOT));
     }
 
     public static boolean isAntiEntityType(String typeKey) {
@@ -702,7 +688,7 @@ public class RayTraceEngine {
                                           double[] vertexXBufLocal,
                                           double[] vertexYBufLocal,
                                           double[] vertexZBufLocal) {
-        if (Config.checkingVerticesLayers < 2) throw new ExceptionInInitializerError("sampleLayers must be at least 2");
+        if (Config.checkingVerticesLayers < 2) throw new IllegalStateException("checking.vertices_layers must be at least 2");
         double midX = (minX + maxX) * 0.5, midZ = (minZ + maxZ) * 0.5;
         double insetMinX = Math.min(minX + VERTEX_INSET, midX);
         double insetMaxX = Math.max(maxX - VERTEX_INSET, midX);
@@ -813,11 +799,6 @@ public class RayTraceEngine {
     }
 
     public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer, boolean visibleClient,
-                                              List<Object> outbox, boolean forceRefresh) {
-        updateRayTraceChecking(viewer, entity, visibleServer, visibleClient, outbox, forceRefresh, null);
-    }
-
-    public static void updateRayTraceChecking(Player viewer, Entity entity, boolean visibleServer, boolean visibleClient,
                                               List<Object> outbox, boolean forceRefresh, IntSet hiddenSet) {
         if (visibleServer && !visibleClient) {
             VisibilityUtils.setNotHidden(viewer, entity);
@@ -913,6 +894,7 @@ public class RayTraceEngine {
                 synchronized (sharedStateLock) {
                     evictIdleBuckets();
                 }
+                chunkSnapshotStore.evictOlderThan(globalTick.get(), Math.max(600, Config.checkingAsyncChunkSnapshotTtlTicks * 3));
                 bucketEvictSweepTick.set(0);
             }
 
@@ -1275,7 +1257,8 @@ public class RayTraceEngine {
         Long2ObjectOpenHashMap<BlockSection> sections = resolveSections(world, folia);
         SectionCursor freshCursor = new SectionCursor();
 
-        getOrCreateAsyncExecutor().submit(() -> {
+        try {
+            getOrCreateAsyncExecutor().submit(() -> {
             try {
                 double[] vxBuf = new double[8], vyBuf = new double[8], vzBuf = new double[8];
                 for (EntityCheckSnapshot snap : batch) {
@@ -1293,6 +1276,10 @@ public class RayTraceEngine {
             } finally {
                 cache.asyncBatchInFlight.set(false);
             }
-        });
+            });
+        } catch (Throwable t) {
+            cache.asyncBatchInFlight.set(false);
+            plugin.getLogger().warning("[RayTraceAntiEntityESP] Could not dispatch async raycast batch: " + t);
+        }
     }
 }

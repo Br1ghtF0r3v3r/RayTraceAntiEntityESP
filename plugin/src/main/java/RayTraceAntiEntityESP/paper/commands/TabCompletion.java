@@ -11,10 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.RayTraceResult;
 import org.jspecify.annotations.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class TabCompletion implements TabCompleter {
 
@@ -25,7 +22,7 @@ public class TabCompletion implements TabCompleter {
         if (args.length == 1) return filter(args[0], List.of("config_value", "reload", "checking", "async", "perspective_checking", "debug", "display_name", "anti_mode", "anti_entities", "exclude", "bypass", "blacklisted_world", "help"));
 
         if (args.length == 2) {
-            return switch (args[0].toLowerCase()) {
+            return switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "checking" -> filter(args[1], List.of("enabled", "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers"));
                 case "async" -> filter(args[1], List.of("enabled", "threads", "chunk_snapshot_ttl_ticks"));
                 case "perspective_checking" -> filter(args[1], List.of("enabled", "distances_from_head"));
@@ -38,37 +35,37 @@ public class TabCompletion implements TabCompleter {
         }
 
         if (args.length == 3) {
-            return switch (args[0].toLowerCase()) {
-                case "checking" -> switch (args[1].toLowerCase()) {
+            return switch (args[0].toLowerCase(Locale.ROOT)) {
+                case "checking" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     case "period_ticks", "stagger_groups", "distance_override", "bounding_box_extra_value", "vertices_layers" -> List.of("<value>");
                     default -> null;
                 };
-                case "async" -> switch (args[1].toLowerCase()) {
+                case "async" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     case "threads", "chunk_snapshot_ttl_ticks" -> List.of("<value>");
                     default -> null;
                 };
-                case "perspective_checking" -> switch (args[1].toLowerCase()) {
+                case "perspective_checking" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     case "distances_from_head" -> List.of("<value>");
                     default -> null;
                 };
-                case "debug" -> switch (args[1].toLowerCase()) {
+                case "debug" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     default -> null;
                 };
-                case "display_name" -> switch (args[1].toLowerCase()) {
+                case "display_name" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "enabled" -> filter(args[2], List.of("true", "false"));
                     case "period_ticks", "offset_y", "lookahead_ticks" -> List.of("<value>");
                     default -> null;
                 };
-                case "anti_entities" -> switch (args[1].toLowerCase()) {
+                case "anti_entities" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "add" -> {
                         List<String> types = new ArrayList<>();
                         for (EntityType type : EntityType.values()) {
-                            String name = type.name().toLowerCase();
-                            if (!Config.antiEntities.contains(name) && name.startsWith(args[2].toLowerCase())) {
+                            String name = type.name().toLowerCase(Locale.ROOT);
+                            if (!Config.antiEntities.contains(name) && name.startsWith(args[2].toLowerCase(Locale.ROOT))) {
                                 types.add(name);
                             }
                         }
@@ -77,12 +74,12 @@ public class TabCompletion implements TabCompleter {
                     case "remove" -> filter(args[2], new ArrayList<>(Config.antiEntities));
                     default -> null;
                 };
-                case "blacklisted_world" -> switch (args[1].toLowerCase()) {
+                case "blacklisted_world" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "add" -> {
                         List<String> names = new ArrayList<>();
                         for (org.bukkit.World w : Bukkit.getWorlds()) {
                             String name = w.getName();
-                            if (!Config.blacklistedWorlds.contains(name.toLowerCase()) && name.toLowerCase().startsWith(args[2].toLowerCase())) {
+                            if (!Config.blacklistedWorlds.contains(name.toLowerCase(Locale.ROOT)) && name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT))) {
                                 names.add(name);
                             }
                         }
@@ -91,7 +88,7 @@ public class TabCompletion implements TabCompleter {
                     case "remove" -> filter(args[2], new ArrayList<>(Config.blacklistedWorlds));
                     default -> null;
                 };
-                case "exclude", "bypass" -> switch (args[1].toLowerCase()) {
+                case "exclude", "bypass" -> switch (args[1].toLowerCase(Locale.ROOT)) {
                     case "add" -> {
                         List<String> names = new ArrayList<>();
                         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -130,7 +127,7 @@ public class TabCompletion implements TabCompleter {
     public List<String> filter(String input, List<String> options) {
         List<String> result = new ArrayList<>();
         for (String o : options) {
-            if (o.toLowerCase().startsWith(input.toLowerCase())) result.add(o);
+            if (o.toLowerCase(Locale.ROOT).startsWith(input.toLowerCase(Locale.ROOT))) result.add(o);
         }
         return result;
     }

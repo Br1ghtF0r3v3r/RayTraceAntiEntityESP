@@ -40,18 +40,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-
-
+@SuppressWarnings("unused")
 public final class NmsAdapter_26_x implements NmsAdapter {
 
     private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger("RayTraceAntiEntityESP");
@@ -297,7 +290,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 return NamedTextColor.namedColor(tc.getValue());
             }
             case Enum<?> e -> {
-                NamedTextColor byName = NamedTextColor.NAMES.value(e.name().toLowerCase(java.util.Locale.ROOT));
+                NamedTextColor byName = NamedTextColor.NAMES.value(e.name().toLowerCase(Locale.ROOT));
                 if (byName != null) return byName;
             }
             default -> {
@@ -305,7 +298,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
         }
 
         if (result instanceof String s) {
-            NamedTextColor byName = NamedTextColor.NAMES.value(s.toLowerCase(java.util.Locale.ROOT));
+            NamedTextColor byName = NamedTextColor.NAMES.value(s.toLowerCase(Locale.ROOT));
             if (byName != null) return byName;
             net.minecraft.network.chat.TextColor tc = parseTextColor(s);
             if (tc != null) return NamedTextColor.namedColor(tc.getValue());

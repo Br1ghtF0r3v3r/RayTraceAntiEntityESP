@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,6 +24,19 @@ import static RayTraceAntiEntityESP.paper.utils.StringFormat.formatToString;
 public class Config {
 
     public static final int CONFIG_VERSION = 6;
+
+    public static final long PERIOD_TICKS_MAX = 1200L;
+    public static final int STAGGER_GROUPS_MAX = 64;
+    public static final double DISTANCE_OVERRIDE_MAX = 256.0;
+    public static final double BOUNDING_BOX_EXTRA_MAX = 4.0;
+    public static final int VERTICES_LAYERS_MIN = 2;
+    public static final int VERTICES_LAYERS_MAX = 7;
+    public static final int ASYNC_THREADS_MAX = 16;
+    public static final int SNAPSHOT_TTL_TICKS_MAX = 72000;
+    public static final double PERSPECTIVE_DISTANCE_MAX = 32.0;
+    public static final long DISPLAY_PERIOD_TICKS_MAX = 200L;
+    public static final double DISPLAY_OFFSET_Y_MAX = 10.0;
+    public static final double DISPLAY_LOOKAHEAD_TICKS_MAX = 20.0;
 
     public static boolean isCheckingEnabled;
     public static long checkingPeriodTicks;
@@ -45,6 +58,8 @@ public class Config {
     public static double displayNameLookaheadTicks;
 
     public static boolean isDebugEnabled;
+
+    public static boolean isUpdateCheckerEnabled;
 
     public static Set<String> antiEntities;
     public static String antiMode;
@@ -109,42 +124,64 @@ public class Config {
         loadSpigotConfig();
 
         isCheckingEnabled = config.getBoolean("checking.enabled", true);
-        checkingPeriodTicks = config.getLong("checking.period_ticks", 1);
-        checkingStaggerGroups = config.getInt("checking.stagger_groups", 3);
-        checkingDistanceOverride = config.getDouble("checking.distance_override", 10);
-        checkingBoundingBoxExtraValue = config.getDouble("checking.bounding_box_extra_value", 0);
-        checkingVerticesLayers = config.getInt("checking.vertices_layers", 4);
+        checkingPeriodTicks = clampTicks("checking.period_ticks", config.getLong("checking.period_ticks", 1), PERIOD_TICKS_MAX);
+        checkingStaggerGroups = clampInt("checking.stagger_groups", config.getInt("checking.stagger_groups", 3), 1, STAGGER_GROUPS_MAX);
+        checkingDistanceOverride = clampDouble("checking.distance_override", config.getDouble("checking.distance_override", 10), 0, DISTANCE_OVERRIDE_MAX, 10);
+        checkingBoundingBoxExtraValue = clampDouble("checking.bounding_box_extra_value", config.getDouble("checking.bounding_box_extra_value", 0), 0, BOUNDING_BOX_EXTRA_MAX, 0);
+        checkingVerticesLayers = clampInt("checking.vertices_layers", config.getInt("checking.vertices_layers", 4), VERTICES_LAYERS_MIN, VERTICES_LAYERS_MAX);
 
         boolean prevAsyncEnabled = checkingAsyncEnabled;
         checkingAsyncEnabled = config.getBoolean("async.enabled", true);
-        checkingAsyncThreads = Math.max(1, config.getInt("async.threads", 2));
-        checkingAsyncChunkSnapshotTtlTicks = Math.max(1, config.getInt("async.chunk_snapshot_ttl_ticks", 200));
+        checkingAsyncThreads = clampInt("async.threads", config.getInt("async.threads", 2), 1, ASYNC_THREADS_MAX);
+        checkingAsyncChunkSnapshotTtlTicks = clampInt("async.chunk_snapshot_ttl_ticks", config.getInt("async.chunk_snapshot_ttl_ticks", 200), 1, SNAPSHOT_TTL_TICKS_MAX);
         if (prevAsyncEnabled != checkingAsyncEnabled) {
             RayTraceEngine.onAsyncModeChanged(checkingAsyncEnabled);
         }
 
         isPerspectiveCheckingEnabled = config.getBoolean("perspective_checking.enabled", true);
-        perspectiveCheckingDistance = config.getDouble("perspective_checking.distances_from_head", 4);
+        perspectiveCheckingDistance = clampDouble("perspective_checking.distances_from_head", config.getDouble("perspective_checking.distances_from_head", 4), 0, PERSPECTIVE_DISTANCE_MAX, 4);
 
         isDisplayNameEnabled = config.getBoolean("display_name.enabled", true);
-        displayNamePeriodTicks = config.getLong("display_name.period_ticks", 1);
-        displayNameLookaheadTicks = config.getDouble("display_name.lookahead_ticks", 3.0);
-        displayNameOffSetY = config.getDouble("display_name.offset_y", 0);
+        displayNamePeriodTicks = clampTicks("display_name.period_ticks", config.getLong("display_name.period_ticks", 1), DISPLAY_PERIOD_TICKS_MAX);
+        displayNameLookaheadTicks = clampDouble("display_name.lookahead_ticks", config.getDouble("display_name.lookahead_ticks", 3.0), 0, DISPLAY_LOOKAHEAD_TICKS_MAX, 3.0);
+        displayNameOffSetY = clampDouble("display_name.offset_y", config.getDouble("display_name.offset_y", 0), -DISPLAY_OFFSET_Y_MAX, DISPLAY_OFFSET_Y_MAX, 0);
 
         boolean prevDebugEnabled = isDebugEnabled;
         isDebugEnabled = config.getBoolean("debug.enabled", false);
 
-        List<String> entityList = config.getStringList("anti_entities");
-        antiEntities = new HashSet<>();
-        for (String entity : entityList) {
-            antiEntities.add(entity.toLowerCase());
+        isUpdateCheckerEnabled = config.getBoolean("update_checker.enabled", true);
+
+        antiMode = "whitelist";
+        String rawMode = config.getString("anti_mode", "whitelist");
+        if ("whitelist".equalsIgnoreCase(rawMode.trim()) || "blacklist".equalsIgnoreCase(rawMode.trim())) {
+            antiMode = rawMode.trim().toLowerCase(Locale.ROOT);
+        } else {
+            plugin.getLogger().warning("Invalid anti_mode '" + rawMode + "' (expected whitelist or blacklist). Falling back to whitelist.");
         }
-        antiMode = config.getString("anti_mode", "whitelist");
-        isBlacklist = "blacklist".equalsIgnoreCase(antiMode);
+        isBlacklist = "blacklist".equals(antiMode);
+
+        antiEntities = new HashSet<>();
+        for (String entity : config.getStringList("anti_entities")) {
+            if (entity == null) continue;
+            String key = entity.trim().toLowerCase(Locale.ROOT);
+            if (key.isEmpty()) continue;
+            try {
+                EntityType.valueOf(key.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                plugin.getLogger().warning("anti_entities contains unknown entity type '" + entity + "' - ignoring it. "
+                        + "A misspelled entry means that entity is NOT protected.");
+                continue;
+            }
+            antiEntities.add(key);
+        }
+        if (!isBlacklist && antiEntities.isEmpty()) {
+            plugin.getLogger().warning("anti_mode is whitelist but anti_entities is empty: no entity type is protected right now.");
+        }
 
         blacklistedWorlds = new HashSet<>();
         for (String world : config.getStringList("blacklisted_world")) {
-            blacklistedWorlds.add(world.toLowerCase());
+            if (world == null) continue;
+            blacklistedWorlds.add(world.toLowerCase(Locale.ROOT));
         }
 
         RayTraceEngine.clearAntiEntityCache();
@@ -160,8 +197,31 @@ public class Config {
         }
     }
 
+    private static void warnClamped(String key, Object original, Object used) {
+        plugin.getLogger().warning("Config value '" + key + "' (" + original + ") is out of range; using " + used + " instead.");
+    }
+
+    private static int clampInt(String key, int value, int min, int max) {
+        int c = Math.clamp(value, min, max);
+        if (c != value) warnClamped(key, value, c);
+        return c;
+    }
+
+    private static long clampTicks(String key, long value, long max) {
+        long c = Math.clamp(value, 1L, max);
+        if (c != value) warnClamped(key, value, c);
+        return c;
+    }
+
+    private static double clampDouble(String key, double value, double min, double max, double fallback) {
+        double v = Double.isFinite(value) ? value : fallback;
+        double c = Math.clamp(v, min, max);
+        if (c != value) warnClamped(key, value, c);
+        return c;
+    }
+
     public static boolean isWorldAllowed(String worldName) {
-        return !blacklistedWorlds.contains(worldName.toLowerCase());
+        return !blacklistedWorlds.contains(worldName.toLowerCase(java.util.Locale.ROOT));
     }
 
     public static void loadSpigotConfig() {
@@ -243,6 +303,7 @@ public class Config {
         sender.sendMessage(formatToString(sender, "&edisplay_name.offset_y: &f" + cfg.getDouble("display_name.offset_y", 0)));
         sender.sendMessage(formatToString(sender, "&edisplay_name.lookahead_ticks: &f" + cfg.getDouble("display_name.lookahead_ticks", 3.0)));
         sender.sendMessage(formatToString(sender, "&edebug.enabled: &f" + cfg.getBoolean("debug.enabled", false)));
+        sender.sendMessage(formatToString(sender, "&eupdate_checker.enabled: &f" + cfg.getBoolean("update_checker.enabled", true)));
         sender.sendMessage(formatToString(sender, "&eanti_entities: &f" + String.join(", ", cfg.getStringList("anti_entities"))));
         sender.sendMessage(formatToString(sender, "&eanti_mode: &f" + cfg.getString("anti_mode", "whitelist")));
         sender.sendMessage(formatToString(sender, "&eblacklisted_world: &f" + String.join(", ", cfg.getStringList("blacklisted_world"))));

@@ -1,6 +1,7 @@
 package RayTraceAntiEntityESP.paper.engine;
 
 import RayTraceAntiEntityESP.paper.config.Config;
+import RayTraceAntiEntityESP.paper.listener.PacketManager;
 import RayTraceAntiEntityESP.paper.listener.packet.SetEntityDataPacketListener;
 import RayTraceAntiEntityESP.paper.nms.NmsAdapterFactory;
 import RayTraceAntiEntityESP.paper.utils.NametagCloneUtils;
@@ -69,10 +70,10 @@ public class NametagCloneRenderer {
     }
 
     private static boolean shouldShowFast(Player viewer, Entity entity) {
-        return shouldShowFast(viewer, entity, VisibilityUtils.getHiddenSet(viewer.getEntityId()));
+        return shouldShowFast(entity, VisibilityUtils.getHiddenSet(viewer.getEntityId()));
     }
 
-    private static boolean shouldShowFast(Player viewer, Entity entity, it.unimi.dsi.fastutil.ints.IntSet hiddenSet) {
+    private static boolean shouldShowFast(Entity entity, it.unimi.dsi.fastutil.ints.IntSet hiddenSet) {
         if (entity.isDead()) return false;
         if (!entity.isValid()) return false;
 
@@ -127,8 +128,9 @@ public class NametagCloneRenderer {
             }
         }
 
+        NametagCloneUtils clone = null;
         try {
-            NametagCloneUtils clone = new NametagCloneUtils(viewer);
+            clone = new NametagCloneUtils(viewer);
             clone.setOutbox(outbox);
             try {
                 clone.setName(getName(viewer, entity));
@@ -140,6 +142,7 @@ public class NametagCloneRenderer {
             }
             inner.put(entityUUID, clone);
         } catch (Throwable t) {
+            if (clone != null) PacketManager.unregisterSyntheticEntity(clone.getEntityId());
             plugin.getLogger().warning("Failed to spawn display for " + viewer.getName() + " -> " + entity.getName() + ": " + t);
         }
     }
@@ -164,7 +167,7 @@ public class NametagCloneRenderer {
             return;
         }
 
-        if (!shouldShowFast(viewer, entity, hiddenSet)) {
+        if (!shouldShowFast(entity, hiddenSet)) {
             inner.remove(entityUUID);
             despawnClone(existing, outbox);
             return;
@@ -228,7 +231,7 @@ public class NametagCloneRenderer {
         java.util.List<UUID> removed = new ArrayList<>();
         inner.entrySet().removeIf(entry -> {
             Entity entity = Bukkit.getEntity(entry.getKey());
-            if (entity == null || !shouldShowFast(viewer, entity, hiddenSet)) {
+            if (entity == null || !shouldShowFast(entity, hiddenSet)) {
                 despawnClone(entry.getValue(), outbox);
                 if (nameInner != null) nameInner.remove(entry.getKey());
                 removed.add(entry.getKey());

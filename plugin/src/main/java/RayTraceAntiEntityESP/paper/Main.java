@@ -52,7 +52,7 @@ public final class Main extends JavaPlugin {
         }
         PacketEventsBridge.registerIfAvailable();
         registerCommands();
-        VersionChecker.check();
+        if (Config.isUpdateCheckerEnabled) VersionChecker.check();
         getLogger().info("RayTraceEntityESP enabled on " + (SchedulerAdapterFactory.isFolia() ? "Folia" : "Paper") + ".");
 
         int pluginId = 32643;
@@ -61,16 +61,31 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        RayTraceEngine.shutdownCleanup();
-
-        SchedulerAdapterFactory.get().cancelAll();
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            EventManager.uninjectPlayer(player);
-        }
-        EntityIdentityCache.clearAll();
-        RealEntityCache.clearAll();
-        TeamUtils.clearAll();
+        runQuietly("engine cleanup", RayTraceEngine::shutdownCleanup);
+        runQuietly("scheduler cancel", () -> SchedulerAdapterFactory.get().cancelAll());
+        runQuietly("packet handler removal", () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                try {
+                    EventManager.uninjectPlayer(player);
+                } catch (Throwable t) {
+                    getLogger().warning("Could not remove packet handler for " + player.getName() + ": " + t);
+                }
+            }
+        });
+        runQuietly("cache cleanup", () -> {
+            EntityIdentityCache.clearAll();
+            RealEntityCache.clearAll();
+            TeamUtils.clearAll();
+        });
         getLogger().info("RayTraceEntityESP disabled.");
+    }
+
+    private void runQuietly(String step, Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable t) {
+            getLogger().warning("Error during shutdown (" + step + "): " + t);
+        }
     }
 
     public void reloadConfigAll() {

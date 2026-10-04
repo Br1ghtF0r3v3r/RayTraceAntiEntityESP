@@ -140,20 +140,42 @@ public class EventManager {
         if (ch.pipeline().get(HANDLER_NAME) != null) return;
         Runnable install = () -> {
             if (ch.pipeline().get(HANDLER_NAME) != null) return;
-            ch.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
-                @Override
-                public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
-                    if (!PacketManager.onPacketSend(player, msg, ctx, promise)) {
-                        super.write(ctx, msg, promise);
+            try {
+                ch.pipeline().addBefore("packet_handler", HANDLER_NAME, new ChannelDuplexHandler() {
+                    @Override
+                    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+                        boolean handled;
+                        try {
+                            handled = PacketManager.onPacketSend(player, msg, ctx, promise);
+                        } catch (Throwable t) {
+                            logHandlerFailure(player, t);
+                            handled = false;
+                        }
+                        if (!handled) {
+                            super.write(ctx, msg, promise);
+                        }
                     }
-                }
-            });
+                });
+            } catch (Throwable t) {
+                plugin.getLogger().warning("Could not install packet handler for " + player.getName()
+                        + " (is the 'packet_handler' pipeline entry missing?): " + t);
+            }
         };
         if (ch.eventLoop().inEventLoop()) {
             install.run();
         } else {
             ch.eventLoop().execute(install);
         }
+    }
+
+    private static final java.util.concurrent.atomic.AtomicLong lastHandlerFailureLogMs = new java.util.concurrent.atomic.AtomicLong(0);
+
+    private static void logHandlerFailure(Player player, Throwable t) {
+        long now = System.currentTimeMillis();
+        long last = lastHandlerFailureLogMs.get();
+        if (now - last < 10_000L || !lastHandlerFailureLogMs.compareAndSet(last, now)) return;
+        plugin.getLogger().warning("Packet handler error for " + player.getName() + " (packet passed through unmodified; "
+                + "further errors suppressed for 10s): " + t);
     }
 
     public static void uninjectPlayer(Player player) {

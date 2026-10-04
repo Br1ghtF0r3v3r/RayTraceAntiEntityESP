@@ -70,6 +70,11 @@ public final class StringFormat {
         return LEGACY_SERIALIZER.serialize(MINI_MESSAGE.deserialize(text));
     }
 
+    public static String sanitizeInput(String raw) {
+        if (raw == null) return "";
+        return MINI_MESSAGE.escapeTags(raw).replace("&", "").replace("§", "").replace("%", "");
+    }
+
     public static void debug(String text) {
         Bukkit.broadcast(Component.text(text));
     }

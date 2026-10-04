@@ -14,10 +14,7 @@ import org.bukkit.entity.Player;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -34,7 +31,7 @@ public class CommandsHandler implements CommandExecutor {
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
+        switch (args[0].toLowerCase(Locale.ROOT)) {
             case "config_value" -> Config.printConfig(sender);
             case "reload" -> {
                 plugin.reloadConfigAll();
@@ -42,62 +39,66 @@ public class CommandsHandler implements CommandExecutor {
             }
             case "checking" -> {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
-                switch (args[1].toLowerCase()) {
-                    case "enabled" -> set(sender, "checking.enabled", args, 2, Boolean::parseBoolean);
-                    case "period_ticks" -> setWithMin(sender, "checking.period_ticks", args, 2, Long::parseLong, 1L);
-                    case "stagger_groups" -> setWithMin(sender, "checking.stagger_groups", args, 2, Integer::parseInt, 1);
-                    case "distance_override" -> set(sender, "checking.distance_override", args, 2, Double::parseDouble);
-                    case "bounding_box_extra_value" -> set(sender, "checking.bounding_box_extra_value", args, 2, Double::parseDouble);
-                    case "vertices_layers" -> setWithMin(sender, "checking.vertices_layers", args, 2, Integer::parseInt, 2);
-                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                switch (args[1].toLowerCase(Locale.ROOT)) {
+                    case "enabled" -> set(sender, "checking.enabled", args, 2, CommandsHandler::parseStrictBoolean);
+                    case "period_ticks" -> setInRange(sender, "checking.period_ticks", args, 2, Long::parseLong, 1L, Config.PERIOD_TICKS_MAX);
+                    case "stagger_groups" -> setInRange(sender, "checking.stagger_groups", args, 2, Integer::parseInt, 1, Config.STAGGER_GROUPS_MAX);
+                    case "distance_override" -> setInRange(sender, "checking.distance_override", args, 2, CommandsHandler::parseFiniteDouble, 0.0, Config.DISTANCE_OVERRIDE_MAX);
+                    case "bounding_box_extra_value" -> setInRange(sender, "checking.bounding_box_extra_value", args, 2, CommandsHandler::parseFiniteDouble, 0.0, Config.BOUNDING_BOX_EXTRA_MAX);
+                    case "vertices_layers" -> setInRange(sender, "checking.vertices_layers", args, 2, Integer::parseInt, Config.VERTICES_LAYERS_MIN, Config.VERTICES_LAYERS_MAX);
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + StringFormat.sanitizeInput(args[1])));
                 }
             }
             case "async" -> {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
-                switch (args[1].toLowerCase()) {
-                    case "enabled" -> set(sender, "async.enabled", args, 2, Boolean::parseBoolean);
-                    case "threads" -> setWithMin(sender, "async.threads", args, 2, Integer::parseInt, 1);
-                    case "chunk_snapshot_ttl_ticks" -> setWithMin(sender, "async.chunk_snapshot_ttl_ticks", args, 2, Integer::parseInt, 1);
-                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                switch (args[1].toLowerCase(Locale.ROOT)) {
+                    case "enabled" -> set(sender, "async.enabled", args, 2, CommandsHandler::parseStrictBoolean);
+                    case "threads" -> setInRange(sender, "async.threads", args, 2, Integer::parseInt, 1, Config.ASYNC_THREADS_MAX);
+                    case "chunk_snapshot_ttl_ticks" -> setInRange(sender, "async.chunk_snapshot_ttl_ticks", args, 2, Integer::parseInt, 1, Config.SNAPSHOT_TTL_TICKS_MAX);
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + StringFormat.sanitizeInput(args[1])));
                 }
             }
             case "perspective_checking" -> {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
-                switch (args[1].toLowerCase()) {
-                    case "enabled" -> set(sender, "perspective_checking.enabled", args, 2, Boolean::parseBoolean);
-                    case "distances_from_head" -> set(sender, "perspective_checking.distances_from_head", args, 2, Double::parseDouble);
-                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                switch (args[1].toLowerCase(Locale.ROOT)) {
+                    case "enabled" -> set(sender, "perspective_checking.enabled", args, 2, CommandsHandler::parseStrictBoolean);
+                    case "distances_from_head" -> setInRange(sender, "perspective_checking.distances_from_head", args, 2, CommandsHandler::parseFiniteDouble, 0.0, Config.PERSPECTIVE_DISTANCE_MAX);
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + StringFormat.sanitizeInput(args[1])));
                 }
             }
             case "display_name" -> {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
-                switch (args[1].toLowerCase()) {
-                    case "enabled" -> set(sender, "display_name.enabled", args, 2, Boolean::parseBoolean);
-                    case "period_ticks" -> setWithMin(sender, "display_name.period_ticks", args, 2, Long::parseLong, 1L);
-                    case "offset_y" -> set(sender, "display_name.offset_y", args, 2, Double::parseDouble);
-                    case "lookahead_ticks" -> set(sender, "display_name.lookahead_ticks", args, 2, Double::parseDouble);
-                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                switch (args[1].toLowerCase(Locale.ROOT)) {
+                    case "enabled" -> set(sender, "display_name.enabled", args, 2, CommandsHandler::parseStrictBoolean);
+                    case "period_ticks" -> setInRange(sender, "display_name.period_ticks", args, 2, Long::parseLong, 1L, Config.DISPLAY_PERIOD_TICKS_MAX);
+                    case "offset_y" -> setInRange(sender, "display_name.offset_y", args, 2, CommandsHandler::parseFiniteDouble, -Config.DISPLAY_OFFSET_Y_MAX, Config.DISPLAY_OFFSET_Y_MAX);
+                    case "lookahead_ticks" -> setInRange(sender, "display_name.lookahead_ticks", args, 2, CommandsHandler::parseFiniteDouble, 0.0, Config.DISPLAY_LOOKAHEAD_TICKS_MAX);
+                    default -> sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + StringFormat.sanitizeInput(args[1])));
                 }
             }
             case "debug" -> {
                 if (requireArgs(sender, args, 3, "&cMissing option and value.")) return true;
                 if (args[1].equalsIgnoreCase("enabled")) {
-                    set(sender, "debug.enabled", args, 2, Boolean::parseBoolean);
+                    set(sender, "debug.enabled", args, 2, CommandsHandler::parseStrictBoolean);
                 } else {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + args[1]));
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cUnknown: " + StringFormat.sanitizeInput(args[1])));
                 }
             }
             case "anti_mode" -> {
                 if (requireArgs(sender, args, 2, "&cMissing value.")) return true;
-                String mode = args[1].toLowerCase();
+                String mode = args[1].toLowerCase(Locale.ROOT);
+                if (!mode.equals("whitelist") && !mode.equals("blacklist")) {
+                    sender.sendMessage(StringFormat.formatToString(sender, "&canti_mode must be &ewhitelist &cor &eblacklist&c."));
+                    return true;
+                }
                 saveAndReload("anti_mode", mode);
                 sender.sendMessage(StringFormat.formatToString(sender, "&aSet anti_mode to &e" + mode));
             }
             case "anti_entities" -> handleListCommand(sender, args, 1, "anti_entities", "entity type",
                     raw -> {
-                        String type = raw.toLowerCase();
+                        String type = raw.toLowerCase(Locale.ROOT);
                         try {
-                            EntityType.valueOf(type.toUpperCase());
+                            EntityType.valueOf(type.toUpperCase(Locale.ROOT));
                         } catch (IllegalArgumentException e) {
                             return null;
                         }
@@ -144,7 +145,7 @@ public class CommandsHandler implements CommandExecutor {
                     "&e%s &acan now see all entities",
                     "&e%s &cno longer bypasses ESP checking");
             case "blacklisted_world" -> handleListCommand(sender, args, 1, "blacklisted_world", "world name",
-                    raw -> Bukkit.getWorld(raw) != null ? raw.toLowerCase() : null,
+                    raw -> Bukkit.getWorld(raw) != null ? raw.toLowerCase(Locale.ROOT) : null,
                     name -> name,
                     name -> {
                         if (!Config.blacklistedWorlds.add(name)) return false;
@@ -193,19 +194,19 @@ public class CommandsHandler implements CommandExecutor {
             return;
         }
 
-        switch (args[argIndex].toLowerCase()) {
+        switch (args[argIndex].toLowerCase(Locale.ROOT)) {
             case "add", "remove" -> {
                 if (args.length <= argIndex + 1) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " " + args[argIndex].toLowerCase() + " <" + itemNoun + ">"));
+                    sender.sendMessage(StringFormat.formatToString(sender, "&cUsage: " + label + " " + args[argIndex].toLowerCase(Locale.ROOT) + " <" + itemNoun + ">"));
                     return;
                 }
                 String raw = args[argIndex + 1];
                 T value = resolver.apply(raw);
                 if (value == null) {
-                    sender.sendMessage(StringFormat.formatToString(sender, "&e" + raw + " &cis not a valid " + itemNoun + "."));
+                    sender.sendMessage(StringFormat.formatToString(sender, "&e" + StringFormat.sanitizeInput(raw) + " &cis not a valid " + itemNoun + "."));
                     return;
                 }
-                String name = display.apply(value);
+                String name = StringFormat.sanitizeInput(display.apply(value));
                 boolean isAdd = args[argIndex].equalsIgnoreCase("add");
                 boolean changed = isAdd ? add.test(value) : remove.test(value);
                 if (!changed) {
@@ -224,7 +225,7 @@ public class CommandsHandler implements CommandExecutor {
                 } else {
                     sender.sendMessage(StringFormat.formatToString(sender, "&6" + label + " (" + entries.size() + "):"));
                     List<String> names = new ArrayList<>();
-                    for (T value : entries) names.add(display.apply(value));
+                    for (T value : entries) names.add(StringFormat.sanitizeInput(display.apply(value)));
                     sender.sendMessage(StringFormat.formatToString(sender, "&e" + String.join("&7, &e", names)));
                 }
             }
@@ -237,7 +238,7 @@ public class CommandsHandler implements CommandExecutor {
                 }
             }
             default -> sender.sendMessage(StringFormat.formatToString(sender,
-                    "&cUnknown option: " + args[argIndex] + ". Use add, remove, list or clear."));
+                    "&cUnknown option: " + StringFormat.sanitizeInput(args[argIndex]) + ". Use add, remove, list or clear."));
         }
     }
 
@@ -257,8 +258,8 @@ public class CommandsHandler implements CommandExecutor {
         }
         Player online = Bukkit.getPlayerExact(name);
         if (online != null) return online.getUniqueId();
-        OfflinePlayer offline = Bukkit.getOfflinePlayer(name);
-        if (offline.hasPlayedBefore() || offline.isOnline()) return offline.getUniqueId();
+        OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(name);
+        if (cached != null && (cached.hasPlayedBefore() || cached.isOnline())) return cached.getUniqueId();
         return null;
     }
 
@@ -281,7 +282,7 @@ public class CommandsHandler implements CommandExecutor {
     private static String displayExcludeTarget(UUID uuid) {
         Entity entity = Bukkit.getEntity(uuid);
         if (entity != null && !(entity instanceof Player)) {
-            return entity.getType().name().toLowerCase() + " (" + uuid.toString().substring(0, 8) + ")";
+            return entity.getType().name().toLowerCase(Locale.ROOT) + " (" + uuid.toString().substring(0, 8) + ")";
         }
         return displayPlayerName(uuid);
     }
@@ -302,25 +303,37 @@ public class CommandsHandler implements CommandExecutor {
             saveAndReload(key, val);
             sender.sendMessage(StringFormat.formatToString(sender, "&aSet &e" + key + " &ato &e" + val));
         } catch (NumberFormatException e) {
-            sender.sendMessage(StringFormat.formatToString(sender, "&cInvalid value: " + args[argIndex]));
+            sender.sendMessage(StringFormat.formatToString(sender, "&cInvalid value: " + StringFormat.sanitizeInput(args[argIndex])));
         }
     }
 
-    public static <T extends Comparable<T>> void setWithMin(CommandSender sender, String key, String[] args, int argIndex, Function<String, T> parser, T min) {
+    private static Boolean parseStrictBoolean(String raw) {
+        if (raw.equalsIgnoreCase("true")) return Boolean.TRUE;
+        if (raw.equalsIgnoreCase("false")) return Boolean.FALSE;
+        throw new NumberFormatException("expected true or false");
+    }
+
+    private static Double parseFiniteDouble(String raw) {
+        double d = Double.parseDouble(raw);
+        if (Double.isNaN(d) || Double.isInfinite(d)) throw new NumberFormatException("not a finite number");
+        return d;
+    }
+
+    public static <T extends Comparable<T>> void setInRange(CommandSender sender, String key, String[] args, int argIndex, Function<String, T> parser, T min, T max) {
         if (args.length <= argIndex) {
             sender.sendMessage(StringFormat.formatToString(sender, "&cMissing value for " + key));
             return;
         }
         try {
             T val = parser.apply(args[argIndex]);
-            if (val.compareTo(min) < 0) {
-                sender.sendMessage(StringFormat.formatToString(sender, "&c" + key + " must be at least " + min + "!"));
+            if (val.compareTo(min) < 0 || val.compareTo(max) > 0) {
+                sender.sendMessage(StringFormat.formatToString(sender, "&c" + key + " must be between " + min + " and " + max + "!"));
                 return;
             }
             saveAndReload(key, val);
             sender.sendMessage(StringFormat.formatToString(sender, "&aSet &e" + key + " &ato &e" + val));
         } catch (NumberFormatException e) {
-            sender.sendMessage(StringFormat.formatToString(sender, "&cInvalid value: " + args[argIndex]));
+            sender.sendMessage(StringFormat.formatToString(sender, "&cInvalid value: " + StringFormat.sanitizeInput(args[argIndex])));
         }
     }
 

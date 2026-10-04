@@ -51,6 +51,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("unused")
 public final class NmsAdapter_1_21_x implements NmsAdapter {
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
