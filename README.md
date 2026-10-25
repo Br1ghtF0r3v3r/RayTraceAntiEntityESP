@@ -1,10 +1,10 @@
 # RayTrace Anti Entity ESP
 
 [![Modrinth Downloads](https://img.shields.io/modrinth/dt/raytraceantientityesp?logo=modrinth&label=Modrinth&color=00AF5C)](https://modrinth.com/plugin/raytraceantientityesp)
-[![Git Release](https://img.shields.io/gitea/v/release/BrightForever/RayTraceAntiEntityESP?gitea_url=https://codeberg.org&logo=codeberg&label=Release)](https://codeberg.org/BrightForever/RayTraceAntiEntityESP/releases)
-[![License](https://img.shields.io/badge/license-GPL--3.0-orange?logo=codeberg&label=License)](https://codeberg.org/BrightForever/RayTraceAntiEntityESP/src/branch/main/LICENSE)
-[![Last Commit](https://img.shields.io/gitea/last-commit/BrightForever/RayTraceAntiEntityESP?gitea_url=https://codeberg.org&logo=codeberg&label=Last%20Commit)](https://codeberg.org/BrightForever/RayTraceAntiEntityESP/commits/branch/main)
-[![Stars](https://img.shields.io/gitea/stars/BrightForever/RayTraceAntiEntityESP?gitea_url=https://codeberg.org&logo=codeberg&label=Stars)](https://codeberg.org/BrightForever/RayTraceAntiEntityESP)
+[![Git Release](https://img.shields.io/github/v/release/Br1ghtF0r3v3r/RayTraceAntiEntityESP?logo=github&label=Release)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0-orange?logo=github&label=License)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/blob/master/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/Br1ghtF0r3v3r/RayTraceAntiEntityESP?logo=github&label=Last%20Commit)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/commits)
+[![Repo Size](https://img.shields.io/github/repo-size/Br1ghtF0r3v3r/RayTraceAntiEntityESP?logo=github&label=Repo%20Size)](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP)
 [![Minecraft](https://img.shields.io/badge/Minecraft-1.21+-brightgreen?label=Minecraft%20Version)]()
 [![Paper](https://img.shields.io/badge/Paper-Supported-informational)](https://papermc.io/downloads/paper)
 [![Purpur](https://img.shields.io/badge/Purpur-Supported-blueviolet)](https://purpurmc.org/download/purpur)
@@ -33,7 +33,7 @@ A plugin that prevents HACKERS from seeing entities (e.g. Players) through walls
 1. **Download** the latest `.jar` from [Download Link](https://modrinth.com/plugin/raytraceantientityesp/versions).
 2. **Drop** the `.jar` into your server's `/plugins` folder.
 3. **Restart** your server (do not use `/reload`).
-4. **Edit** the generated [config.yml](https://codeberg.org/BrightForever/RayTraceAntiEntityESP/src/branch/main/plugin/src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to your liking.
+4. **Edit** the generated [config.yml](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/blob/master/plugin/src/main/resources/config.yml) in `plugins/RayTraceAntiEntityESP/config.yml` to your liking.
 5. **Run** `/rtaee reload` in-game to apply config changes without restarting.
 
 >**Requirements:** Paper, Purpur, or Folia ver **1.21.x** or **26.x**.
@@ -171,13 +171,13 @@ Values are validated against the ranges listed in the configuration section. Cha
 
 ## License
 
-This project is licensed under the **GPL-3.0 License**. See the [LICENSE](https://codeberg.org/BrightForever/RayTraceAntiEntityESP/src/branch/main/LICENSE) file for details.
+This project is licensed under the **GPL-3.0 License**. See the [LICENSE](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/blob/master/LICENSE) file for details.
 
 ---
 
 ## Support
 
-If you have any questions, issues, or suggestions, please open an issue on [ISSUES](https://codeberg.org/BrightForever/RayTraceAntiEntityESP/issues).
+If you have any questions, issues, or suggestions, please open an issue on [ISSUES](https://github.com/Br1ghtF0r3v3r/RayTraceAntiEntityESP/issues).
 
 ---
 
