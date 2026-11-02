@@ -16,7 +16,7 @@ public final class NmsLiveBlockSource implements BlockSolidSource {
         try {
             return adapter.isBlockSolidAt(world, x, y, z);
         } catch (Throwable t) {
-            return false;
+            return true;
         }
     }
 }

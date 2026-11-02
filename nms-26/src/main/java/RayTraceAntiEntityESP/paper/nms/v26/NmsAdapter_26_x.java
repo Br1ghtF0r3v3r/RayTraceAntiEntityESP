@@ -501,7 +501,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
     public boolean isBlockSolidAt(World world, int x, int y, int z) {
         ServerLevel level = ((CraftWorld) world).getHandle();
         var chunk = level.getChunkIfLoaded(x >> 4, z >> 4);
-        if (chunk == null) return false;
+        if (chunk == null) return true;
         int si = level.getSectionIndex(y);
         var secs = chunk.getSections();
         if (si < 0 || si >= secs.length) return false;
@@ -510,7 +510,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
         try {
             return section.getBlockState(x & 15, y & 15, z & 15).isSolidRender();
         } catch (Throwable t) {
-            return false;
+            return true;
         }
     }
 

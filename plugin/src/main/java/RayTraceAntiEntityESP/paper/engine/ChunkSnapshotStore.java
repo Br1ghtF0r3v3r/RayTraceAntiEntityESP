@@ -15,10 +15,11 @@ public final class ChunkSnapshotStore {
     public void ensureFresh(World world, int chunkX, int chunkZ, int currentTick, int ttlTicks) {
         Key key = new Key(world, chunkX, chunkZ);
         Entry existing = snapshots.get(key);
-        if (existing != null && !existing.stale() && (currentTick - existing.fetchedAtTick()) < ttlTicks) return;
+        if (existing != null && existing.snapshot() != null && !existing.stale()
+                && (currentTick - existing.fetchedAtTick()) < ttlTicks) return;
 
         if (!world.isChunkLoaded(chunkX, chunkZ)) {
-            snapshots.remove(key);
+            snapshots.put(key, new Entry(null, currentTick, false));
             return;
         }
         Chunk chunk = world.getChunkAt(chunkX, chunkZ);
@@ -43,7 +44,7 @@ public final class ChunkSnapshotStore {
     public boolean isSolid(World world, int x, int y, int z) {
         int chunkX = x >> 4, chunkZ = z >> 4;
         Entry entry = snapshots.get(new Key(world, chunkX, chunkZ));
-        if (entry == null) return false;
+        if (entry == null || entry.snapshot() == null) return true;
 
         if (y < world.getMinHeight() || y >= world.getMaxHeight()) return false;
 
@@ -51,7 +52,7 @@ public final class ChunkSnapshotStore {
             BlockData data = entry.snapshot().getBlockData(x & 15, y, z & 15);
             return data.getMaterial().isOccluding();
         } catch (Throwable t) {
-            return false;
+            return true;
         }
     }
 

@@ -148,7 +148,7 @@ public class RayTraceEngine {
     private static class WorldEntitySnapshot {
         Entity[] entities = new Entity[128];
         int entityCount = 0;
-        int age;
+        int lastRefreshTick = Integer.MIN_VALUE;
         int lastAccessTick;
     }
 
@@ -336,7 +336,7 @@ public class RayTraceEngine {
         try {
             result = blockSource.isSolid(world, x, y, z);
         } catch (Throwable t) {
-            result = false;
+            result = true;
         }
 
         section.known[word] |= mask;
@@ -964,7 +964,9 @@ public class RayTraceEngine {
             Long2ObjectOpenHashMap<WorldEntitySnapshot> worldBuckets =
                     worldEntityCache.computeIfAbsent(world, k -> new Long2ObjectOpenHashMap<>());
             worldSnap = worldBuckets.get(bucket);
-            boolean refreshWorld = worldSnap == null || worldSnap.age >= AABB_REFRESH_TICKS;
+            int currentTick = globalTick.get();
+            boolean refreshWorld = worldSnap == null
+                    || currentTick - worldSnap.lastRefreshTick >= AABB_REFRESH_TICKS;
 
             if (refreshWorld) {
                 if (worldSnap == null) {
@@ -987,11 +989,9 @@ public class RayTraceEngine {
                                 snap.entities = Arrays.copyOf(snap.entities, snap.entities.length + (snap.entities.length >> 1));
                             snap.entities[snap.entityCount++] = e;
                         });
-                snap.age = 0;
-            } else {
-                worldSnap.age++;
+                snap.lastRefreshTick = currentTick;
             }
-            worldSnap.lastAccessTick = globalTick.get();
+            worldSnap.lastAccessTick = currentTick;
         }
 
         int aabbCount = worldSnap.entityCount;
