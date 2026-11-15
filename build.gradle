@@ -8,7 +8,7 @@ def java25 = (java25 as int)
 subprojects {
     apply plugin: 'java'
 
-    def javaVersion = (project.path == ':nms-26') ? java25 : java21
+    def javaVersion = project.path.startsWith(':nms-26_') ? java25 : java21
 
     repositories {
         mavenCentral()

@@ -1,4 +1,4 @@
-package RayTraceAntiEntityESP.paper.nms.v26;
+package RayTraceAntiEntityESP.paper.nms.v26_2;
 
 import RayTraceAntiEntityESP.paper.nms.NmsAdapter;
 import RayTraceAntiEntityESP.paper.nms.EntityTypeResolver;
@@ -45,7 +45,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("unused")
-public final class NmsAdapter_26_x implements NmsAdapter {
+public final class NmsAdapter_26_2 implements NmsAdapter {
 
     private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger("RayTraceAntiEntityESP");
 
@@ -191,7 +191,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                     ? e.displayName().getString()
                     : null;
             entries.add(new PlayerInfoEntry(
-                    e.profileId(), e.profile(), e.listed(), e.latency(), e.gameMode(),
+                    e.profileId(), e.profile() == null ? null : e.profile().name(), e.listed(), e.latency(), e.gameMode(),
                     displayNamePlain,
                     e.showHat(), e.listOrder()));
         }
@@ -277,7 +277,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
                 return null;
             }
             case java.util.Optional<?> opt -> {
-                return opt.map(NmsAdapter_26_x::resolveColor).orElse(null);
+                return opt.map(NmsAdapter_26_2::resolveColor).orElse(null);
             }
             case net.minecraft.ChatFormatting cf -> {
                 net.minecraft.network.chat.TextColor tc = net.minecraft.network.chat.TextColor.fromLegacyFormat(cf);
@@ -506,7 +506,7 @@ public final class NmsAdapter_26_x implements NmsAdapter {
         var secs = chunk.getSections();
         if (si < 0 || si >= secs.length) return false;
         var section = secs[si];
-        if (section == null || section.hasOnlyAir()) return false;
+        if (section.hasOnlyAir()) return false;
         try {
             return section.getBlockState(x & 15, y & 15, z & 15).isSolidRender();
         } catch (Throwable t) {

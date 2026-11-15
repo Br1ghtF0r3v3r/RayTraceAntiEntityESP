@@ -194,7 +194,7 @@ public final class NmsAdapter_1_21_x implements NmsAdapter {
                     ? e.displayName().getString()
                     : null;
             entries.add(new PlayerInfoEntry(
-                    e.profileId(), e.profile(), e.listed(), e.latency(), e.gameMode(),
+                    e.profileId(), e.profile() == null ? null : e.profile().name(), e.listed(), e.latency(), e.gameMode(),
                     displayNamePlain,
                     e.showHat(), e.listOrder()));
         }
@@ -407,7 +407,7 @@ public final class NmsAdapter_1_21_x implements NmsAdapter {
         var secs = chunk.getSections();
         if (si < 0 || si >= secs.length) return false;
         var section = secs[si];
-        if (section == null || section.hasOnlyAir()) return false;
+        if (section.hasOnlyAir()) return false;
         try {
             return section.getBlockState(x & 15, y & 15, z & 15).isSolidRender();
         } catch (Throwable t) {

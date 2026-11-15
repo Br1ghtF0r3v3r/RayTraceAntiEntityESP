@@ -1,12 +1,10 @@
 package RayTraceAntiEntityESP.paper.nms.parsed;
 
-import com.mojang.authlib.GameProfile;
-
 import java.util.UUID;
 
 public record PlayerInfoEntry(
         UUID profileId,
-        GameProfile profile,
+        String profileName,
         boolean listed,
         int latency,
         Object gameMode,

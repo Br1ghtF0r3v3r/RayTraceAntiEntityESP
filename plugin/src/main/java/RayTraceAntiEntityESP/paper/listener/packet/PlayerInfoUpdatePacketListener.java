@@ -44,9 +44,7 @@ public class PlayerInfoUpdatePacketListener extends PacketListener {
     }
 
     private static Component buildForcedDisplayName(Player viewer, PlayerInfoEntry entry) {
-        if (entry.profile() == null) return null;
-
-        String profileName = entry.profile().name();
+        String profileName = entry.profileName();
         if (profileName == null || profileName.isEmpty()) return null;
         if (!isPlainOrUnset(entry.displayNamePlain(), profileName)) return null;
         Player target = org.bukkit.Bukkit.getPlayer(entry.profileId());

@@ -2,15 +2,19 @@ plugins {
     id "java"
     id "com.gradleup.shadow" version "9.6.1"
     id "xyz.jpenilla.run-paper" version "3.1.0"
-    id "io.papermc.paperweight.userdev"
 }
-evaluationDependsOn(':nms-26')
+evaluationDependsOn(':nms-26_1')
+evaluationDependsOn(':nms-26_2')
+evaluationDependsOn(':nms-26_3')
 
 dependencies {
     implementation "org.bstats:bstats-bukkit:3.2.1"
     compileOnly "me.clip:placeholderapi:2.12.3"
-    compileOnly "com.github.retrooper:packetevents-spigot:2.14.0"
-    paperweight.paperDevBundle "1.21.11-R0.1-SNAPSHOT"
+    compileOnly("com.github.retrooper:packetevents-spigot:2.14.0") {
+        exclude group: 'io.netty'
+    }
+    compileOnly "io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT"
+    compileOnly "io.netty:netty-transport:4.2.20.Final"
     implementation project(':nms-api')
     shadow project(path: ':nms-1_21', configuration: 'runtimeElements')
 }
@@ -20,10 +24,14 @@ tasks {
         archiveClassifier.set("")
         archiveVersion.set("")
         mergeServiceFiles()
-        configurations = [project.configurations.shadow, project.configurations.runtimeClasspath]
-        dependsOn project(':nms-26').tasks.named('compileJava')
-        from(project(':nms-26').tasks.named('compileJava').flatMap { it.destinationDirectory })
-        relocate("org.bstats", "${rootProject.group}.libs.bstats")
+        configurations.set([project.configurations.shadow, project.configurations.runtimeClasspath] as Set)
+        dependsOn project(':nms-26_1').tasks.named('compileJava')
+        dependsOn project(':nms-26_2').tasks.named('compileJava')
+        dependsOn project(':nms-26_3').tasks.named('compileJava')
+        from(project(':nms-26_1').tasks.named('compileJava').flatMap { it.destinationDirectory })
+        from(project(':nms-26_2').tasks.named('compileJava').flatMap { it.destinationDirectory })
+        from(project(':nms-26_3').tasks.named('compileJava').flatMap { it.destinationDirectory })
+        relocate("org.bstats", rootProject.group.toString() + ".libs.bstats")
     }
     jar {
         enabled = false
@@ -44,7 +52,7 @@ tasks {
         }
         def targetDir = matches[0]
         runDirectory(targetDir)
-        serverJar(file("${targetDir}/server.jar"))
+        serverJar(new File(targetDir, "server.jar"))
         systemProperty("com.mojang.eula.agree", true)
     }
 }

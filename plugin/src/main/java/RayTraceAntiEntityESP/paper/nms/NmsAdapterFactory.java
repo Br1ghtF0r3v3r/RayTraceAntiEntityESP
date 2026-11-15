@@ -20,10 +20,14 @@ public final class NmsAdapterFactory {
         String className;
         if (v.startsWith("1.21")) {
             className = "RayTraceAntiEntityESP.paper.nms.v1_21.NmsAdapter_1_21_x";
-        } else if (v.startsWith("26") || v.startsWith("1.22") || v.startsWith("1.23")) {
-            className = "RayTraceAntiEntityESP.paper.nms.v26.NmsAdapter_26_x";
+        } else if (isSupported26_1(v)) {
+            className = "RayTraceAntiEntityESP.paper.nms.v26_1.NmsAdapter_26_1_x";
+        } else if (isVersionLine(v, "26.2")) {
+            className = "RayTraceAntiEntityESP.paper.nms.v26_2.NmsAdapter_26_2";
+        } else if (isVersionLine(v, "26.3") || v.startsWith("1.22") || v.startsWith("1.23")) {
+            className = "RayTraceAntiEntityESP.paper.nms.v26_3.NmsAdapter_26_3";
         } else {
-            throw new IllegalStateException("Unsupported Minecraft version: " + v + " — RayTraceAntiEntityESP supports 1.21.x and 26.x");
+            throw new IllegalStateException("Unsupported Minecraft version: " + v + " — RayTraceAntiEntityESP supports 1.21.x, 26.1 through 26.1.2, 26.2.x, and 26.3.x");
         }
         try {
             instance = (NmsAdapter) Class.forName(className).getDeclaredConstructor().newInstance();
@@ -31,5 +35,15 @@ public final class NmsAdapterFactory {
             throw new IllegalStateException("Failed to load NMS adapter for " + v, e);
         }
         plugin.getLogger().info("[RayTraceAntiEntityESP] Loaded NMS adapter for Minecraft " + v);
+    }
+
+    private static boolean isVersionLine(String version, String line) {
+        return version.equals(line) || version.startsWith(line + ".");
+    }
+
+    private static boolean isSupported26_1(String version) {
+        return version.equals("26.1")
+                || version.equals("26.1.1")
+                || version.equals("26.1.2");
     }
 }
