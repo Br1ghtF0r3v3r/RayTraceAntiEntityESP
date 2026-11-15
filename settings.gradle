@@ -2,9 +2,15 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
     }
+    plugins {
+        id 'io.papermc.paperweight.userdev' version providers.gradleProperty('paperweightUserdevPluginVersion').get()
+        id 'com.gradleup.shadow' version providers.gradleProperty('shadowPluginVersion').get()
+        id 'xyz.jpenilla.run-paper' version providers.gradleProperty('runPaperPluginVersion').get()
+        id 'org.gradle.toolchains.foojay-resolver-convention' version providers.gradleProperty('foojayResolverPluginVersion').get()
+    }
 }
 plugins {
-    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+    id 'org.gradle.toolchains.foojay-resolver-convention'
 }
 
 rootProject.name = name

@@ -5,5 +5,5 @@ plugins {
 
 dependencies {
     compileOnly project(':nms-api')
-    paperweight.paperDevBundle '26.2.build.+'
+    paperweight.paperDevBundle paperDevBundle26_2Version
 }
