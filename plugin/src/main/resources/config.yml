@@ -46,8 +46,10 @@ async:
 # PERSPECTIVE CHECKING
 #-----------------------------------------------
 perspective_checking:
-  #Also checks from where a third person camera would be. Costs about 3x the raytraces.
-  #If you turn it off, someone in third person can see through walls the first person check would block
+  #Checks from the eyes and third person camera positions.
+  #This uses about three times more ray checks. A clear third person camera
+  #can keep an entity visible around cover. Disable this for stricter hiding
+  #and lower CPU use.
   enabled: true
 
   #How far behind the player the fake camera sits, in blocks. Range 0-32
