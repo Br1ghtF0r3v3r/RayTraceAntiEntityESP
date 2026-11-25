@@ -22,18 +22,28 @@ final class PacketEventsHook {
 
     private static final int GLOW_BIT = 0x40;
     private static final int INVISIBLE_BIT = 0x20;
-    private static boolean installed = false;
+    private static volatile BridgeListener listener;
 
     private PacketEventsHook() {
     }
 
-    static void install() {
-        if (installed) return;
-        if (!PacketEvents.getAPI().isInitialized()) return;
+    static synchronized boolean install() {
+        if (listener != null) return true;
+        if (!PacketEvents.getAPI().isInitialized()) return false;
 
-        PacketEvents.getAPI().getEventManager().registerListener(new BridgeListener());
-        installed = true;
+        BridgeListener bridgeListener = new BridgeListener();
+        PacketEvents.getAPI().getEventManager().registerListener(bridgeListener);
+        listener = bridgeListener;
         plugin.getLogger().info("PacketEvents detected: enabled team-color/glow/invisibility compatibility bridge.");
+        return true;
+    }
+
+    static synchronized void uninstall() {
+        BridgeListener current = listener;
+        listener = null;
+        if (current != null && PacketEvents.getAPI().isInitialized()) {
+            PacketEvents.getAPI().getEventManager().unregisterListener(current);
+        }
     }
 
     private static final class BridgeListener extends PacketListenerAbstract {
@@ -44,6 +54,7 @@ final class PacketEventsHook {
 
         @Override
         public void onPacketSend(PacketSendEvent event) {
+            if (event.isCancelled()) return;
             var type = event.getPacketType();
             if (type == PacketType.Play.Server.TEAMS) {
                 handleTeams(event);

@@ -61,6 +61,7 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        runQuietly("PacketEvents bridge removal", PacketEventsBridge::shutdown);
         runQuietly("engine cleanup", RayTraceEngine::shutdownCleanup);
         runQuietly("scheduler cancel", () -> SchedulerAdapterFactory.get().cancelAll());
         runQuietly("packet handler removal", () -> {
