@@ -49,7 +49,6 @@ import java.util.stream.Collectors;
 public final class NmsAdapter_26_3 implements NmsAdapter {
 
     private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger("RayTraceAntiEntityESP");
-
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     @Override

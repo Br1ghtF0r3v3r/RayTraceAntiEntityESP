@@ -62,6 +62,7 @@ public class RayTraceEngine {
     private static final Int2ObjectOpenHashMap<IntSet> belowNameRangeActive = new Int2ObjectOpenHashMap<>();
 
     private static final Object2BooleanOpenHashMap<String> antiEntityTypeCache = new Object2BooleanOpenHashMap<>();
+    private static volatile byte[] antiEntityTypeByOrdinal = new byte[EntityType.values().length];
 
     private static final ChunkSnapshotStore chunkSnapshotStore = new ChunkSnapshotStore();
     private static volatile java.util.concurrent.ExecutorService asyncExecutor;
@@ -111,6 +112,10 @@ public class RayTraceEngine {
 
     private static long sectionKey(int sx, int sy, int sz) {
         return (((long) sx & 0x3FFFFFF) << 38) | (((long) sy & 0xFFF) << 26) | (sz & 0x3FFFFFF);
+    }
+
+    private static int blockBitIndex(int x, int y, int z) {
+        return ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
     }
 
     private static Long2ObjectOpenHashMap<BlockSection> getOrCreateWorldSections(org.bukkit.World world) {
@@ -262,13 +267,18 @@ public class RayTraceEngine {
     public static void clearAntiEntityCache() {
         synchronized (sharedStateLock) {
             antiEntityTypeCache.clear();
+            byte[] decisions = new byte[EntityType.values().length];
+            for (EntityType type : EntityType.values()) {
+                String key = ENTITY_TYPE_KEYS.get(type);
+                if (key != null) decisions[type.ordinal()] = (byte) (Config.isBlacklist != Config.antiEntities.contains(key) ? 1 : 2);
+            }
+            antiEntityTypeByOrdinal = decisions;
         }
     }
 
     public static void invalidateBlockAt(org.bukkit.World world, int x, int y, int z) {
         int sx = x >> 4, sy = y >> 4, sz = z >> 4;
-        int lx = x & 15, ly = y & 15, lz = z & 15;
-        int bitIndex = (ly << 8) | (lz << 4) | lx;
+        int bitIndex = blockBitIndex(x, y, z);
         int word = bitIndex >>> 6;
         long mask = 1L << (bitIndex & 63);
         chunkSnapshotStore.markStale(world, x >> 4, z >> 4);
@@ -311,8 +321,7 @@ public class RayTraceEngine {
                                        SectionCursor cursor,
                                        int x, int y, int z, boolean folia) {
         int sx = x >> 4, sy = y >> 4, sz = z >> 4;
-        int lx = x & 15, ly = y & 15, lz = z & 15;
-        int bitIndex = (ly << 8) | (lz << 4) | lx;
+        int bitIndex = blockBitIndex(x, y, z);
         int word = bitIndex >>> 6;
         long mask = 1L << (bitIndex & 63);
 
@@ -353,6 +362,7 @@ public class RayTraceEngine {
         return getOrCreateWorldSections(world);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private static boolean hitsBlockFast(BlockSolidSource blockSource, boolean folia,
                                          Long2ObjectOpenHashMap<BlockSection> sections,
                                          SectionCursor sectionCursor,
@@ -568,12 +578,35 @@ public class RayTraceEngine {
         int count = 0;
         for (int layer = 0; layer < 2; layer++) {
             double y = layer == 0 ? insetMinY : insetMaxY;
-            vertexXBufLocal[count] = insetMinX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMinZ; count++;
-            vertexXBufLocal[count] = insetMinX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMaxZ; count++;
-            vertexXBufLocal[count] = insetMaxX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMaxZ; count++;
-            vertexXBufLocal[count] = insetMaxX; vertexYBufLocal[count] = y; vertexZBufLocal[count] = insetMinZ; count++;
+            count = appendBoxSamples(count, y, insetMinX, (insetMinX + insetMaxX) * 0.5, insetMaxX,
+                    insetMinZ, (insetMinZ + insetMaxZ) * 0.5, insetMaxZ,
+                    vertexXBufLocal, vertexYBufLocal, vertexZBufLocal, false);
         }
         return count;
+    }
+
+    private static int appendBoxSamples(int count, double y,
+                                        double minX, double midX, double maxX,
+                                        double minZ, double midZ, double maxZ,
+                                        double[] vertexXBufLocal, double[] vertexYBufLocal, double[] vertexZBufLocal,
+                                        boolean includeMidpoints) {
+        count = appendVertex(count, minX, y, minZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        count = appendVertex(count, minX, y, maxZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        count = appendVertex(count, maxX, y, maxZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        count = appendVertex(count, maxX, y, minZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        if (!includeMidpoints) return count;
+        count = appendVertex(count, midX, y, minZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        count = appendVertex(count, midX, y, maxZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        count = appendVertex(count, minX, y, midZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+        return appendVertex(count, maxX, y, midZ, vertexXBufLocal, vertexYBufLocal, vertexZBufLocal);
+    }
+
+    private static int appendVertex(int count, double x, double y, double z,
+                                    double[] vertexXBufLocal, double[] vertexYBufLocal, double[] vertexZBufLocal) {
+        vertexXBufLocal[count] = x;
+        vertexYBufLocal[count] = y;
+        vertexZBufLocal[count] = z;
+        return count + 1;
     }
 
     private static boolean isVisibleNms(BlockSolidSource blockSource, boolean folia,
@@ -591,6 +624,7 @@ public class RayTraceEngine {
         return !hitsBlockFast(blockSource, folia, sections, sectionCursor, level, minY, maxY, thirdFrontX, thirdFrontY, thirdFrontZ, endX, endY, endZ);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     private static void computeThirdPersonPos(BlockSolidSource blockSource, boolean folia,
                                               Long2ObjectOpenHashMap<BlockSection> sections,
                                               SectionCursor sectionCursor,
@@ -666,10 +700,13 @@ public class RayTraceEngine {
     }
 
     public static boolean isAntiEntity(Entity entity) {
-        String typeKey = ENTITY_TYPE_KEYS.get(entity.getType());
-        if (typeKey == null) return false;
         if (ExcludeBypassManager.isExcluded(entity.getUniqueId())) return false;
-        return isAntiEntityType(typeKey.toLowerCase(Locale.ROOT));
+        EntityType type = entity.getType();
+        byte[] decisions = antiEntityTypeByOrdinal;
+        int ordinal = type.ordinal();
+        if (ordinal < decisions.length && decisions[ordinal] != 0) return decisions[ordinal] == 1;
+        String typeKey = ENTITY_TYPE_KEYS.get(type);
+        return typeKey != null && isAntiEntityType(typeKey.toLowerCase(Locale.ROOT));
     }
 
     public static boolean isAntiEntityType(String typeKey) {
@@ -719,71 +756,11 @@ public class RayTraceEngine {
             count++;
             if (includeCorners) {
                 if (hasExtra) {
-                    vertexXBufLocal[count] = eMinX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = eMinZ;
-                    count++;
-                    vertexXBufLocal[count] = eMinX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = eMaxZ;
-                    count++;
-                    vertexXBufLocal[count] = eMaxX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = eMaxZ;
-                    count++;
-                    vertexXBufLocal[count] = eMaxX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = eMinZ;
-                    count++;
-                    vertexXBufLocal[count] = midX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = eMinZ;
-                    count++;
-                    vertexXBufLocal[count] = midX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = eMaxZ;
-                    count++;
-                    vertexXBufLocal[count] = eMinX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = midZ;
-                    count++;
-                    vertexXBufLocal[count] = eMaxX;
-                    vertexYBufLocal[count] = y;
-                    vertexZBufLocal[count] = midZ;
-                    count++;
+                    count = appendBoxSamples(count, y, eMinX, midX, eMaxX, eMinZ, midZ, eMaxZ,
+                            vertexXBufLocal, vertexYBufLocal, vertexZBufLocal, true);
                 }
-                vertexXBufLocal[count] = insetMinX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = insetMinZ;
-                count++;
-                vertexXBufLocal[count] = insetMinX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = insetMaxZ;
-                count++;
-                vertexXBufLocal[count] = insetMaxX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = insetMaxZ;
-                count++;
-                vertexXBufLocal[count] = insetMaxX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = insetMinZ;
-                count++;
-                vertexXBufLocal[count] = midX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = insetMinZ;
-                count++;
-                vertexXBufLocal[count] = midX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = insetMaxZ;
-                count++;
-                vertexXBufLocal[count] = insetMinX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = midZ;
-                count++;
-                vertexXBufLocal[count] = insetMaxX;
-                vertexYBufLocal[count] = y;
-                vertexZBufLocal[count] = midZ;
-                count++;
+                count = appendBoxSamples(count, y, insetMinX, midX, insetMaxX, insetMinZ, midZ, insetMaxZ,
+                        vertexXBufLocal, vertexYBufLocal, vertexZBufLocal, true);
             }
         }
         return count;

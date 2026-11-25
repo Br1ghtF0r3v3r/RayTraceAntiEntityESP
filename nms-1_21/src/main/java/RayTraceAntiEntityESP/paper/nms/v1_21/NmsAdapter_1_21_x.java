@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 public final class NmsAdapter_1_21_x implements NmsAdapter {
 
+    private static final java.util.logging.Logger LOGGER = java.util.logging.Logger.getLogger("RayTraceAntiEntityESP");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     @Override
@@ -278,29 +279,44 @@ public final class NmsAdapter_1_21_x implements NmsAdapter {
         return null;
     }
 
-    private static Component extractPrefix(Object params) {
-        for (String methodName : new String[]{"getPlayerPrefix", "prefix"}) {
-            try {
-                java.lang.reflect.Method m = params.getClass().getMethod(methodName);
-                Object result = m.invoke(params);
-                if (result == null) return null;
-                java.lang.reflect.Method getString = result.getClass().getMethod("getString");
-                String text = (String) getString.invoke(result);
-                return LEGACY.deserialize(text);
-            } catch (NoSuchMethodException ignored) {
-            } catch (Throwable ignored) {
-                return null;
-            }
+    private static final java.util.concurrent.atomic.AtomicBoolean loggedUnknownPrefixShape = new java.util.concurrent.atomic.AtomicBoolean(false);
+    private static final java.util.concurrent.atomic.AtomicBoolean loggedUnknownSuffixShape = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+    private static void logUnknownParamsShape(java.util.concurrent.atomic.AtomicBoolean guard, String label, Object params) {
+        if (!guard.compareAndSet(false, true)) return;
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (java.lang.reflect.Method method : params.getClass().getMethods()) {
+            if (method.getParameterCount() == 0) names.add(method.getName());
         }
-        return null;
+        LOGGER.warning("[RayTraceAntiEntityESP] Could not locate " + label + " accessor on " + params.getClass()
+                + "; no-arg methods available: " + names
+                + ". Report this list so extract" + label + " can be patched with the right name.");
+    }
+
+    private static Component extractPrefix(Object params) {
+        return extractComponentField(params, new String[]{"playerPrefix", "getPlayerPrefix", "prefix"}, loggedUnknownPrefixShape, "Prefix");
     }
 
     private static Component extractSuffix(Object params) {
-        for (String methodName : new String[]{"getPlayerSuffix", "suffix"}) {
+        return extractComponentField(params, new String[]{"playerSuffix", "getPlayerSuffix", "suffix"}, loggedUnknownSuffixShape, "Suffix");
+    }
+
+    private static Component extractComponentField(Object params, String[] methodNames,
+                                                   java.util.concurrent.atomic.AtomicBoolean guard, String label) {
+        for (String methodName : methodNames) {
             try {
                 java.lang.reflect.Method m = params.getClass().getMethod(methodName);
                 Object result = m.invoke(params);
                 if (result == null) return null;
+                if (result instanceof Optional<?> optional) {
+                    if (optional.isEmpty()) return null;
+                    result = optional.get();
+                }
+                if (result instanceof net.minecraft.network.chat.Component nmsComponent) {
+                    String plain = nmsComponent.getString();
+                    if (plain.indexOf('§') >= 0) return LEGACY.deserialize(plain);
+                    return PaperAdventure.asAdventure(nmsComponent);
+                }
                 java.lang.reflect.Method getString = result.getClass().getMethod("getString");
                 String text = (String) getString.invoke(result);
                 return LEGACY.deserialize(text);
@@ -309,6 +325,7 @@ public final class NmsAdapter_1_21_x implements NmsAdapter {
                 return null;
             }
         }
+        logUnknownParamsShape(guard, label, params);
         return null;
     }
 
